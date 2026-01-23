@@ -1,27 +1,16 @@
 """
 Vercel Serverless Function Entry Point.
+This file wraps the FastAPI app for Vercel deployment.
 """
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+import sys
+from pathlib import Path
 
-app = FastAPI(title="Metadata Agent API", version="1.0.0")
+# Add the project root to the Python path
+project_root = Path(__file__).parent.parent
+sys.path.insert(0, str(project_root))
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Import the FastAPI app from main
+from src.main import app
 
-@app.get("/")
-async def root():
-    return {"message": "Metadata Agent API - Use /docs for documentation"}
-
-@app.get("/health")
-async def health():
-    return {"status": "healthy", "version": "1.0.0"}
-
-@app.get("/api")
-async def api_root():
-    return {"message": "Metadata Agent API", "docs": "/docs"}
+# Vercel uses 'app' directly for ASGI
+handler = app
