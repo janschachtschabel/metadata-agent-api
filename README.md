@@ -62,22 +62,28 @@ cp .env.template .env
 uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 ```
 
-### Option 3: Vercel
+### Option 3: Railway / Render / Fly.io (empfohlen für Serverless)
 
+Diese Plattformen unterstützen komplexe Python-Projekte besser als Vercel:
+
+**Railway:**
 ```bash
-# Vercel CLI installieren
-npm i -g vercel
+# Railway CLI installieren
+npm i -g @railway/cli
 
-# Projekt verbinden
-vercel link
-
-# Umgebungsvariablen setzen
-vercel env add B_API_KEY production
-vercel env add METADATA_AGENT_LLM_PROVIDER production
-
-# Deployen
-vercel --prod
+# Projekt deployen
+railway login
+railway init
+railway up
 ```
+
+**Render:**
+1. Repository mit Render verbinden
+2. "Web Service" erstellen
+3. Build Command: `pip install -r requirements.txt`
+4. Start Command: `uvicorn src.main:app --host 0.0.0.0 --port $PORT`
+
+> ⚠️ **Vercel:** Nur eingeschränkt nutzbar für diese API aufgrund der komplexen Projektstruktur.
 
 ---
 
@@ -577,11 +583,19 @@ docker run -d -p 8000:8000 \
   metadata-agent-api
 ```
 
-### Vercel
+### Railway
 
-1. Repository mit Vercel verbinden
-2. Umgebungsvariablen in Vercel Dashboard setzen
-3. Push zu main branch
+```bash
+railway login
+railway init
+railway up
+```
+
+### Render
+
+1. Repository verbinden
+2. Web Service erstellen
+3. Start Command: `uvicorn src.main:app --host 0.0.0.0 --port $PORT`
 
 ### Kubernetes
 
