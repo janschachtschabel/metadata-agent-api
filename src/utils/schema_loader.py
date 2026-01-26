@@ -31,16 +31,26 @@ def load_manifest(context: str) -> dict[str, Any]:
         return json.load(f)
 
 
+def resolve_version(context: str, version: str) -> str:
+    """Resolve 'latest' to actual version number."""
+    if version.lower() == "latest":
+        return get_latest_version(context)
+    return version
+
+
 @lru_cache(maxsize=100)
 def load_schema(context: str, version: str, schema_file: str) -> dict[str, Any]:
     """Load a specific schema definition."""
+    # Resolve 'latest' to actual version
+    resolved_version = resolve_version(context, version)
+    
     registry = load_context_registry()
     context_info = registry.get("contexts", {}).get(context)
     if not context_info:
         raise ValueError(f"Unknown context: {context}")
     
     context_path = context_info.get("path", context)
-    schema_path = SCHEMATA_PATH / context_path / f"v{version}" / schema_file
+    schema_path = SCHEMATA_PATH / context_path / f"v{resolved_version}" / schema_file
     
     if not schema_path.exists():
         raise ValueError(f"Schema not found: {schema_path}")
@@ -109,11 +119,14 @@ def get_available_contexts() -> list[dict[str, Any]]:
 
 def get_available_schemas(context: str, version: str) -> list[dict[str, Any]]:
     """Get list of available schemas for a context/version."""
+    # Resolve 'latest' to actual version
+    resolved_version = resolve_version(context, version)
+    
     manifest = load_manifest(context)
-    version_info = manifest.get("versions", {}).get(version)
+    version_info = manifest.get("versions", {}).get(resolved_version)
     
     if not version_info:
-        raise ValueError(f"Unknown version: {version}")
+        raise ValueError(f"Unknown version: {version} (resolved: {resolved_version})")
     
     schemas = []
     for schema_file in version_info.get("schemas", []):

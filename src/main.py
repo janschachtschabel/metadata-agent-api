@@ -1039,11 +1039,13 @@ async def generate_metadata(request: Request):
             raise HTTPException(status_code=400, detail="source_url is required when input_source='url'")
         try:
             input_service = get_input_source_service()
-            text = await input_service.fetch_from_url(
+            extracted_text = await input_service.fetch_from_url(
                 url=req.source_url,
                 method=req.extraction_method.value,
                 lang=req.language
             )
+            # Prepend source URL to text so LLM can use it for ccm:wwwurl field
+            text = f"Quell-URL / Source URL: {req.source_url}\n\n{extracted_text}"
         except Exception as e:
             raise HTTPException(status_code=502, detail=f"Failed to fetch text from URL: {str(e)}")
     
@@ -1075,7 +1077,12 @@ async def generate_metadata(request: Request):
                 source_url=req.source_url or None,
                 extraction_method=req.extraction_method.value
             )
-            text = input_data.text
+            # Prepend source URL to text so LLM can use it for ccm:wwwurl field
+            source_url_info = input_data.source_url or req.source_url
+            if source_url_info:
+                text = f"Quell-URL / Source URL: {source_url_info}\n\n{input_data.text}"
+            else:
+                text = input_data.text
             # Merge fetched metadata with provided existing_metadata (provided takes precedence)
             existing_metadata = {**input_data.existing_metadata, **existing_metadata} if input_data.existing_metadata else existing_metadata
         except Exception as e:
