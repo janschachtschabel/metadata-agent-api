@@ -154,6 +154,32 @@ API-Key wird über den Header `X-API-Key` oder als Bearer Token übergeben.
     lifespan=lifespan,
 )
 
+# Custom OpenAPI schema: inject request models that are referenced via $ref
+# but not auto-registered because endpoints use raw Request instead of Pydantic params
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title=app.title,
+        version=app.version,
+        description=app.description,
+        routes=app.routes,
+    )
+    # Inject missing request schemas
+    schemas = openapi_schema.setdefault("components", {}).setdefault("schemas", {})
+    for model in [GenerateRequest, DetectContentTypeRequest, ExtractFieldRequest,
+                  ValidateRequest, ExportMarkdownRequest, UploadRequest]:
+        model_schema = model.model_json_schema(ref_template="#/components/schemas/{model}")
+        # Extract $defs (sub-schemas like enums) and merge into top-level schemas
+        defs = model_schema.pop("$defs", {})
+        for def_name, def_schema in defs.items():
+            schemas.setdefault(def_name, def_schema)
+        schemas[model.__name__] = model_schema
+    app.openapi_schema = openapi_schema
+    return openapi_schema
+
+app.openapi = custom_openapi
+
 # CORS middleware - origins configurable via METADATA_AGENT_CORS_ORIGINS env var
 _cors_origins = [o.strip() for o in settings.cors_origins.split(",")] if settings.cors_origins != "*" else ["*"]
 app.add_middleware(

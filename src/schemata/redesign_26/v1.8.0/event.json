@@ -1284,22 +1284,22 @@
           "concepts": [
             {
               "label": {
-                "de": "OnlineEventAttendanceMode",
-                "en": "OnlineEventAttendanceMode"
+                "de": "Online",
+                "en": "Online"
               },
               "uri": "https://schema.org/OnlineEventAttendanceMode"
             },
             {
               "label": {
-                "de": "OfflineEventAttendanceMode",
-                "en": "OfflineEventAttendanceMode"
+                "de": "Vor Ort",
+                "en": "Offline"
               },
               "uri": "https://schema.org/OfflineEventAttendanceMode"
             },
             {
               "label": {
-                "de": "MixedEventAttendanceMode",
-                "en": "MixedEventAttendanceMode"
+                "de": "Hybrid",
+                "en": "Mixed"
               },
               "uri": "https://schema.org/MixedEventAttendanceMode"
             }
