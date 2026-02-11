@@ -48,7 +48,9 @@
     "RESET": "Reset",
     "MODE_TEXT": "Text",
     "MODE_URL": "URL",
-    "MODE_NODE_ID": "Node ID"
+    "MODE_NODE_ID": "Node ID",
+    "MODE_PAGE": "Webpage",
+    "EXTRACT_FROM_PAGE": "Reload page"
   },
   "CONTENT_TYPE": {
     "LABEL": "Content Type",

@@ -48,7 +48,9 @@
     "RESET": "Zurücksetzen",
     "MODE_TEXT": "Text",
     "MODE_URL": "URL",
-    "MODE_NODE_ID": "Node-ID"
+    "MODE_NODE_ID": "Node-ID",
+    "MODE_PAGE": "Webseite laden",
+    "EXTRACT_FROM_PAGE": "Seite neu laden"
   },
   "CONTENT_TYPE": {
     "LABEL": "Inhaltsart",

@@ -69,6 +69,7 @@ if (Test-Path $i18nSource) {
     Write-Host "  assets/i18n/ → copied"
 }
 
+
 # Step 3: Create gzip pre-compressed versions
 Write-Host "`n[3/4] Creating gzip pre-compressed versions..." -ForegroundColor Yellow
 Get-ChildItem $TargetDir -File | Where-Object { $_.Extension -in '.js', '.css' } | ForEach-Object {

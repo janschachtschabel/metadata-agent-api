@@ -210,6 +210,24 @@ if _widget_dir.exists():
 
 
 @app.get(
+    "/widget/i18n/{lang}.json",
+    summary="Widget UI-Übersetzungen",
+    description="Liefert die UI-Übersetzungstexte für die Webkomponente. Unterstützte Sprachen: `de`, `en`.",
+    tags=["Widget"],
+)
+async def widget_i18n(lang: str):
+    """Serve i18n translation files for the web component."""
+    i18n_dir = Path(__file__).parent / "static" / "widget" / "assets" / "i18n"
+    file_path = i18n_dir / f"{lang}.json"
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail=f"Language '{lang}' not found. Available: de, en")
+    return JSONResponse(
+        content=json.loads(file_path.read_text(encoding="utf-8")),
+        headers={"Cache-Control": "public, max-age=3600"}
+    )
+
+
+@app.get(
     "/widget/info",
     summary="Widget-Einbindung (Web Component)",
     description="""Informationen zur Einbindung der Metadata Agent Webkomponente in eigene Anwendungen.
