@@ -51,7 +51,31 @@
             white-space: nowrap;
         }
 
-        .ct-btn {
+        .ct-select {
+            padding: 7px 12px;
+            border: 1px solid #c4c7c5;
+            border-radius: 8px;
+            background: white;
+            font-size: 13px;
+            font-family: 'Roboto', sans-serif;
+            color: #1d1b20;
+            cursor: pointer;
+            min-width: 220px;
+            transition: border-color 0.2s;
+        }
+
+        .ct-select:hover, .ct-select:focus {
+            border-color: #1976d2;
+            outline: none;
+        }
+
+        .ct-btn-loading {
+            font-size: 13px;
+            color: #999;
+            font-style: italic;
+        }
+
+        .toggle-btn {
             display: inline-flex;
             align-items: center;
             gap: 6px;
@@ -66,25 +90,15 @@
             transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
-        .ct-btn:hover {
+        .toggle-btn:hover {
             background: #e8f0fe;
             border-color: #1976d2;
-            color: #1976d2;
         }
 
-        .ct-btn.active {
+        .toggle-btn.on {
             background: #1976d2;
             color: white;
             border-color: #1976d2;
-            box-shadow: 0 1px 3px rgba(25, 118, 210, 0.3);
-        }
-
-        .ct-btn .material-icons { font-size: 18px; }
-
-        .ct-btn-loading {
-            font-size: 13px;
-            color: #999;
-            font-style: italic;
         }
 
         /* ===== Widget Container ===== */
@@ -123,11 +137,17 @@
         <p>Prüf- und Bearbeitungsansicht mit Fortschrittsbalken. Lädt Beispiel-Metadaten aus JSON.</p>
     </div>
 
-    <!-- Externer Content-Type Switcher -->
+    <!-- Externer Content-Type Switcher + Optionen -->
     <div class="content-type-bar">
         <span class="label">Inhaltstyp:</span>
-        <span class="ct-btn-loading" id="ctLoading">Lade Inhaltstypen…</span>
-        <div id="ctButtons" style="display:contents;"></div>
+        <select class="ct-select" id="ctSelect" disabled>
+            <option value="">Lade Inhaltstypen…</option>
+        </select>
+
+        <span class="label" style="margin-left: 16px;">Anzeige:</span>
+        <button class="toggle-btn on" id="toggleCore" onclick="toggleCoreFields(this)">
+            <span class="material-icons" style="font-size:16px">checklist</span> Kernfelder
+        </button>
     </div>
 
     <div class="widget-container">
@@ -180,42 +200,60 @@
 
         let currentSchemaFile = null;
 
+        // Human-readable labels for schema files
+        const SCHEMA_LABELS = {
+            'core.json': 'Kernmetadaten',
+            'event.json': 'Veranstaltung',
+            'education_offer.json': 'Bildungsangebot',
+            'learning_material.json': 'Lernmaterial',
+            'person.json': 'Person',
+            'organization.json': 'Organisation',
+            'tool_service.json': 'Tool / Service',
+            'occupation.json': 'Beruf',
+            'didactic_planning_tools.json': 'Didaktische Planungswerkzeuge',
+            'source.json': 'Quelle',
+            'prompt.json': 'Prompt'
+        };
+
         /**
          * Fetch available content types (schemas) from the API
-         * and render external buttons for each.
+         * and populate the dropdown.
          */
         async function loadContentTypes() {
+            const select = document.getElementById('ctSelect');
             try {
                 const resp = await fetch(`${API_URL}/info/schemas/default/latest`);
                 if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
                 const schemas = await resp.json();
 
-                const container = document.getElementById('ctButtons');
-                document.getElementById('ctLoading').style.display = 'none';
-
+                select.innerHTML = '<option value="">— Inhaltstyp wählen —</option>';
                 schemas.forEach(schema => {
-                    const label = schema.label?.de || schema.label?.en || schema.file;
-                    const btn = document.createElement('button');
-                    btn.className = 'ct-btn';
-                    btn.dataset.schemaFile = schema.file;
-                    btn.innerHTML = `<span class="material-icons">category</span> ${label}`;
-                    btn.addEventListener('click', () => switchContentType(schema.file, label, btn));
-                    container.appendChild(btn);
+                    const label = SCHEMA_LABELS[schema.file] || schema.file.replace('.json', '');
+                    const opt = document.createElement('option');
+                    opt.value = schema.file;
+                    opt.textContent = label;
+                    select.appendChild(opt);
+                });
+                select.disabled = false;
+
+                select.addEventListener('change', () => {
+                    const file = select.value;
+                    if (file) {
+                        currentSchemaFile = file;
+                        canvas.contentType = file;
+                    }
                 });
             } catch (err) {
-                document.getElementById('ctLoading').textContent = 'Fehler beim Laden: ' + err.message;
+                select.innerHTML = `<option value="">Fehler: ${err.message}</option>`;
             }
         }
 
         /**
-         * Switch content type from outside the web component.
+         * Toggle show-core-fields on the web component.
          */
-        function switchContentType(schemaFile, label, btn) {
-            document.querySelectorAll('.ct-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            currentSchemaFile = schemaFile;
-
-            canvas.contentType = schemaFile;
+        function toggleCoreFields(btn) {
+            const isOn = btn.classList.toggle('on');
+            canvas.setAttribute('show-core-fields', isOn ? 'true' : 'false');
         }
 
         /**
