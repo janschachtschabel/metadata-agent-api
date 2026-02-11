@@ -138,19 +138,27 @@
             display: none;
         }
 
-        /* ===== Content Type Buttons ===== */
-        .ct-btn {
-            padding: 5px 12px;
+        /* ===== Select (dropdown) ===== */
+        .ctrl-select {
+            padding: 5px 10px;
             border: 1px solid #d0d5dd;
             border-radius: 6px;
             background: white;
-            cursor: pointer;
             font-size: 12px;
             font-family: 'Roboto', sans-serif;
-            transition: all 0.15s;
+            cursor: pointer;
+            min-width: 160px;
+            transition: border-color 0.15s;
         }
-        .ct-btn:hover { background: #e8f0fe; border-color: #1976d2; }
-        .ct-btn.active { background: #e8f0fe; border-color: #1976d2; color: #1976d2; font-weight: 500; }
+        .ctrl-select:hover, .ctrl-select:focus { border-color: #1976d2; outline: none; }
+
+        /* ===== Color swatches ===== */
+        .swatch {
+            width: 24px; height: 24px; border-radius: 6px;
+            border: 2px solid transparent; cursor: pointer;
+            transition: border-color 0.15s;
+        }
+        .swatch:hover, .swatch.active { border-color: #1976d2; }
 
         /* ===== Current Config Display ===== */
         .config-display {
@@ -191,10 +199,27 @@
             <button class="btn" onclick="toggleJsonPreview()">JSON anzeigen</button>
         </div>
 
-        <!-- Row 2: Layout -->
+        <!-- Row 2: Schema -->
+        <div class="panel-section">
+            <span class="section-label">Schema</span>
+            <select class="ctrl-select" id="ctSelect" disabled>
+                <option value="">Lade Inhaltstypen…</option>
+            </select>
+            <div class="sep"></div>
+            <span class="section-label" style="min-width:auto">Kontext</span>
+            <button class="btn active" data-ctx="default" onclick="setContext('default', this)">default</button>
+            <button class="btn" data-ctx="redesign_26" onclick="setContext('redesign_26', this)">redesign_26</button>
+            <div class="sep"></div>
+            <span class="section-label" style="min-width:auto">Version</span>
+            <button class="btn active" data-ver="latest" onclick="setVersion('latest', this)">latest</button>
+            <button class="btn" data-ver="1.8.0" onclick="setVersion('1.8.0', this)">1.8.0</button>
+        </div>
+
+        <!-- Row 3: Layout -->
         <div class="panel-section">
             <span class="section-label">Layout</span>
             <button class="btn active" data-layout="default" onclick="setLayout('default', this)">Default</button>
+            <button class="btn" data-layout="compact" onclick="setLayout('compact', this)">Compact</button>
             <button class="btn" data-layout="plugin" onclick="setLayout('plugin', this)">Plugin</button>
             <button class="btn" data-layout="dialog" onclick="setLayout('dialog', this)">Dialog</button>
             <button class="btn" data-layout="detail" onclick="setLayout('detail', this)">Detail</button>
@@ -209,7 +234,17 @@
             <button class="btn" data-col="4" onclick="setColumns(4, this)">4</button>
         </div>
 
-        <!-- Row 3: Element toggles -->
+        <!-- Row 4: Input mode -->
+        <div class="panel-section">
+            <span class="section-label">Eingabe</span>
+            <button class="btn active" data-mode="text" onclick="setInputMode('text', this)">Text</button>
+            <button class="btn" data-mode="url" onclick="setInputMode('url', this)">URL</button>
+            <button class="btn" data-mode="nodeId" onclick="setInputMode('nodeId', this)">Node-ID</button>
+            <div class="sep"></div>
+            <div class="toggle" data-attr="auto-extract" onclick="toggleAttr(this)"><span class="dot"></span> Auto-Extract</div>
+        </div>
+
+        <!-- Row 5: Element toggles -->
         <div class="panel-section">
             <span class="section-label">Elemente</span>
             <div class="toggle on" data-attr="show-input-area" onclick="toggleAttr(this)"><span class="dot"></span> Eingabe</div>
@@ -220,22 +255,25 @@
             <div class="toggle on" data-attr="show-footer" onclick="toggleAttr(this)"><span class="dot"></span> Footer</div>
             <div class="toggle on" data-attr="show-floating-controls" onclick="toggleAttr(this)"><span class="dot"></span> Float-Controls</div>
             <div class="toggle" data-attr="show-upload-button" onclick="toggleAttr(this)"><span class="dot"></span> Upload</div>
+            <div class="toggle" data-attr="show-page-mode" onclick="toggleAttr(this)"><span class="dot"></span> Seitenmodus</div>
             <div class="toggle" data-attr="show-content-type-only" onclick="toggleAttr(this)"><span class="dot"></span> Nur CT</div>
         </div>
 
-        <!-- Row 4: Behavior -->
+        <!-- Row 6: Behavior -->
         <div class="panel-section">
             <span class="section-label">Verhalten</span>
             <div class="toggle" data-attr="readonly" onclick="toggleAttr(this)"><span class="dot"></span> Readonly</div>
             <div class="toggle on" data-attr="borderless" onclick="toggleAttr(this)"><span class="dot"></span> Randlos</div>
             <div class="toggle on" data-attr="highlight-ai" onclick="toggleAttr(this)"><span class="dot"></span> KI-Highlight</div>
+            <div class="sep"></div>
+            <span class="section-label" style="min-width:auto">Hintergrund</span>
+            <div class="swatch active" style="background:#ffffff" data-bg="#ffffff" onclick="setBgColor('#ffffff', this)" title="Weiß"></div>
+            <div class="swatch" style="background:#f5f5f5" data-bg="#f5f5f5" onclick="setBgColor('#f5f5f5', this)" title="Hellgrau"></div>
+            <div class="swatch" style="background:#e8f0fe" data-bg="#e8f0fe" onclick="setBgColor('#e8f0fe', this)" title="Hellblau"></div>
+            <div class="swatch" style="background:#fef7e0" data-bg="#fef7e0" onclick="setBgColor('#fef7e0', this)" title="Hellgelb"></div>
+            <div class="swatch" style="background:#1e1e1e" data-bg="#1e1e1e" onclick="setBgColor('#1e1e1e', this)" title="Dunkel"></div>
         </div>
 
-        <!-- Row 5: Content Type -->
-        <div class="panel-section" id="contentTypeRow">
-            <span class="section-label">Inhaltstyp</span>
-            <span class="file-info" id="ctLoading">Lade Schemas…</span>
-        </div>
     </div>
 
     <!-- Current config display -->
@@ -309,34 +347,79 @@
             updateConfigDisplay();
         }
 
-        // ===== Content Type =====
-        function setContentType(schemaFile, btn) {
-            canvas.contentType = schemaFile;
-            document.querySelectorAll('.ct-btn').forEach(b => b.classList.remove('active'));
+        // ===== Content Type (dropdown) =====
+        const SCHEMA_LABELS = {
+            'core.json': 'Kernmetadaten',
+            'event.json': 'Veranstaltung',
+            'education_offer.json': 'Bildungsangebot',
+            'learning_material.json': 'Lernmaterial',
+            'person.json': 'Person',
+            'organization.json': 'Organisation',
+            'tool_service.json': 'Tool / Service',
+            'occupation.json': 'Beruf',
+            'didactic_planning_tools.json': 'Didaktische Planungswerkzeuge',
+            'source.json': 'Quelle',
+            'prompt.json': 'Prompt'
+        };
+
+        async function loadContentTypes() {
+            const select = document.getElementById('ctSelect');
+            try {
+                const resp = await fetch(`${apiUrl}/info/schemas/default/latest`);
+                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+                const schemas = await resp.json();
+
+                select.innerHTML = '<option value="">— Inhaltstyp wählen —</option>';
+                schemas.forEach(schema => {
+                    const label = SCHEMA_LABELS[schema.file] || schema.file.replace('.json', '');
+                    const opt = document.createElement('option');
+                    opt.value = schema.file;
+                    opt.textContent = label;
+                    select.appendChild(opt);
+                });
+                select.disabled = false;
+
+                select.addEventListener('change', () => {
+                    const file = select.value;
+                    if (file) {
+                        canvas.contentType = file;
+                        updateConfigDisplay();
+                    }
+                });
+            } catch (err) {
+                select.innerHTML = `<option value="">Fehler: ${err.message}</option>`;
+            }
+        }
+
+        // ===== Context & Version =====
+        function setContext(ctx, btn) {
+            canvas.setAttribute('context-name', ctx);
+            document.querySelectorAll('[data-ctx]').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
             updateConfigDisplay();
         }
 
-        // ===== Load content types from API =====
-        async function loadContentTypes() {
-            try {
-                const resp = await fetch(`${apiUrl}/schemas/default/latest`);
-                if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
-                const schemas = await resp.json();
-                const row = document.getElementById('contentTypeRow');
-                document.getElementById('ctLoading').remove();
-                schemas.forEach((schema, i) => {
-                    const label = schema.label || schema.file.replace('.json', '');
-                    const btn = document.createElement('button');
-                    btn.className = 'ct-btn' + (i === 0 ? ' active' : '');
-                    btn.textContent = label;
-                    btn.onclick = () => setContentType(schema.file, btn);
-                    row.appendChild(btn);
-                });
-            } catch (err) {
-                const row = document.getElementById('contentTypeRow');
-                document.getElementById('ctLoading').textContent = 'Fehler beim Laden der Schemas';
-            }
+        function setVersion(ver, btn) {
+            canvas.setAttribute('schema-version', ver);
+            document.querySelectorAll('[data-ver]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            updateConfigDisplay();
+        }
+
+        // ===== Input Mode =====
+        function setInputMode(mode, btn) {
+            canvas.setAttribute('input-mode', mode);
+            document.querySelectorAll('[data-mode]').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            updateConfigDisplay();
+        }
+
+        // ===== Background Color =====
+        function setBgColor(color, el) {
+            canvas.setAttribute('background-color', color);
+            document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+            el.classList.add('active');
+            updateConfigDisplay();
         }
 
         // ===== JSON Import =====
@@ -388,15 +471,22 @@
             });
             const activeLayout = document.querySelector('[data-layout].active');
             const activeCols = document.querySelector('[data-col].active');
-            const activeCT = document.querySelector('.ct-btn.active');
+            const activeMode = document.querySelector('[data-mode].active');
+            const activeCtx = document.querySelector('[data-ctx].active');
+            const activeVer = document.querySelector('[data-ver].active');
+            const ctSelect = document.getElementById('ctSelect');
+            const activeBg = document.querySelector('.swatch.active');
 
             const parts = [
                 `layout=<span class="val">${activeLayout?.dataset.layout || '?'}</span>`,
                 `columns=<span class="val">${activeCols?.dataset.col || '?'}</span>`,
+                `input-mode=<span class="val">${activeMode?.dataset.mode || '?'}</span>`,
+                `context=<span class="val">${activeCtx?.dataset.ctx || '?'}</span>`,
+                `version=<span class="val">${activeVer?.dataset.ver || '?'}</span>`,
             ];
-            if (activeCT) parts.push(`content-type=<span class="val">${activeCT.textContent}</span>`);
+            if (ctSelect?.value) parts.push(`content-type=<span class="val">${ctSelect.options[ctSelect.selectedIndex]?.textContent}</span>`);
+            if (activeBg?.dataset.bg && activeBg.dataset.bg !== '#ffffff') parts.push(`bg=<span class="val">${activeBg.dataset.bg}</span>`);
             for (const [k, v] of Object.entries(attrs)) {
-                if (k === 'show-core-fields' || k === 'show-special-fields') continue; // skip verbose
                 parts.push(`${k}=<span class="val">${v}</span>`);
             }
             document.getElementById('configDisplay').innerHTML = parts.map(p => `<span>${p}</span>`).join('');
