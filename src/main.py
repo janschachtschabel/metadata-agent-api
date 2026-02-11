@@ -205,7 +205,8 @@ _widget_dir = Path(__file__).parent / "static" / "widget"
 if _widget_dir.exists():
     app.mount("/widget/assets", StaticFiles(directory=str(_widget_dir / "assets")), name="widget-assets") if (_widget_dir / "assets").exists() else None
     app.mount("/widget/examples", StaticFiles(directory=str(_widget_dir / "examples"), html=True), name="widget-examples") if (_widget_dir / "examples").exists() else None
-    app.mount("/widget/dist", StaticFiles(directory=str(_widget_dir / "dist")), name="widget-dist")
+    if (_widget_dir / "dist").exists():
+        app.mount("/widget/dist", StaticFiles(directory=str(_widget_dir / "dist")), name="widget-dist")
 
 
 @app.get(
