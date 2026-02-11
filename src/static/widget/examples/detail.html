@@ -210,11 +210,7 @@
             document.querySelectorAll('.ct-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
 
-            canvas.selectContentType({
-                schemaFile: schemaFile,
-                label: label,
-                icon: 'category'
-            });
+            canvas.contentType = schemaFile;
         }
 
         /**

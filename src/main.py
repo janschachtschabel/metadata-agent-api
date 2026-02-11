@@ -294,6 +294,8 @@ async def widget_info(request: Request):
                     "highlight-ai": "KI-generierte Felder hervorheben (true/false)",
                     "node-id": "edu-sharing Node-ID für automatische Extraktion",
                     "source-url": "URL für automatische Text-Extraktion",
+                    "content-type": "Inhaltstyp setzen (Schema-Dateiname, z.B. 'event.json'). Per JS: canvas.contentType = 'event.json'",
+                    "metadata-input": "Vorab-Metadaten als JSON-Objekt. Per JS: canvas.metadataInput = {...}",
                 },
             },
             "detail": {

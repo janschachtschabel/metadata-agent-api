@@ -220,12 +220,7 @@
             btn.classList.add('active');
             currentSchemaFile = schemaFile;
 
-            // Call the component's selectContentType method
-            canvas.selectContentType({
-                schemaFile: schemaFile,
-                label: label,
-                icon: 'category'
-            });
+            canvas.contentType = schemaFile;
         }
 
         /**
