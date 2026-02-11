@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Metadata Agent – Minimale Einbettung</title>
+
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <!-- Widget Styles -->
+    <link rel="stylesheet" href="../dist/styles.css">
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background: #f9f9f9;
+            padding: 24px;
+        }
+
+        h1 { font-size: 20px; font-weight: 400; color: #333; margin-bottom: 8px; }
+        p.subtitle { color: #666; font-size: 14px; margin-bottom: 20px; }
+
+        /* Simulates embedding inside an existing page layout */
+        .page-layout {
+            max-width: 900px;
+            margin: 0 auto;
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 24px;
+        }
+
+        .main-content {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+
+        .main-content h2 { font-size: 16px; margin-bottom: 8px; }
+        .main-content p { font-size: 14px; color: #444; line-height: 1.6; }
+
+        .sidebar {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+        }
+
+        .sidebar h3 {
+            font-size: 13px;
+            font-weight: 500;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        metadata-agent-canvas {
+            display: block;
+            width: 100%;
+            min-height: 400px;
+        }
+
+        @media (max-width: 768px) {
+            .page-layout { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Minimale Einbettung</h1>
+    <p class="subtitle">Kompakte Variante ohne Statusbar und Controls — z.B. für Sidebars oder bestehende Formulare.</p>
+
+    <div class="page-layout">
+        <div class="main-content">
+            <h2>Ihre Anwendung</h2>
+            <p>
+                Dies simuliert eine bestehende Webanwendung. Die Metadata Agent Webkomponente
+                ist in der rechten Sidebar eingebettet — kompakt, rahmenlos, ohne eigene Controls.
+            </p>
+            <p style="margin-top: 12px;">
+                Die Komponente passt sich an den verfügbaren Platz an und kann per JavaScript
+                gesteuert werden. Events wie <code>metadataChange</code> informieren die
+                Host-Anwendung über Änderungen.
+            </p>
+        </div>
+
+        <div class="sidebar">
+            <h3>Metadaten</h3>
+
+            <!--
+                Minimale Einbettung: layout="compact", borderless, kein Statusbar/Controls.
+                Siehe full.html für die vollständige Attribut-Dokumentation.
+            -->
+            <metadata-agent-canvas
+                id="canvas"
+                api-url="https://metadata-agent-api.vercel.app"
+                layout="compact"
+                context-name="default"
+                schema-version="latest"
+                input-mode="text"
+                show-input-area="true"
+                show-status-bar="false"
+                show-core-fields="true"
+                show-special-fields="true"
+                show-footer="false"
+                show-floating-controls="false"
+                show-field-actions="true"
+                show-upload-button="false"
+                show-page-mode="false"
+                show-content-type-only="false"
+                readonly="false"
+                borderless="true"
+                highlight-ai="true"
+                auto-extract="false">
+            </metadata-agent-canvas>
+        </div>
+    </div>
+
+    <!-- Widget Scripts -->
+    <script src="../dist/runtime.js" defer></script>
+    <script src="../dist/polyfills.js" defer></script>
+    <script src="../dist/main.js" defer></script>
+
+    <script>
+        const apiUrl = 'https://metadata-agent-api.vercel.app';
+        document.getElementById('canvas').setAttribute('api-url', apiUrl);
+    </script>
+
+</body>
+</html>

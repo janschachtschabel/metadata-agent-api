@@ -45,6 +45,10 @@ htmlcov/
 *.log
 logs/
 
+# Widget dist (built artifacts, created by scripts/deploy-widget.ps1)
+src/static/widget/dist/
+src/static/widget/assets/i18n/
+
 # OS
 .DS_Store
 Thumbs.db

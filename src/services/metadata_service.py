@@ -140,6 +140,7 @@ class MetadataService:
         normalize_vocabularies: bool = True,
         regenerate_fields: Optional[list[str]] = None,
         regenerate_empty: bool = False,
+        origins: Optional[dict[str, str]] = None,
     ) -> dict[str, Any]:
         """
         Generate metadata from text.
@@ -158,6 +159,7 @@ class MetadataService:
             normalize_vocabularies: Normalize vocabulary values using fuzzy matching
             regenerate_fields: List of field IDs to regenerate (re-extract)
             regenerate_empty: Re-extract fields that are empty in existing_metadata
+            origins: Existing field origins dict (field_id -> 'ai'|'user')
             
         Returns:
             Generated metadata with statistics
@@ -266,16 +268,20 @@ class MetadataService:
         
         # Build flat metadata (just field_id: value)
         flat_metadata = {}
+        # Track field origins: 'ai' for LLM-extracted, 'user' for manually entered
+        field_origins = dict(origins) if origins else {}
+        
         if existing_metadata:
             # Copy existing but exclude meta fields
             for key, value in existing_metadata.items():
                 if not key.startswith("_"):
                     flat_metadata[key] = value
         
-        # Add extracted values (overwrites existing)
+        # Add extracted values (overwrites existing) and mark as AI-generated
         for field_id, value in extracted_values.items():
             if value is not None:
                 flat_metadata[field_id] = value
+                field_origins[field_id] = "ai"
         
         # Normalize field values based on schema
         if normalize_output:
@@ -346,6 +352,15 @@ class MetadataService:
         
         processing_time = int((time.time() - start_time) * 1000)
         
+        # Build final origins for all fields in ordered_metadata
+        final_origins = {}
+        for field_id in ordered_metadata:
+            if field_id in field_origins:
+                final_origins[field_id] = field_origins[field_id]
+            else:
+                # New fields without origin info: AI-extracted if in extracted_values, else unknown
+                final_origins[field_id] = "ai" if field_id in extracted_values else "user"
+        
         return {
             "contextName": context,
             "schemaVersion": version,
@@ -353,6 +368,7 @@ class MetadataService:
             "language": language,
             "exportedAt": datetime.now(timezone.utc).isoformat(),
             "metadata": ordered_metadata,
+            "_origins": final_origins,
             "processing": {
                 "success": True,
                 "fields_extracted": len([v for v in extracted_values.values() if v is not None]),

@@ -18,6 +18,7 @@ Generiert strukturierte Metadaten nach dem [WLO/OEH-Schema](https://wirlernenonl
   - [Info-Endpunkte](#info-endpunkte)
 - [Nutzungsbeispiele](#nutzungsbeispiele)
 - [Umgebungsvariablen](#umgebungsvariablen)
+- [Widget / Webkomponente](#widget--webkomponente)
 - [Deployment](#deployment)
 
 ---
@@ -763,6 +764,84 @@ METADATA_AGENT_LLM_PROVIDER=b-api-openai
 # WLO_GUEST_USERNAME=upload-user
 # WLO_GUEST_PASSWORD=upload-password
 ```
+
+---
+
+## Widget / Webkomponente
+
+Die API liefert eine einbettbare Angular-Webkomponente (`<metadata-agent-canvas>`) als statische Dateien mit aus. Damit können andere Anwendungen die Metadaten-Erfassung oder -Anzeige ohne eigenen Build einbinden.
+
+### Widget bereitstellen
+
+```powershell
+# Angular-Projekt bauen und dist-Dateien in die API kopieren
+.\scripts\deploy-widget.ps1
+
+# Nur kopieren (ohne Neubau, z.B. wenn dist schon aktuell ist)
+.\scripts\deploy-widget.ps1 -SkipBuild
+```
+
+### Einbindung in eigene Anwendungen
+
+```html
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+<!-- Widget -->
+<link rel="stylesheet" href="https://DEINE-API-URL/widget/dist/styles.css">
+<script src="https://DEINE-API-URL/widget/dist/runtime.js" defer></script>
+<script src="https://DEINE-API-URL/widget/dist/polyfills.js" defer></script>
+<script src="https://DEINE-API-URL/widget/dist/main.js" defer></script>
+
+<!-- Nutzung -->
+<metadata-agent-canvas
+  api-url="https://DEINE-API-URL"
+  layout="default"
+  show-input="true"
+  show-status-bar="true"
+  show-controls="true">
+</metadata-agent-canvas>
+```
+
+### Varianten
+
+| Variante | Layout | Beschreibung |
+|----------|--------|-------------|
+| **Voll** | `default` | Eingabe, KI-Extraktion, Statusbar, Floating Controls |
+| **Detail** | `detail` | Mehrspaltige Nur-Lese-Ansicht für Repository-Detailseiten |
+| **Kompakt** | `compact` | Platzsparend, für Sidebars und bestehende Formulare |
+| **Minimal** | `minimal` | Nur Felder, ohne Rahmen und Controls |
+
+### Wichtige Attribute
+
+| Attribut | Beschreibung |
+|----------|-------------|
+| `api-url` | URL der Metadata Agent API (Pflicht) |
+| `layout` | `default`, `compact`, `minimal`, `detail` |
+| `node-id` | edu-sharing Node-ID für automatische Extraktion |
+| `source-url` | URL für automatische Text-Extraktion |
+| `context-name` | Schema-Kontext (`default`, `redesign_26`) |
+| `readonly` | Nur-Lese-Modus (`true`/`false`) |
+| `show-input` | Eingabebereich anzeigen |
+| `show-status-bar` | Statusleiste anzeigen |
+| `show-controls` | Floating Controls anzeigen |
+| `borderless` | Rahmenloser Modus |
+| `highlight-ai` | KI-generierte Felder hervorheben |
+
+### Events (JavaScript)
+
+```javascript
+const canvas = document.querySelector('metadata-agent-canvas');
+canvas.addEventListener('metadataChange', (e) => console.log(e.detail));
+canvas.addEventListener('metadataSubmit', (e) => console.log(e.detail));
+canvas.addEventListener('extractionComplete', (e) => console.log(e.detail));
+```
+
+### API-Endpunkt
+
+- **`GET /widget/info`** — Gibt alle Script-URLs, Varianten und Beispiel-Snippets als JSON zurück
+- **Beispiele**: `/widget/examples/full.html`, `/widget/examples/detail.html`, `/widget/examples/minimal.html`, `/widget/examples/test.html`
 
 ---
 

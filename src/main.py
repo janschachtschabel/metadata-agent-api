@@ -2,9 +2,12 @@
 import re
 import json
 import time
+from pathlib import Path
 from fastapi import FastAPI, HTTPException, Request, Body
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.openapi.utils import get_openapi
 from contextlib import asynccontextmanager
 
@@ -189,6 +192,149 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Gzip compression for all responses >= 500 bytes (widget JS/CSS + API JSON)
+app.add_middleware(GZipMiddleware, minimum_size=500)
+
+# ============================================================================
+# Widget Static Files
+# ============================================================================
+
+# Mount widget dist files if they exist
+_widget_dir = Path(__file__).parent / "static" / "widget"
+if _widget_dir.exists():
+    app.mount("/widget/assets", StaticFiles(directory=str(_widget_dir / "assets")), name="widget-assets") if (_widget_dir / "assets").exists() else None
+    app.mount("/widget/examples", StaticFiles(directory=str(_widget_dir / "examples"), html=True), name="widget-examples") if (_widget_dir / "examples").exists() else None
+    app.mount("/widget/dist", StaticFiles(directory=str(_widget_dir / "dist")), name="widget-dist")
+
+
+@app.get(
+    "/widget/info",
+    summary="Widget-Einbindung (Web Component)",
+    description="""Informationen zur Einbindung der Metadata Agent Webkomponente in eigene Anwendungen.
+
+Gibt alle verfügbaren Varianten, die benötigten Script-URLs und Beispiel-Code zurück.
+""",
+    tags=["Widget"],
+)
+async def widget_info(request: Request):
+    """Return embedding info for the web component widget."""
+    base = str(request.base_url).rstrip("/")
+    dist_base = f"{base}/widget/dist"
+    examples_base = f"{base}/widget/examples"
+    
+    return {
+        "name": "metadata-agent-canvas",
+        "version": settings.app_version,
+        "description": "Angular Web Component zur Anzeige und Bearbeitung von Metadaten. "
+                       "Kann als <metadata-agent-canvas> Tag in beliebige Webanwendungen eingebettet werden.",
+        "dist_base_url": dist_base,
+        "scripts": {
+            "required": [
+                f"{dist_base}/runtime.js",
+                f"{dist_base}/polyfills.js",
+                f"{dist_base}/main.js",
+            ],
+            "styles": [
+                f"{dist_base}/styles.css",
+            ],
+            "fonts": [
+                "https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap",
+                "https://fonts.googleapis.com/icon?family=Material+Icons",
+            ],
+        },
+        "variants": {
+            "full": {
+                "description": "Volle Webkomponente mit Eingabebereich, KI-Extraktion, Statusbar und allen Layouts. "
+                               "Für interaktive Metadaten-Erfassung und -Bearbeitung.",
+                "example_url": f"{examples_base}/full.html",
+                "snippet": (
+                    '<link rel="stylesheet" href="' + dist_base + '/styles.css">\n'
+                    '<script src="' + dist_base + '/runtime.js" defer></script>\n'
+                    '<script src="' + dist_base + '/polyfills.js" defer></script>\n'
+                    '<script src="' + dist_base + '/main.js" defer></script>\n\n'
+                    '<metadata-agent-canvas\n'
+                    '  api-url="' + base + '"\n'
+                    '  layout="default"\n'
+                    '  show-input="true"\n'
+                    '  show-status-bar="true"\n'
+                    '  show-controls="true">\n'
+                    '</metadata-agent-canvas>'
+                ),
+                "attributes": {
+                    "api-url": "URL der Metadata Agent API",
+                    "layout": "Layout-Variante: default, compact, minimal, detail",
+                    "context-name": "Schema-Kontext, z.B. 'default' oder 'redesign_26'",
+                    "show-input": "Eingabebereich anzeigen (true/false)",
+                    "show-status-bar": "Statusleiste anzeigen (true/false)",
+                    "show-controls": "Floating Controls anzeigen (true/false)",
+                    "show-core-fields": "Kernfelder anzeigen (true/false)",
+                    "show-special-fields": "Spezialfelder anzeigen (true/false)",
+                    "borderless": "Rahmenloser Modus (true/false)",
+                    "readonly": "Nur-Lese-Modus (true/false)",
+                    "highlight-ai": "KI-generierte Felder hervorheben (true/false)",
+                    "node-id": "edu-sharing Node-ID für automatische Extraktion",
+                    "source-url": "URL für automatische Text-Extraktion",
+                },
+            },
+            "detail": {
+                "description": "Nur-Lese Detailansicht. Mehrspaltig, ohne Eingabe. "
+                               "Für Repository-Detailseiten und Metadaten-Vorschau.",
+                "example_url": f"{examples_base}/detail.html",
+                "snippet": (
+                    '<link rel="stylesheet" href="' + dist_base + '/styles.css">\n'
+                    '<script src="' + dist_base + '/runtime.js" defer></script>\n'
+                    '<script src="' + dist_base + '/polyfills.js" defer></script>\n'
+                    '<script src="' + dist_base + '/main.js" defer></script>\n\n'
+                    '<metadata-agent-canvas\n'
+                    '  api-url="' + base + '"\n'
+                    '  layout="detail"\n'
+                    '  node-id="DEINE-NODE-ID"\n'
+                    '  readonly="true">\n'
+                    '</metadata-agent-canvas>'
+                ),
+            },
+            "minimal": {
+                "description": "Kompakte Variante ohne Statusbar und Controls. "
+                               "Für Einbettung in bestehende Formulare oder Sidebars.",
+                "example_url": f"{examples_base}/minimal.html",
+                "snippet": (
+                    '<link rel="stylesheet" href="' + dist_base + '/styles.css">\n'
+                    '<script src="' + dist_base + '/runtime.js" defer></script>\n'
+                    '<script src="' + dist_base + '/polyfills.js" defer></script>\n'
+                    '<script src="' + dist_base + '/main.js" defer></script>\n\n'
+                    '<metadata-agent-canvas\n'
+                    '  api-url="' + base + '"\n'
+                    '  layout="compact"\n'
+                    '  show-input="true"\n'
+                    '  show-status-bar="false"\n'
+                    '  show-controls="false"\n'
+                    '  borderless="true">\n'
+                    '</metadata-agent-canvas>'
+                ),
+            },
+        },
+        "events": {
+            "metadataChange": "Wird ausgelöst wenn sich Metadaten ändern. event.detail enthält die aktualisierten Felder.",
+            "metadataSubmit": "Wird ausgelöst wenn der Nutzer die Metadaten absendet. event.detail enthält alle Metadaten.",
+            "extractionComplete": "Wird nach Abschluss der KI-Extraktion ausgelöst.",
+            "contentTypeDetected": "Wird ausgelöst wenn der Inhaltstyp erkannt wurde.",
+        },
+        "examples": {
+            "full": f"{examples_base}/full.html",
+            "detail": f"{examples_base}/detail.html",
+            "minimal": f"{examples_base}/minimal.html",
+            "json_import": f"{examples_base}/json-import.html",
+            "prueftisch": f"{examples_base}/prueftisch.html",
+            "prueftisch_gross": f"{examples_base}/prueftisch-gross.html",
+            "metadatenpruefdialog": f"{examples_base}/metadatenpruefdialog.html",
+            "default": f"{examples_base}/default.html",
+            "interactive_test": f"{examples_base}/test.html",
+        },
+        "example_data": {
+            "metadata_json": f"{examples_base}/metadata-2026-02-11.json",
+        },
+    }
 
 
 # ============================================================================
@@ -1101,6 +1247,9 @@ async def generate_metadata(request: Request):
     text = req.text
     existing_metadata = req.existing_metadata or {}
     
+    # Extract _origins from existing_metadata (passed by web component)
+    origins = existing_metadata.pop("_origins", None) if existing_metadata else None
+    
     if req.input_source == InputSource.TEXT:
         # Direct text input
         if not text or not text.strip():
@@ -1201,6 +1350,7 @@ async def generate_metadata(request: Request):
         normalize_vocabularies=req.normalize,
         regenerate_fields=req.regenerate_fields,
         regenerate_empty=req.regenerate_empty,
+        origins=origins,
     )
     
     # Close non-default LLM service HTTP client to prevent leak
@@ -1220,6 +1370,10 @@ async def generate_metadata(request: Request):
     for key, value in result.get("metadata", {}).items():
         if value is not None and value != "" and value != [] and value != {}:
             response[key] = value
+    
+    # Add _origins tracking (ai/user per field)
+    if result.get("_origins"):
+        response["_origins"] = result["_origins"]
     
     # Add processing info at the end
     response["processing"] = result["processing"]
