@@ -623,11 +623,59 @@
             },
             {
               "label": {
+                "de": "Lernmaterial",
+                "en": "Learning material"
+              },
+              "icon": "menu_book",
+              "schema_file": "learning_material.json"
+            },
+            {
+              "label": {
                 "de": "Bildungsgänge und Bildungsangebote",
                 "en": "Educational programmes and offerings"
               },
               "icon": "school",
               "schema_file": "education_offer.json"
+            },
+            {
+              "label": {
+                "de": "Berufsbilder",
+                "en": "Occupations"
+              },
+              "icon": "work",
+              "schema_file": "occupation.json"
+            },
+            {
+              "label": {
+                "de": "Prompts",
+                "en": "Prompts"
+              },
+              "icon": "chat",
+              "schema_file": "prompt.json"
+            },
+            {
+              "label": {
+                "de": "Tools Infrastrukturen & Services",
+                "en": "Tools, infrastructures & services"
+              },
+              "icon": "build",
+              "schema_file": "tool_service.json"
+            },
+            {
+              "label": {
+                "de": "Quelle",
+                "en": "Source"
+              },
+              "icon": "article",
+              "schema_file": "source.json"
+            },
+            {
+              "label": {
+                "de": "Didaktische Planungsinstrumente (Unterrichtsmethoden und -entwürfe)",
+                "en": "Didactic planning tools (teaching methods and lesson designs)"
+              },
+              "icon": "assignment",
+              "schema_file": "didactic_planning_tools.json"
             }
           ]
         },
