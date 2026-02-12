@@ -207,6 +207,17 @@ Die Metadaten-Felder liegen **direkt auf Top-Level** (nicht in einem `metadata`-
 | `organization.json` | Organisationen, Institutionen, Vereine |
 | `tool_service.json` | Tools, Software, Dienste |
 | `source.json` | Quellen, Datenbanken |
+| `didactic_planning_tools.json` | Didaktische Planungsinstrumente, Methoden, Unterrichtsphasen |
+| `occupation.json` | Berufe, Qualifikationen, Fähigkeiten |
+| `prompt.json` | KI-Prompts, Eingabe-/Ausgabeformate, Szenarien |
+
+#### Schema-Kontexte
+
+| Kontext | Beschreibung | Schemas |
+|---------|--------------|--------|
+| `default` | WLO/OEH Standard | 11 Schemas (alle) |
+| `redesign_26` | Redesign 2026 | 11 Schemas (alle, angepasste Felder/Gruppen) |
+| `mds_oeh` | OEH Metadatenset (kompakt) | 5 Schemas (core, event, education_offer, organization, person) |
 
 ---
 
@@ -494,6 +505,18 @@ Listet alle verfügbaren Schema-Kontexte mit Versionen.
     {
       "name": "default",
       "display_name": "WLO/OEH Standard",
+      "versions": ["1.8.0"],
+      "default_version": "1.8.0"
+    },
+    {
+      "name": "redesign_26",
+      "display_name": "Redesign 2026",
+      "versions": ["1.8.0"],
+      "default_version": "1.8.0"
+    },
+    {
+      "name": "mds_oeh",
+      "display_name": "OEH Metadatenset",
       "versions": ["1.8.0"],
       "default_version": "1.8.0"
     }
@@ -798,50 +821,124 @@ Die API liefert eine einbettbare Angular-Webkomponente (`<metadata-agent-canvas>
 <metadata-agent-canvas
   api-url="https://DEINE-API-URL"
   layout="default"
-  show-input="true"
+  show-input-area="true"
   show-status-bar="true"
-  show-controls="true">
+  show-floating-controls="true">
 </metadata-agent-canvas>
 ```
 
-### Varianten
+### Layouts
 
-| Variante | Layout | Beschreibung |
-|----------|--------|-------------|
-| **Voll** | `default` | Eingabe, KI-Extraktion, Statusbar, Floating Controls |
-| **Detail** | `detail` | Mehrspaltige Nur-Lese-Ansicht für Repository-Detailseiten |
-| **Kompakt** | `compact` | Platzsparend, für Sidebars und bestehende Formulare |
-| **Minimal** | `minimal` | Nur Felder, ohne Rahmen und Controls |
+Jedes Layout ist eine eigenständige Angular-Komponente mit eigener Darstellung.
 
-### Wichtige Attribute
+| Layout | Beschreibung |
+|--------|-------------|
+| `default` | Vollständige Bearbeitung — Eingabe, Statusbar, Floating Controls, Footer |
+| `plugin` | Kompakte Sidebar für Browser-Extension — Eingabe, Fortschrittsbalken |
+| `dialog` | Review-Dialog für Modals — kein Eingabebereich, schwebende Speichern/Abbrechen-Buttons |
+| `detail` | Mehrspaltige (1–4) Nur-Lese-Vorschau — Standard: readonly |
+| `metadatenpruefdialog` | Metadaten-Prüfdialog mit Fortschrittsbalken |
+| `prueftisch` | 1-spaltige Prüftabelle mit gruppierten Karten |
+| `prueftisch-gross` | 2-spaltige Prüftabelle (gleiche Komponente wie prueftisch, andere Variante) |
+
+> **Hinweis:** `readonly` ist kein Layout, sondern ein universelles Attribut, kombinierbar mit jedem Layout via `readonly="true"`.
+
+### Alle Attribute
+
+Alle Attribute können auch per JavaScript gesetzt werden: `canvas.layout = 'detail'`
+
+#### Konfiguration
+
+| Attribut | Werte | Beschreibung |
+|----------|-------|-------------|
+| `api-url` | URL | URL der Metadata Agent API **(Pflicht)** |
+| `layout` | siehe oben | Layout-Variante |
+| `context-name` | `default`, `redesign_26` | Schema-Kontext |
+| `schema-version` | `1.8.0`, `latest` | Schema-Version |
+| `language` | `de`, `en` | Sprache (i18n) |
+| `columns` | `1`–`4` | Spaltenanzahl (nur detail-Layout) |
+| `background-color` | CSS-Farbe | Hintergrundfarbe, z.B. `#f5f5f5` |
+| `input-mode` | `text`, `url`, `nodeId` | Eingabemodus |
+
+#### Sichtbarkeit (true/false)
 
 | Attribut | Beschreibung |
 |----------|-------------|
-| `api-url` | URL der Metadata Agent API (Pflicht) |
-| `layout` | `default`, `compact`, `minimal`, `detail` |
-| `node-id` | edu-sharing Node-ID für automatische Extraktion |
-| `source-url` | URL für automatische Text-Extraktion |
-| `context-name` | Schema-Kontext (`default`, `redesign_26`) |
-| `readonly` | Nur-Lese-Modus (`true`/`false`) |
-| `show-input` | Eingabebereich anzeigen |
-| `show-status-bar` | Statusleiste anzeigen |
-| `show-controls` | Floating Controls anzeigen |
-| `borderless` | Rahmenloser Modus |
-| `highlight-ai` | KI-generierte Felder hervorheben |
+| `show-input-area` | Eingabebereich anzeigen |
+| `show-status-bar` | Statusleiste mit Fortschritt |
+| `show-core-fields` | Kernfelder (Titel, Beschreibung, Keywords) |
+| `show-special-fields` | Spezialfelder (Fach, Bildungsstufe etc.) |
+| `show-footer` | Fußzeile |
+| `show-floating-controls` | Floating Controls (Content-Type-Selector) |
+| `show-field-actions` | Feld-Aktionsbuttons (Bearbeiten, KI-Generieren) |
+| `show-upload-button` | Upload-Button in Floating Controls |
+| `show-page-mode` | Seitenmodus-Umschalter (Plugin: „Webseite laden") |
+| `show-content-type-only` | Nur Content-Type-Selector in Controls |
+| `controls` | Alias für `show-floating-controls` (OEH-Kompatibilität) |
 
-### Events (JavaScript)
+#### Verhalten
+
+| Attribut | Beschreibung |
+|----------|-------------|
+| `readonly` | Nur-Lese-Modus |
+| `viewer-mode` | Alias für `readonly` (Rückwärtskompatibilität) |
+| `borderless` | Rahmenloser Modus |
+| `highlight-ai` | KI-generierte Felder farblich hervorheben (Standard: `true`) |
+| `auto-extract` | Automatisch extrahieren nach Laden |
+
+#### Daten direkt setzen
+
+| Attribut | Beschreibung |
+|----------|-------------|
+| `text` | Text direkt als Eingabe |
+| `url` | URL als Eingabe (löst URL-Modus aus) |
+| `node-id` | edu-sharing Node-ID für automatische Extraktion |
+| `metadata-input` | JSON-Objekt mit vorausgefüllten Metadaten (per JavaScript) |
+| `content-type` | Inhaltstyp setzen (Schema-Dateiname, z.B. `event.json`) |
+
+### Events
 
 ```javascript
 const canvas = document.querySelector('metadata-agent-canvas');
+
+// Metadaten wurden geändert (bei jeder Feldänderung)
 canvas.addEventListener('metadataChange', (e) => console.log(e.detail));
+
+// Metadaten abgesendet (Upload/Submit-Button geklickt)
 canvas.addEventListener('metadataSubmit', (e) => console.log(e.detail));
+
+// KI-Extraktion abgeschlossen
 canvas.addEventListener('extractionComplete', (e) => console.log(e.detail));
+
+// Inhaltstyp erkannt
+canvas.addEventListener('contentTypeDetected', (e) => console.log(e.detail));
+
+// Upload-Ergebnis (Erfolg oder Fehler)
+canvas.addEventListener('uploadResult', (e) => console.log(e.detail));
+
+// Nutzer hat "Seite neu laden" geklickt (Plugin-Modus)
+canvas.addEventListener('reloadFromPage', (e) => console.log('reload'));
 ```
+
+### Beispiel-Seiten
+
+Unter `/widget/examples/` sind interaktive Beispiele verfügbar:
+
+| Seite | Beschreibung |
+|-------|-------------|
+| `full.html` | Vollständige Webkomponente mit allen Attributen |
+| `default.html` | Standard-Layout |
+| `detail.html` | Detail-Ansicht (mehrspaltig, readonly) |
+| `minimal.html` | Minimale Einbindung |
+| `prueftisch.html` | 1-spaltige Prüftabelle |
+| `prueftisch-gross.html` | 2-spaltige Prüftabelle |
+| `metadatenpruefdialog.html` | Prüfdialog mit Fortschritt |
+| `json-import.html` | JSON-Import mit Layout-Switcher |
+| `test.html` | Test-Seite mit Toggle-Controls |
 
 ### API-Endpunkt
 
-- **`GET /widget/info`** — Gibt alle Script-URLs, Varianten und Beispiel-Snippets als JSON zurück
-- **Beispiele**: `/widget/examples/full.html`, `/widget/examples/detail.html`, `/widget/examples/minimal.html`, `/widget/examples/test.html`
+- **`GET /widget/info`** — Gibt alle Script-URLs, Layouts und Beispiel-Snippets als JSON zurück
 
 ---
 
