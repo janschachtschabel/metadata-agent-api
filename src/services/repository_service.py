@@ -4,6 +4,8 @@ import json
 from typing import Any, Optional
 import httpx
 
+from ..utils.schema_loader import get_repo_fields
+
 
 def _get_repository_configs() -> dict:
     """Build repository configs using settings for inbox IDs."""
@@ -62,6 +64,8 @@ class RepositoryService:
         repository: str = "staging",
         check_duplicates: bool = True,
         start_workflow: bool = True,
+        context: str = "default",
+        version: str = "latest",
     ) -> dict[str, Any]:
         """
         Upload metadata to WLO repository.
@@ -87,6 +91,15 @@ class RepositoryService:
         
         # Extract metadata fields (remove processing info, etc.)
         clean_metadata = self._extract_metadata_fields(metadata)
+        
+        # Determine which schema was used from metadataset field
+        schema_file = metadata.get("metadataset") or None
+        
+        # Load repo-eligible fields from schemas
+        repo_field_ids = get_repo_fields(context, version, schema_file)
+        print(f"📋 Repo fields from schema: {len(repo_field_ids)} fields")
+        if schema_file:
+            print(f"   Schemas: core.json + {schema_file}")
         
         try:
             async with httpx.AsyncClient(timeout=30.0) as client:
@@ -119,15 +132,13 @@ class RepositoryService:
                 node_id = node_result["nodeId"]
                 print(f"✅ Created node: {node_id}")
                 
-                # 3. Set full metadata
-                metadata_result = await self._set_metadata(client, base_url, node_id, clean_metadata)
-                if not metadata_result.get("success"):
-                    return {
-                        "success": False,
-                        "nodeId": node_id,
-                        "error": metadata_result.get("error"),
-                        "step": "setMetadata"
-                    }
+                # 2b. Add required aspects for special fields
+                await self._ensure_aspects(client, base_url, node_id, clean_metadata)
+                
+                # 3. Set full metadata (only repo_field=true fields from schemas)
+                metadata_result = await self._set_metadata(
+                    client, base_url, node_id, clean_metadata, repo_field_ids
+                )
                 
                 # 4. Set collections if present
                 collection_ids = self._extract_collection_ids(clean_metadata)
@@ -149,7 +160,7 @@ class RepositoryService:
                 if isinstance(wwwurl, list):
                     wwwurl = wwwurl[0] if wwwurl else None
                 
-                return {
+                result = {
                     "success": True,
                     "repository": repository,
                     "node": {
@@ -158,8 +169,23 @@ class RepositoryService:
                         "description": description[:200] + "..." if description and len(description) > 200 else description,
                         "wwwurl": wwwurl,
                         "repositoryUrl": f"{base_url}/components/render/{node_id}"
-                    }
+                    },
+                    "fields_written": metadata_result.get("fields_written", 0),
+                    "fields_skipped": metadata_result.get("fields_skipped", 0),
                 }
+                
+                # Add field errors if any
+                field_errors = metadata_result.get("field_errors", [])
+                if field_errors:
+                    result["field_errors"] = field_errors
+                    result["error"] = f"{len(field_errors)} Feld(er) konnten nicht geschrieben werden"
+                
+                # If ALL fields failed, mark as unsuccessful
+                if metadata_result.get("fields_written", 0) == 0 and not metadata_result.get("success", True):
+                    result["success"] = False
+                    result["step"] = "setMetadata"
+                
+                return result
                 
         except Exception as e:
             print(f"❌ Repository upload failed: {e}")
@@ -304,53 +330,141 @@ class RepositoryService:
         client: httpx.AsyncClient,
         base_url: str,
         node_id: str,
-        metadata: dict
+        metadata: dict,
+        repo_field_ids: set[str] | None = None
     ) -> dict:
-        """Set full metadata on node."""
-        metadata_url = f"{base_url}/rest/node/v1/nodes/-home-/{node_id}/metadata?versionComment=METADATA_UPDATE"
+        """
+        Set full metadata on node using dynamically loaded repo fields from schemas.
         
-        # Supported fields whitelist
-        supported_fields = [
-            # Core metadata fields
-            "cclom:title",
-            "cclom:general_description",
-            "cclom:general_keyword",
-            "ccm:wwwurl",
-            "cclom:general_language",
-            "ccm:taxonid",
-            "ccm:educationalcontext",
-            "ccm:educationalintendedenduserrole",
-            "ccm:commonlicense_key",
-            "ccm:commonlicense_cc_version",
-            "ccm:oeh_publisher_combined",
-            "cm:author",
-            # Event-specific fields
-            "oeh:eventType",
-            "ccm:oeh_event_startDate",
-            "ccm:oeh_event_endDate",
-            "ccm:oeh_event_doorTime",
-            "ccm:oeh_event_duration",
-            "ccm:oeh_event_eventStatus",
-            "ccm:oeh_event_eventAttendanceMode",
-            "ccm:oeh_event_isAccessibleForFree",
-            "ccm:oeh_event_maximumAttendeeCapacity",
-            # Organization / Person fields
-            "ccm:lifecyclecontributer_author",
-            "ccm:lifecyclecontributer_publisher",
-            # Additional common fields
-            "ccm:oeh_lrt",
-            "ccm:curriculum",
-            "ccm:oeh_languageTarget",
-            "ccm:oeh_competence",
-        ]
+        Strategy:
+        1. Filter metadata to only include fields with repo_field=true in schemas
+        2. Try bulk update with all fields
+        3. If bulk fails, retry field-by-field to identify problematic fields
+        4. Report per-field errors
+        """
+        metadata_url = f"{base_url}/rest/node/v1/nodes/-home-/{node_id}/metadata?versionComment=METADATA_UPDATE&obeyMds=false"
         
-        # Filter and normalize
+        # Normalize metadata values for repository API
+        normalized = self._normalize_for_repo(metadata, repo_field_ids)
+        
+        # Handle license transformation
+        self._transform_license(normalized, metadata)
+        
+        # Extract geo coordinates from schema:location → cm:latitude / cm:longitude
+        self._extract_geo_coordinates(normalized, metadata)
+        
+        # Transform cm:author → ccm:lifecyclecontributer_author (VCARD format)
+        self._transform_author_to_vcard(normalized)
+        
+        if not normalized:
+            return {
+                "success": True,
+                "fields_written": 0,
+                "fields_skipped": 0,
+                "field_errors": []
+            }
+        
+        fields_to_write = set(normalized.keys())
+        print(f"📝 Writing {len(fields_to_write)} fields to node {node_id}")
+        
+        # --- Strategy 1: Bulk update (all fields at once) ---
+        response = await client.post(
+            metadata_url,
+            headers={
+                "Authorization": self._auth_header,
+                "Content-Type": "application/json",
+                "Accept": "application/json"
+            },
+            json=normalized
+        )
+        
+        if response.status_code in (200, 201):
+            print(f"✅ Bulk metadata update succeeded: {len(normalized)} fields")
+            return {
+                "success": True,
+                "fields_written": len(normalized),
+                "fields_skipped": 0,
+                "field_errors": []
+            }
+        
+        # --- Strategy 2: Bulk failed → field-by-field fallback ---
+        bulk_error = response.text[:500]
+        print(f"⚠️ Bulk metadata update failed ({response.status_code}): {bulk_error}")
+        print(f"🔄 Retrying field-by-field to identify problematic fields...")
+        
+        fields_written = 0
+        fields_skipped = 0
+        field_errors = []
+        
+        for field_id, field_value in normalized.items():
+            try:
+                single_response = await client.post(
+                    metadata_url,
+                    headers={
+                        "Authorization": self._auth_header,
+                        "Content-Type": "application/json",
+                        "Accept": "application/json"
+                    },
+                    json={field_id: field_value}
+                )
+                
+                if single_response.status_code in (200, 201):
+                    fields_written += 1
+                else:
+                    fields_skipped += 1
+                    error_text = single_response.text[:200]
+                    field_errors.append({
+                        "field_id": field_id,
+                        "error": f"HTTP {single_response.status_code}: {error_text}",
+                        "status_code": single_response.status_code
+                    })
+                    print(f"   ❌ {field_id}: {single_response.status_code}")
+            except Exception as e:
+                fields_skipped += 1
+                field_errors.append({
+                    "field_id": field_id,
+                    "error": str(e),
+                    "status_code": None
+                })
+                print(f"   ❌ {field_id}: {e}")
+        
+        print(f"📊 Field-by-field result: {fields_written} written, {fields_skipped} failed")
+        
+        return {
+            "success": fields_written > 0,
+            "fields_written": fields_written,
+            "fields_skipped": fields_skipped,
+            "field_errors": field_errors
+        }
+    
+    def _normalize_for_repo(
+        self, metadata: dict, repo_field_ids: set[str] | None = None
+    ) -> dict:
+        """
+        Filter and normalize metadata for repository API.
+        
+        Only includes fields that:
+        - Have repo_field=true in schema (if repo_field_ids provided)
+        - Don't start with 'virtual:' or 'schema:' (internal prefixes)
+        - Have non-empty values
+        """
         normalized = {}
+        
+        # If no repo fields could be loaded from schemas, refuse to write blindly
+        if not repo_field_ids:
+            print("⚠️ No repo_field_ids loaded from schemas — skipping metadata write")
+            return normalized
+        
         for key, value in metadata.items():
+            # Skip internal/virtual fields
             if key.startswith("virtual:") or key.startswith("schema:"):
                 continue
-            if key not in supported_fields:
+            
+            # Only include fields with repo_field=true in schema
+            if key not in repo_field_ids:
                 continue
+            
+            # Skip empty values
             if value is None or value == "" or value == []:
                 continue
             
@@ -363,33 +477,16 @@ class RepositoryService:
                     flattened_item = self._flatten_value(item)
                     if flattened_item is not None:
                         flattened.append(flattened_item)
-                normalized[key] = flattened
+                if flattened:
+                    normalized[key] = flattened
             elif isinstance(value, dict):
                 flattened = self._flatten_value(value)
-                normalized[key] = [flattened] if flattened else []
+                if flattened is not None:
+                    normalized[key] = [flattened]
             else:
                 normalized[key] = [value]
         
-        # Handle license transformation
-        self._transform_license(normalized, metadata)
-        
-        response = await client.post(
-            metadata_url,
-            headers={
-                "Authorization": self._auth_header,
-                "Content-Type": "application/json",
-                "Accept": "application/json"
-            },
-            json=normalized
-        )
-        
-        if response.status_code not in (200, 201):
-            return {
-                "success": False,
-                "error": f"Set metadata failed: {response.status_code}"
-            }
-        
-        return {"success": True}
+        return normalized
     
     def _flatten_value(self, item: Any) -> Any:
         """Flatten a complex object to a simple value for repository API."""
@@ -442,6 +539,151 @@ class RepositoryService:
         # Default version if license set but no version
         if "ccm:commonlicense_key" in normalized and "ccm:commonlicense_cc_version" not in normalized:
             normalized["ccm:commonlicense_cc_version"] = ["4.0"]
+    
+    def _transform_author_to_vcard(self, normalized: dict):
+        """
+        Transform cm:author plain names to VCARD format for ccm:lifecyclecontributer_author.
+        
+        The WLO repo stores authors as VCARD strings in ccm:lifecyclecontributer_author,
+        not as plain strings in cm:author.
+        
+        Example: "Philipp Lang" → "BEGIN:VCARD\nFN:Philipp Lang\nN:Lang;Philipp\nVERSION:3.0\nEND:VCARD"
+        """
+        authors = normalized.pop("cm:author", None)
+        if not authors:
+            return
+        
+        vcards = []
+        for author in authors:
+            author = str(author).strip()
+            if not author:
+                continue
+            
+            parts = author.rsplit(" ", 1)
+            if len(parts) == 2:
+                first, last = parts[0], parts[1]
+                vcard = f"BEGIN:VCARD\nFN:{author}\nN:{last};{first}\nVERSION:3.0\nEND:VCARD"
+            else:
+                # Single name or organization
+                vcard = f"BEGIN:VCARD\nFN:{author}\nN:{author}\nVERSION:3.0\nEND:VCARD"
+            
+            vcards.append(vcard)
+        
+        if vcards:
+            normalized["ccm:lifecyclecontributer_author"] = vcards
+            print(f"👤 Author VCARD: {len(vcards)} entries → ccm:lifecyclecontributer_author")
+    
+    def _extract_geo_coordinates(self, normalized: dict, original: dict):
+        """
+        Extract geo coordinates and map to cm:latitude / cm:longitude.
+        
+        Sources (in priority order):
+        1. schema:location[].geo.latitude/longitude  (event, course, education_*, organization)
+        2. schema:geo.latitude/longitude              (organization top-level fallback)
+        """
+        # Source 1: schema:location[].geo
+        locations = original.get("schema:location")
+        if locations:
+            if not isinstance(locations, list):
+                locations = [locations]
+            
+            for loc in locations:
+                if not isinstance(loc, dict):
+                    continue
+                geo = loc.get("geo")
+                if not isinstance(geo, dict):
+                    continue
+                
+                lat = geo.get("latitude")
+                lon = geo.get("longitude")
+                
+                if lat is not None and lon is not None:
+                    normalized["cm:latitude"] = [str(lat)]
+                    normalized["cm:longitude"] = [str(lon)]
+                    print(f"📍 Geo (location): {lat}, {lon} → cm:latitude, cm:longitude")
+                    return
+        
+        # Source 2: schema:geo (organization.json top-level)
+        geo = original.get("schema:geo")
+        if isinstance(geo, dict):
+            lat = geo.get("latitude")
+            lon = geo.get("longitude")
+            if lat is not None and lon is not None:
+                normalized["cm:latitude"] = [str(lat)]
+                normalized["cm:longitude"] = [str(lon)]
+                print(f"📍 Geo (top-level): {lat}, {lon} → cm:latitude, cm:longitude")
+                return
+    
+    async def _ensure_aspects(
+        self,
+        client: httpx.AsyncClient,
+        base_url: str,
+        node_id: str,
+        metadata: dict
+    ):
+        """
+        Add required aspects to node based on metadata content.
+        
+        Aspects are Alfresco extension packages that enable specific property groups.
+        Without the correct aspect, the repo silently drops writes to those properties.
+        """
+        extra_aspects = []
+        
+        # cm:geographic → needed for cm:latitude, cm:longitude
+        has_geo = False
+        locations = metadata.get("schema:location")
+        if locations:
+            if isinstance(locations, list):
+                for loc in locations:
+                    if isinstance(loc, dict) and isinstance(loc.get("geo"), dict):
+                        has_geo = True
+                        break
+            elif isinstance(locations, dict) and isinstance(locations.get("geo"), dict):
+                has_geo = True
+        # Also check schema:geo (organization.json top-level)
+        if not has_geo and isinstance(metadata.get("schema:geo"), dict):
+            geo = metadata["schema:geo"]
+            if geo.get("latitude") is not None and geo.get("longitude") is not None:
+                has_geo = True
+        if has_geo:
+            extra_aspects.append("cm:geographic")
+        
+        # cm:author → needed for ccm:lifecyclecontributer_author
+        if metadata.get("cm:author"):
+            extra_aspects.append("cm:author")
+        
+        if not extra_aspects:
+            return
+        
+        # Read current aspects, merge, PUT back
+        try:
+            aspects_url = f"{base_url}/rest/node/v1/nodes/-home-/{node_id}/aspects"
+            r = await client.get(
+                f"{base_url}/rest/node/v1/nodes/-home-/{node_id}/metadata?propertyFilter=-all-",
+                headers={"Authorization": self._auth_header, "Accept": "application/json"}
+            )
+            current_aspects = []
+            if r.status_code == 200:
+                current_aspects = r.json().get("node", {}).get("aspects", [])
+            
+            new_aspects = [a for a in extra_aspects if a not in current_aspects]
+            if new_aspects:
+                full_list = current_aspects + new_aspects
+                r = await client.put(
+                    aspects_url,
+                    headers={
+                        "Authorization": self._auth_header,
+                        "Content-Type": "application/json",
+                        "Accept": "application/json"
+                    },
+                    json=full_list
+                )
+                if r.status_code == 200:
+                    print(f"🔧 Aspects added: {new_aspects}")
+                else:
+                    print(f"⚠️ Failed to add aspects {new_aspects}: {r.status_code}")
+        except Exception as e:
+            print(f"⚠️ Aspect update error: {e}")
     
     async def _set_collections(
         self,

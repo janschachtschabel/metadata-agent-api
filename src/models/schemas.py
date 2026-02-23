@@ -103,7 +103,7 @@ class GenerateRequest(BaseModel):
     )
     version: str = Field(
         default="latest",
-        description="Schema version to use ('latest' for newest version, or specific like '1.8.0')"
+        description="Schema version to use ('latest' for newest version, or specific like '1.8.1')"
     )
     schema_file: str = Field(
         default="auto",
@@ -331,7 +331,7 @@ class ExportMarkdownRequest(BaseModel):
                 {
                     "metadata": {
                         "contextName": "default",
-                        "schemaVersion": "1.8.0",
+                        "schemaVersion": "1.8.1",
                         "metadataset": "event.json",
                         "language": "de",
                         "cclom:title": "Workshop KI in der Bildung",
@@ -440,7 +440,7 @@ class UploadRequest(BaseModel):
             "examples": [{
                 "metadata": {
                     "contextName": "default",
-                    "schemaVersion": "1.8.0",
+                    "schemaVersion": "1.8.1",
                     "metadataset": "event.json",
                     "cclom:title": "Example Event",
                     "cclom:general_description": "Description...",
@@ -463,6 +463,13 @@ class UploadedNodeInfo(BaseModel):
     repositoryUrl: Optional[str] = None
 
 
+class FieldUploadError(BaseModel):
+    """Error info for a single field that failed during upload."""
+    field_id: str
+    error: str
+    status_code: Optional[int] = None
+
+
 class UploadResponse(BaseModel):
     """Response from repository upload."""
     success: bool
@@ -471,6 +478,9 @@ class UploadResponse(BaseModel):
     node: Optional[UploadedNodeInfo] = None
     error: Optional[str] = None
     step: Optional[str] = None
+    fields_written: Optional[int] = None
+    fields_skipped: Optional[int] = None
+    field_errors: Optional[list[FieldUploadError]] = None
 
 
 class DetectContentTypeRequest(BaseModel):

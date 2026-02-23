@@ -26,6 +26,7 @@ from .models.schemas import (
     UploadRequest,
     UploadResponse,
     UploadedNodeInfo,
+    FieldUploadError,
     DetectContentTypeRequest,
     DetectContentTypeResponse,
     ContentTypeInfo,
@@ -415,7 +416,7 @@ async def get_schemata_info():
 ## Path-Parameter
 
 - **context**: Schema-Kontext, z.B. `default`
-- **version**: Schema-Version, z.B. `1.8.0` oder `latest`
+- **version**: Schema-Version, z.B. `1.8.1` oder `latest`
 
 ## Response
 
@@ -453,7 +454,7 @@ async def get_schemas_for_version(context: str, version: str):
 ## Path-Parameter
 
 - **context**: Schema-Kontext, z.B. `default`
-- **version**: Schema-Version, z.B. `1.8.0`
+- **version**: Schema-Version, z.B. `1.8.1`
 - **schema_file**: Schema-Datei, z.B. `event.json`, `core.json`
 
 ## Response
@@ -1040,7 +1041,7 @@ async def extract_field(req: ExtractFieldRequest):
 ## Schema-Optionen
 
 - **context**: Schema-Kontext, z.B. `default`, `mds_oeh`
-- **version**: Schema-Version, `latest` (Standard) oder spezifisch z.B. `1.8.0`
+- **version**: Schema-Version, `latest` (Standard) oder spezifisch z.B. `1.8.1`
 - **schema_file**: `auto` (automatische Erkennung), oder spezifisch z.B. `event.json`
 
 ## Extraktions-Optionen
@@ -1436,7 +1437,7 @@ Kopiere einfach den kompletten Output von `/generate` direkt hier rein – Conte
                             "description": "Kopiere einfach den kompletten Output von /generate hier rein",
                             "value": {
                                 "contextName": "default",
-                                "schemaVersion": "1.8.0",
+                                "schemaVersion": "1.8.1",
                                 "metadataset": "event.json",
                                 "language": "de",
                                 "cclom:title": "Workshop KI in der Bildung",
@@ -1537,7 +1538,7 @@ Das generierte Markdown enthält:
                             "description": "Kopiere einfach den kompletten Output von /generate hier rein",
                             "value": {
                                 "contextName": "default",
-                                "schemaVersion": "1.8.0",
+                                "schemaVersion": "1.8.1",
                                 "metadataset": "event.json",
                                 "language": "de",
                                 "cclom:title": "Workshop KI in der Bildung",
@@ -1652,7 +1653,7 @@ Kopiere einfach den kompletten Output von `/generate` direkt hier rein.
                             "description": "Kopiere den Output von /generate hier rein. Optional: repository, check_duplicates, start_workflow",
                             "value": {
                                 "contextName": "default",
-                                "schemaVersion": "1.8.0",
+                                "schemaVersion": "1.8.1",
                                 "metadataset": "event.json",
                                 "cclom:title": "Workshop KI in der Bildung",
                                 "ccm:wwwurl": "https://example.com/workshop",
@@ -1727,17 +1728,29 @@ async def upload_to_repository(request: Request):
             detail=f"Invalid repository: {req.repository}. Use 'staging' or 'prod'."
         )
     
+    # Extract context/version from metadata for schema-driven field resolution
+    context = req.metadata.get("contextName", "default")
+    version = req.metadata.get("schemaVersion", "latest")
+    
     result = await repo_service.upload_metadata(
         metadata=req.metadata,
         repository=req.repository,
         check_duplicates=req.check_duplicates,
         start_workflow=req.start_workflow,
+        context=context,
+        version=version,
     )
     
     # Convert nested node dict to UploadedNodeInfo if present
     node_info = None
     if result.get("node"):
         node_info = UploadedNodeInfo(**result["node"])
+    
+    # Convert field errors to Pydantic models
+    field_errors = None
+    raw_errors = result.get("field_errors")
+    if raw_errors:
+        field_errors = [FieldUploadError(**e) for e in raw_errors]
     
     return UploadResponse(
         success=result.get("success", False),
@@ -1746,6 +1759,9 @@ async def upload_to_repository(request: Request):
         node=node_info,
         error=result.get("error"),
         step=result.get("step"),
+        fields_written=result.get("fields_written"),
+        fields_skipped=result.get("fields_skipped"),
+        field_errors=field_errors,
     )
 
 

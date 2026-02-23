@@ -46,7 +46,7 @@ class Settings(BaseSettings):
     
     # Default Schema Settings
     default_context: str = "default"
-    default_version: str = "1.8.0"
+    default_version: str = "1.8.1"
     
     # Normalization Settings
     normalization_enabled: bool = True

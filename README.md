@@ -98,7 +98,7 @@ Request → Input Source → LLM Extraction → Normalization → Response
 | `field_normalizer.py` | Typ-basierte Normalisierung (Datum, Boolean, Vokabular, etc.) |
 | `output_normalizer.py` | Strukturanpassung für Canvas-Webkomponente |
 | `geocoding_service.py` | Adressen → Koordinaten via Photon/Komoot API |
-| `repository_service.py` | Upload ins WLO edu-sharing Repository |
+| `repository_service.py` | Upload ins WLO edu-sharing Repository (Aspects, VCARD, Geo) |
 | `schema_loader.py` | Schema-Laden, Caching, Versions-Auflösung |
 
 ---
@@ -453,9 +453,31 @@ Lädt Metadaten ins WLO edu-sharing Repository hoch.
 
 1. **Duplikat-Check** — Prüft ob `ccm:wwwurl` bereits existiert (optional)
 2. **Node erstellen** — Legt neuen Node mit Basisdaten an
-3. **Metadaten setzen** — Überträgt alle Metadaten-Felder
-4. **Collections** — Fügt Node zu Collections hinzu (falls in Metadaten)
-5. **Workflow starten** — Startet Review-Prozess (optional)
+3. **Aspects setzen** — Fügt benötigte Alfresco-Aspects hinzu (siehe unten)
+4. **Metadaten setzen** — Überträgt alle Metadaten-Felder (`obeyMds=false`)
+5. **Collections** — Fügt Node zu Collections hinzu (falls in Metadaten)
+6. **Workflow starten** — Startet Review-Prozess (optional)
+
+#### Automatische Transformationen beim Upload
+
+Die API führt vor dem Schreiben automatisch folgende Transformationen durch:
+
+| Transformation | Beschreibung |
+|----------------|-------------|
+| **VCARD Author** | `cm:author: ["Max Müller"]` → `ccm:lifecyclecontributer_author: ["BEGIN:VCARD\nFN:Max Müller\nN:Müller;Max\nVERSION:3.0\nEND:VCARD"]` |
+| **Geo-Extraktion** | `schema:location[].geo.latitude/longitude` → `cm:latitude` / `cm:longitude` (String-Arrays) |
+| **Geo-Fallback** | `schema:geo.latitude/longitude` (organization.json) → `cm:latitude` / `cm:longitude` |
+| **Lizenz** | `ccm:custom_license` URI → `ccm:commonlicense_key` + `ccm:commonlicense_cc_version` |
+| **obeyMds=false** | Umgeht den MDS-Filter, damit auch Felder wie `cm:latitude`, `ccm:oeh_event_begin` geschrieben werden |
+
+#### Aspects
+
+Nach Node-Erstellung werden automatisch Aspects hinzugefügt, die für bestimmte Properties benötigt werden:
+
+| Aspect | Trigger | Ermöglicht |
+|--------|---------|------------|
+| `cm:geographic` | Geo-Daten in `schema:location` oder `schema:geo` | `cm:latitude`, `cm:longitude` |
+| `cm:author` | `cm:author` in Metadaten | `ccm:lifecyclecontributer_author` |
 
 #### Response (Erfolg)
 
@@ -463,13 +485,15 @@ Lädt Metadaten ins WLO edu-sharing Repository hoch.
 {
   "success": true,
   "repository": "staging",
+  "fields_written": 12,
   "node": {
     "nodeId": "abc123-def456-...",
     "title": "Workshop KI in der Bildung",
     "description": "Ein Workshop über...",
     "wwwurl": "https://example.com/workshop",
     "repositoryUrl": "https://repository.staging.openeduhub.net/edu-sharing/components/render/abc123-..."
-  }
+  },
+  "field_errors": []
 }
 ```
 
@@ -482,6 +506,20 @@ Lädt Metadaten ins WLO edu-sharing Repository hoch.
   "repository": "staging",
   "node": { "nodeId": "existing-id", "title": "Existierender Workshop" },
   "error": "URL existiert bereits: \"Existierender Workshop\""
+}
+```
+
+#### Response (Teilerfolg mit Feldfehlern)
+
+```json
+{
+  "success": true,
+  "repository": "staging",
+  "fields_written": 10,
+  "node": { "nodeId": "abc123-..." },
+  "field_errors": [
+    { "field_id": "ccm:oeh_event_begin", "error": "Invalid date format" }
+  ]
 }
 ```
 
@@ -807,9 +845,9 @@ Die API liefert eine einbettbare Angular-Webkomponente (`<metadata-agent-canvas>
 ### Einbindung in eigene Anwendungen
 
 ```html
-<!-- Fonts -->
+<!-- Fonts (alle drei werden benötigt) -->
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+<link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined" rel="stylesheet">
 
 <!-- Widget -->
 <link rel="stylesheet" href="https://DEINE-API-URL/widget/dist/styles.css">
