@@ -6,7 +6,6 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -45,11 +44,10 @@ htmlcov/
 *.log
 logs/
 
-# Widget dist: committed so Vercel can serve the web component.
-# Rebuild with: scripts/deploy-widget.ps1
-!src/static/widget/dist/
-!src/static/widget/assets/
-
 # OS
 .DS_Store
 Thumbs.db
+
+# NOTE: dist/ is NOT excluded — src/static/widget/dist/, src/schemata/,
+# and src/static/widget/assets/i18n/ must be deployed to Vercel.
+# Rebuild widget with: scripts/deploy-widget.ps1
