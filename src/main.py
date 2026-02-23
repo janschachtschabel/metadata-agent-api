@@ -260,7 +260,7 @@ async def widget_info(request: Request):
             ],
             "fonts": [
                 "https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap",
-                "https://fonts.googleapis.com/icon?family=Material+Icons",
+                "https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined",
             ],
         },
         "variants": {
