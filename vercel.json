@@ -5,11 +5,17 @@
       "src": "src/main.py",
       "use": "@vercel/python",
       "config": {
-        "includeFiles": "src/static/**"
+        "includeFiles": "src/static/**",
+        "maxLambdaSize": "50mb"
       }
     }
   ],
   "routes": [
     { "src": "/(.*)", "dest": "src/main.py" }
-  ]
+  ],
+  "functions": {
+    "src/main.py": {
+      "maxDuration": 60
+    }
+  }
 }

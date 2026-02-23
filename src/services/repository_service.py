@@ -1,8 +1,11 @@
 """Repository service for uploading metadata to WLO edu-sharing repository."""
 import base64
 import json
+import logging
 from typing import Any, Optional
 import httpx
+
+logger = logging.getLogger(__name__)
 
 from ..utils.schema_loader import get_repo_fields
 
@@ -102,7 +105,9 @@ class RepositoryService:
             print(f"   Schemas: core.json + {schema_file}")
         
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            # Longer timeout for sequential edu-sharing calls (especially on Vercel)
+            timeout = httpx.Timeout(45.0, connect=10.0)
+            async with httpx.AsyncClient(timeout=timeout) as client:
                 # 1. Check for duplicates
                 if check_duplicates:
                     url = clean_metadata.get("ccm:wwwurl")
@@ -187,11 +192,23 @@ class RepositoryService:
                 
                 return result
                 
-        except Exception as e:
-            print(f"❌ Repository upload failed: {e}")
+        except httpx.TimeoutException as e:
+            print(f"❌ Repository upload timed out: {e}")
             return {
                 "success": False,
-                "error": str(e)
+                "error": f"Timeout bei der Verbindung zum Repository: {e}"
+            }
+        except httpx.ConnectError as e:
+            print(f"❌ Repository connection failed: {e}")
+            return {
+                "success": False,
+                "error": f"Verbindung zum Repository fehlgeschlagen: {e}"
+            }
+        except Exception as e:
+            print(f"❌ Repository upload failed: {type(e).__name__}: {e}")
+            return {
+                "success": False,
+                "error": f"{type(e).__name__}: {e}"
             }
     
     def _extract_metadata_fields(self, metadata: dict) -> dict:
@@ -292,7 +309,7 @@ class RepositoryService:
             "cclom:general_language"
         ]
         
-        clean_metadata = {}
+        clean_metadata = {"ccm:linktype": ["USER_GENERATED"]}
         for field in essential_fields:
             value = metadata.get(field)
             if value is not None and value != "" and value != []:
@@ -302,6 +319,7 @@ class RepositoryService:
                 else:
                     clean_metadata[field] = [value]
         
+        print(f"📡 Creating node at: {create_url[:80]}...")
         response = await client.post(
             create_url,
             headers={
@@ -313,7 +331,8 @@ class RepositoryService:
         )
         
         if response.status_code not in (200, 201):
-            error_text = response.text
+            error_text = response.text[:500]
+            print(f"❌ Create node failed: {response.status_code} - {error_text}")
             return {
                 "success": False,
                 "error": f"Create node failed: {response.status_code} - {error_text}"
@@ -515,30 +534,65 @@ class RepositoryService:
         
         return str(item)
     
+    # Valid edu-sharing license keys (used for validation)
+    VALID_LICENSE_KEYS = {
+        "NONE", "CC_0", "CC0", "CC_BY", "CC BY", "CC_BY_SA", "CC BY-SA",
+        "CC_BY_ND", "CC BY-ND", "CC_BY_NC", "CC BY-NC",
+        "CC_BY_NC_SA", "CC BY-NC-SA", "CC_BY_NC_ND", "CC BY-NC-ND",
+        "PDM", "CUSTOM", "SCHULFUNK", "UNTERRICHTS_UND_LEHRMEDIEN",
+        "COPYRIGHT_FREE", "COPYRIGHT_LICENSE",
+    }
+
     def _transform_license(self, normalized: dict, original: dict):
-        """Transform license URLs to key + version format."""
-        license_url = original.get("ccm:custom_license")
+        """Transform license URLs to key + version format.
         
-        if license_url:
-            if isinstance(license_url, list):
-                license_url = license_url[0] if license_url else None
-            if isinstance(license_url, dict):
-                license_url = license_url.get("uri") or license_url.get("label")
+        Only transforms ccm:custom_license if it looks like a vocabulary URI
+        (contains '/'). Plain text values are kept as custom license text.
+        Validates ccm:commonlicense_key against known edu-sharing keys.
+        """
+        license_val = original.get("ccm:custom_license")
+        
+        if license_val:
+            if isinstance(license_val, list):
+                license_val = license_val[0] if license_val else None
+            if isinstance(license_val, dict):
+                license_val = license_val.get("uri") or license_val.get("label")
             
-            if license_url and isinstance(license_url, str):
-                license_key = license_url.split("/")[-1]
-                
-                if license_key.endswith("_40"):
-                    normalized["ccm:commonlicense_key"] = [license_key[:-3]]
-                    normalized["ccm:commonlicense_cc_version"] = ["4.0"]
-                elif license_key == "OTHER":
-                    normalized["ccm:commonlicense_key"] = ["CUSTOM"]
+            if license_val and isinstance(license_val, str):
+                # Only transform if it looks like a URI (contains '/')
+                if "/" in license_val:
+                    license_key = license_val.split("/")[-1]
+                    
+                    if license_key.endswith("_40"):
+                        normalized["ccm:commonlicense_key"] = [license_key[:-3]]
+                        normalized["ccm:commonlicense_cc_version"] = ["4.0"]
+                    elif license_key == "OTHER":
+                        normalized["ccm:commonlicense_key"] = ["CUSTOM"]
+                    elif license_key in self.VALID_LICENSE_KEYS:
+                        normalized["ccm:commonlicense_key"] = [license_key]
+                    
+                    # Remove the URI from ccm:custom_license (it was transformed)
+                    normalized.pop("ccm:custom_license", None)
                 else:
-                    normalized["ccm:commonlicense_key"] = [license_key]
+                    # Plain text → keep as custom license, set key to CUSTOM
+                    if "ccm:commonlicense_key" not in normalized:
+                        normalized["ccm:commonlicense_key"] = ["CUSTOM"]
         
-        # Default version if license set but no version
+        # Validate ccm:commonlicense_key against known keys
+        if "ccm:commonlicense_key" in normalized:
+            key_list = normalized["ccm:commonlicense_key"]
+            if isinstance(key_list, list) and key_list:
+                key = str(key_list[0]).strip()
+                if key not in self.VALID_LICENSE_KEYS:
+                    logger.warning(f"Invalid license key removed: {key[:80]}")
+                    del normalized["ccm:commonlicense_key"]
+                    normalized.pop("ccm:commonlicense_cc_version", None)
+        
+        # Default CC version only for CC-type licenses
         if "ccm:commonlicense_key" in normalized and "ccm:commonlicense_cc_version" not in normalized:
-            normalized["ccm:commonlicense_cc_version"] = ["4.0"]
+            key = normalized["ccm:commonlicense_key"][0] if normalized["ccm:commonlicense_key"] else ""
+            if str(key).startswith("CC"):
+                normalized["ccm:commonlicense_cc_version"] = ["4.0"]
     
     def _transform_author_to_vcard(self, normalized: dict):
         """
