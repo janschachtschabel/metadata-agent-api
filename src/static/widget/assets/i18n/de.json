@@ -1,0 +1,234 @@
+{
+  "COMMON": {
+    "LOADING": "Lädt...",
+    "SAVE": "Speichern",
+    "CANCEL": "Abbrechen",
+    "CLOSE": "Schließen",
+    "BACK": "Zurück",
+    "NEXT": "Weiter",
+    "CONFIRM": "Bestätigen",
+    "DELETE": "Löschen",
+    "EDIT": "Bearbeiten",
+    "SEARCH": "Suchen",
+    "FILTER": "Filtern",
+    "RESET": "Zurücksetzen",
+    "DOWNLOAD": "Herunterladen",
+    "UPLOAD": "Hochladen"
+  },
+  "HEADER": {
+    "TITLE": "Metadata Agent",
+    "CLOSE": "Schließen",
+    "MODE": {
+      "BROWSER_EXTENSION": "Browser-Erweiterung",
+      "BOOKMARKLET": "Bookmarklet",
+      "STANDALONE": "Standalone"
+    },
+    "USER": {
+      "GUEST": "Gast",
+      "LOGGED_IN": "Angemeldet"
+    }
+  },
+  "SIDEBAR": {
+    "TITLE": "Arbeitsbereiche",
+    "DESCRIPTION": "Beschreibung",
+    "TYPING": "Typisierung",
+    "PEDAGOGICAL": "Pädagogisches",
+    "LICENSE": "Lizenz & Quelle",
+    "CURATION": "Erschließung",
+    "SECTION": "Bereich {{index}}"
+  },
+  "INPUT": {
+    "PLACEHOLDER": "Beschreiben Sie die Ressource, die Sie erschließen möchten...",
+    "URL_PLACEHOLDER": "URL der Ressource eingeben",
+    "NODE_ID_PLACEHOLDER": "Node-ID eingeben",
+    "START_EXTRACTION": "Extraktion starten",
+    "EXTRACT_FROM_URL": "Von URL extrahieren",
+    "EXTRACT_FROM_NODE": "Von Node laden",
+    "EXTRACTING": "Extrahiere...",
+    "RESET": "Zurücksetzen",
+    "MODE_TEXT": "Text",
+    "MODE_URL": "URL",
+    "MODE_NODE_ID": "Node-ID",
+    "MODE_PAGE": "Webseite laden",
+    "EXTRACT_FROM_PAGE": "Seite neu laden"
+  },
+  "CONTENT_TYPE": {
+    "LABEL": "Inhaltsart",
+    "CHANGE": "ÄNDERN",
+    "SELECT": "Inhaltsart wählen",
+    "NOT_DETECTED": "Bitte wählen",
+    "CONFIDENCE": "Konfidenz"
+  },
+  "PROGRESS": {
+    "FIELDS": "Felder",
+    "REQUIRED": "Pflicht",
+    "OPTIONAL": "Optional",
+    "PERCENTAGE": "Prozent",
+    "FIELDS_FILLED": "Felder gefüllt",
+    "FIELDS_RECOGNIZED": "Felder erkannt"
+  },
+  "FIELD": {
+    "REQUIRED": "Pflichtfeld",
+    "OPTIONAL": "Optional",
+    "FILLED": "Ausgefüllt",
+    "EMPTY": "Leer",
+    "EXTRACTING": "Wird extrahiert",
+    "ERROR": "Fehler",
+    "ADD_CHIP": "Hinzufügen",
+    "REMOVE_CHIP": "Entfernen",
+    "SHOW_ON_MAP": "Auf OpenStreetMap anzeigen",
+    "FIELD_INFO": "Feldinfo",
+    "MULTIPLE_HINT": "Mehrere Werte möglich. Wähle aus dem Dropdown oder gib Werte ein.",
+    "REQUIRED_HINT": "Pflichtfeld – muss ausgefüllt werden",
+    "VOCABULARY_CONTROLLED": "Nutze ausschließlich Begriffe aus dem geschlossenen Vokabular.",
+    "VOCABULARY_OPEN": "Nutze bevorzugt Begriffe aus dem Vokabular.",
+    "ARRAY_PLACEHOLDER": "Werte kommasepariert eingeben",
+    "ARRAY_HINT": "Mehrere Werte durch Komma trennen",
+    "STATUS": {
+      "EMPTY": "Noch nicht befüllt",
+      "EXTRACTING": "Wird extrahiert...",
+      "FILLED": "Befüllt",
+      "ERROR": "Fehler bei Extraktion"
+    },
+    "BOOLEAN": {
+      "EMPTY": "Bitte auswählen",
+      "TRUE": "Ja",
+      "FALSE": "Nein"
+    },
+    "RADIO": {
+      "NO_SELECTION": "keine Angabe"
+    },
+    "VOCAB_FILTER": "Filtern...",
+    "VOCAB_NO_RESULTS": "Keine Treffer",
+    "VOCAB_OPEN_PICKER": "Vokabular durchsuchen",
+    "MONTHDAY_PLACEHOLDER": "Tag (1-31) hinzufügen",
+    "DURATION_HINT": "Format: P1D (1 Tag), PT2H (2 Std), PT30M (30 Min)",
+    "URL_HINT": "Vollständige URL inkl. https://"
+  },
+  "WEEKDAYS": {
+    "MONDAY": "Montag",
+    "TUESDAY": "Dienstag",
+    "WEDNESDAY": "Mittwoch",
+    "THURSDAY": "Donnerstag",
+    "FRIDAY": "Freitag",
+    "SATURDAY": "Samstag",
+    "SUNDAY": "Sonntag"
+  },
+  "MONTHS": {
+    "JANUARY": "Januar",
+    "FEBRUARY": "Februar",
+    "MARCH": "März",
+    "APRIL": "April",
+    "MAY": "Mai",
+    "JUNE": "Juni",
+    "JULY": "Juli",
+    "AUGUST": "August",
+    "SEPTEMBER": "September",
+    "OCTOBER": "Oktober",
+    "NOVEMBER": "November",
+    "DECEMBER": "Dezember"
+  },
+  "EMPTY_STATE": {
+    "TITLE": "Bereit für die Extraktion",
+    "MESSAGE": "Geben Sie eine Beschreibung ein und klicken Sie auf \"Extraktion starten\"",
+    "SELECT_CONTENT_TYPE": "Wählen Sie einen Inhaltstyp oder starten Sie die Extraktion",
+    "NO_DATA": "Keine Metadaten vorhanden"
+  },
+  "CONTROLS": {
+    "SAVE": "Speichern",
+    "RESET": "Zurücksetzen",
+    "DOWNLOAD": "Herunterladen",
+    "LOAD_JSON": "JSON öffnen",
+    "SAVE_JSON": "JSON speichern",
+    "UPLOAD": "Ins Repository hochladen",
+    "SUBMIT": "An Plugin senden"
+  },
+  "TOOLTIPS": {
+    "SUBMIT_SUGGESTION": "Vorschlag einreichen",
+    "DOWNLOAD_JSON": "JSON herunterladen"
+  },
+  "FOOTER": {
+    "FIELDS_INFO": "von {{total}} Feldern gefüllt",
+    "PROVIDER_INFO": "LLM Provider",
+    "SUBMIT_GUEST": "📮 Vorschlag einreichen",
+    "SUBMIT_LOGGED_IN": "📤 Veröffentlichen",
+    "SUBMITTING": "⏳ Wird eingereicht...",
+    "REQUIRED_FIELDS_MISSING": "⚠️ Pflichtfelder ({{filled}}/{{total}})",
+    "DOWNLOAD_JSON": "💾 JSON herunterladen",
+    "SEND_TO_PLUGIN": "💾 An Plugin senden",
+    "SENDING": "⏳ Wird gesendet..."
+  },
+  "VALIDATION": {
+    "REQUIRED_FIELD": "Dieses Feld ist erforderlich",
+    "INVALID_FORMAT": "Ungültiges Format",
+    "INVALID_URL": "Ungültige URL",
+    "INVALID_EMAIL": "Ungültige E-Mail-Adresse",
+    "INVALID_NUMBER": "Ungültige Zahl",
+    "INVALID_BOOLEAN": "Ungültiger Wahrheitswert (ja/nein)",
+    "INVALID_DATE": "Ungültiges Datum (Format: JJJJ-MM-TT)",
+    "INVALID_DATETIME": "Ungültiges Datum/Uhrzeit",
+    "MIN_LENGTH": "Mindestlänge: {{min}} Zeichen",
+    "MAX_LENGTH": "Maximale Länge: {{max}} Zeichen",
+    "MIN_VALUE": "Mindestwert: {{min}}",
+    "MAX_VALUE": "Maximalwert: {{max}}",
+    "VOCABULARY_CLOSED": "\"{{value}}\" ist kein gültiger Wert. Bitte wählen Sie aus der Liste.",
+    "VOCABULARY_SUGGESTION": "Dieser Wert ist nicht im Vokabular. Empfohlen: Wert aus der Liste wählen.",
+    "INVALID_TIME": "Ungültige Uhrzeit (Format: HH:MM)",
+    "INVALID_DURATION": "Ungültige Dauer (Format: P1D, PT3H, \"2 Stunden\")",
+    "INVALID_JSON": "Ungültiges JSON-Format",
+    "EXPECTED_OBJECT": "Erwartet: Objekt (kein Array oder einfacher Wert)"
+  },
+  "ALERTS": {
+    "INPUT_REQUIRED": "Bitte geben Sie einen Text ein.",
+    "FILL_REQUIRED_FIELDS": "Bitte füllen Sie alle Pflichtfelder aus.",
+    "JSON_LOAD_ERROR": "Fehler beim Laden der JSON-Datei. Bitte prüfen Sie das Format.",
+    "REQUIRED_FIELDS_STATUS": "Bitte füllen Sie alle Pflichtfelder aus. ({{filled}}/{{total}} erfüllt)",
+    "METADATA_SENT": "✅ Metadaten werden veröffentlicht...",
+    "SUGGESTION_SUBMITTED": "✅ Vorschlag wird eingereicht...",
+    "RESET_CONFIRM": "Möchten Sie wirklich alle Daten zurücksetzen?",
+    "CONFIRM_RESET": "Möchten Sie wirklich alle Daten zurücksetzen?",
+    "SUBMIT_AGAIN": "Möchten Sie einen weiteren Vorschlag einreichen?",
+    "VIEW_IN_REPO": "Möchten Sie den vorhandenen Eintrag im Repository ansehen?",
+    "SUCCESS": {
+      "TITLE": "✅ Erfolgreich eingereicht!",
+      "MESSAGE": "Ihr Vorschlag wurde erfolgreich eingereicht!",
+      "NODE_ID": "📋 Node-ID:",
+      "STATUS": "🔍 Status: Wird geprüft",
+      "REPOSITORY": "📊 Repository: WLO Staging",
+      "THANK_YOU": "Ihr Beitrag wird nun von unserem Team geprüft. Vielen Dank! 🎉",
+      "VIEW_IN_REPO_BTN": "🔍 Im Repository ansehen"
+    },
+    "ERROR": {
+      "SUBMISSION_ERROR": "❌ Fehler beim Einreichen:",
+      "TECHNICAL_ERROR": "❌ Fehler beim Einreichen\n\nEin technischer Fehler ist aufgetreten.\nBitte versuchen Sie es später erneut.",
+      "TRY_AGAIN": "Bitte versuchen Sie es später erneut oder kontaktieren Sie den Support.",
+      "DETAILS": "Details:"
+    },
+    "DUPLICATE": {
+      "TITLE": "⚠️ Diese URL existiert bereits im Repository!",
+      "NODE_ID": "📋 Node-ID:"
+    },
+    "UPLOAD_SUCCESS": "Upload erfolgreich! Node-ID: {{nodeId}}",
+    "UPLOAD_DUPLICATE": "Diese URL existiert bereits: \"{{title}}\"\n\nTrotzdem hochladen?",
+    "UPLOAD_ERROR": "Upload fehlgeschlagen: {{error}}",
+    "PLUGIN": {
+      "SENT": "Erfolgreich übertragen!",
+      "MESSAGE": "Die Metadaten wurden an das Browser-Plugin übergeben und werden jetzt im Repository veröffentlicht."
+    }
+  },
+  "LANGUAGE": {
+    "SWITCH_TO_ENGLISH": "Switch to English",
+    "SWITCH_TO_GERMAN": "Zu Deutsch wechseln",
+    "CURRENT": "Sprache"
+  },
+  "LAYOUT": {
+    "DEFAULT": {
+      "NAME": "Standard",
+      "DESCRIPTION": "Bearbeitungsmodus für Local, Bookmarklet, Browser Extension, Vercel"
+    },
+    "VIEWER": {
+      "NAME": "Ansicht",
+      "DESCRIPTION": "Einbettungsmodus für Web Component (Read-only)"
+    }
+  }
+}
