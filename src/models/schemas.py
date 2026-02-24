@@ -25,6 +25,13 @@ class ExtractionMethod(str, Enum):
     BROWSER = "browser"
 
 
+class OutputFormat(str, Enum):
+    """Output format for text extraction."""
+    MARKDOWN = "markdown"
+    TXT = "txt"
+    HTML = "html"
+
+
 def sanitize_text(text: str) -> str:
     """
     Sanitize text input by normalizing control characters.
@@ -78,8 +85,12 @@ class GenerateRequest(BaseModel):
         description="URL to fetch text from via text extraction API. Required when input_source='url' or 'node_url'."
     )
     extraction_method: ExtractionMethod = Field(
-        default=ExtractionMethod.SIMPLE,
-        description="Text extraction method: 'simple' (fast, basic HTML parsing) or 'browser' (full browser rendering, slower)"
+        default=ExtractionMethod.BROWSER,
+        description="Text extraction method: 'simple' (fast, basic HTML parsing) or 'browser' (full browser rendering, slower but more complete)"
+    )
+    output_format: OutputFormat = Field(
+        default=OutputFormat.MARKDOWN,
+        description="Output format for text extraction: 'markdown' (default), 'txt' (plain text), 'html' (raw HTML)"
     )
     
     # NodeID input (required for input_source='node_id' or 'node_url')
@@ -562,8 +573,12 @@ class DetectContentTypeRequest(BaseModel):
         description="URL to fetch text from via text extraction API. Required when input_source='url' or 'node_url'."
     )
     extraction_method: ExtractionMethod = Field(
-        default=ExtractionMethod.SIMPLE,
-        description="Text extraction method: 'simple' (fast, basic HTML parsing) or 'browser' (full browser rendering, slower)"
+        default=ExtractionMethod.BROWSER,
+        description="Text extraction method: 'simple' (fast, basic HTML parsing) or 'browser' (full browser rendering, slower but more complete)"
+    )
+    output_format: OutputFormat = Field(
+        default=OutputFormat.MARKDOWN,
+        description="Output format for text extraction: 'markdown' (default), 'txt' (plain text), 'html' (raw HTML)"
     )
     
     # NodeID input (required for input_source='node_id' or 'node_url')
@@ -606,7 +621,7 @@ class DetectContentTypeRequest(BaseModel):
                     "input_source": "text",
                     "text": "Workshop 'KI in der Bildung' am 15. März 2025 in Berlin.",
                     "source_url": "",
-                    "extraction_method": "simple",
+                    "extraction_method": "browser",
                     "node_id": "",
                     "repository": "staging",
                     "context": "default",
@@ -658,8 +673,12 @@ class ExtractFieldRequest(BaseModel):
         description="URL to fetch text from via text extraction API. Required when input_source='url' or 'node_url'."
     )
     extraction_method: ExtractionMethod = Field(
-        default=ExtractionMethod.SIMPLE,
-        description="Text extraction method: 'simple' (fast, basic HTML parsing) or 'browser' (full browser rendering, slower)"
+        default=ExtractionMethod.BROWSER,
+        description="Text extraction method: 'simple' (fast, basic HTML parsing) or 'browser' (full browser rendering, slower but more complete)"
+    )
+    output_format: OutputFormat = Field(
+        default=OutputFormat.MARKDOWN,
+        description="Output format for text extraction: 'markdown' (default), 'txt' (plain text), 'html' (raw HTML)"
     )
     
     # NodeID input (required for input_source='node_id' or 'node_url')

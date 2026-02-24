@@ -595,7 +595,7 @@ async def detect_content_type(req: DetectContentTypeRequest):
             if req.input_source == InputSource.URL:
                 if not req.source_url:
                     raise HTTPException(status_code=400, detail="source_url required for input_source='url'")
-                text = await input_service.fetch_from_url(req.source_url, req.extraction_method.value, lang=req.language)
+                text = await input_service.fetch_from_url(req.source_url, req.extraction_method.value, lang=req.language, output_format=req.output_format.value)
             elif req.input_source == InputSource.NODE_ID:
                 if not req.node_id:
                     raise HTTPException(status_code=400, detail="node_id required for input_source='node_id'")
@@ -606,7 +606,7 @@ async def detect_content_type(req: DetectContentTypeRequest):
                     raise HTTPException(status_code=400, detail="node_id required for input_source='node_url'")
                 input_data = await input_service.fetch_from_node_url(
                     req.node_id, req.repository.value, req.source_url or None, req.extraction_method.value,
-                    lang=req.language
+                    lang=req.language, output_format=req.output_format.value
                 )
                 text = input_data.text
         except HTTPException:
@@ -863,7 +863,7 @@ async def extract_field(req: ExtractFieldRequest):
             if req.input_source == InputSource.URL:
                 if not req.source_url:
                     raise HTTPException(status_code=400, detail="source_url required for input_source='url'")
-                extracted_text = await input_service.fetch_from_url(req.source_url, req.extraction_method.value, lang=req.language)
+                extracted_text = await input_service.fetch_from_url(req.source_url, req.extraction_method.value, lang=req.language, output_format=req.output_format.value)
                 text = f"Quell-URL / Source URL: {req.source_url}\n\n{extracted_text}"
             elif req.input_source == InputSource.NODE_ID:
                 if not req.node_id:
@@ -881,7 +881,7 @@ async def extract_field(req: ExtractFieldRequest):
                     raise HTTPException(status_code=400, detail="node_id required for input_source='node_url'")
                 input_data = await input_service.fetch_from_node_url(
                     req.node_id, req.repository.value, req.source_url or None, req.extraction_method.value,
-                    lang=req.language
+                    lang=req.language, output_format=req.output_format.value
                 )
                 source_url_info = input_data.source_url or req.source_url
                 if source_url_info:
@@ -1289,7 +1289,8 @@ async def generate_metadata(request: Request):
             extracted_text = await input_service.fetch_from_url(
                 url=req.source_url,
                 method=req.extraction_method.value,
-                lang=req.language
+                lang=req.language,
+                output_format=req.output_format.value
             )
             # Prepend source URL to text so LLM can use it for ccm:wwwurl field
             text = f"Quell-URL / Source URL: {req.source_url}\n\n{extracted_text}"
@@ -1327,7 +1328,8 @@ async def generate_metadata(request: Request):
                 repository=req.repository.value,
                 source_url=req.source_url or None,
                 extraction_method=req.extraction_method.value,
-                lang=req.language
+                lang=req.language,
+                output_format=req.output_format.value
             )
             # Prepend source URL to text so LLM can use it for ccm:wwwurl field
             source_url_info = input_data.source_url or req.source_url
