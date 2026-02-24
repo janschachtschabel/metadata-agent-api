@@ -15,6 +15,7 @@ Generiert strukturierte Metadaten nach dem [WLO/OEH-Schema](https://wirlernenonl
   - [POST /validate](#post-validate)
   - [POST /export/markdown](#post-exportmarkdown)
   - [POST /upload](#post-upload)
+  - [POST /upload/verify/{node_id}](#post-uploadverifynodeid)
   - [Info-Endpunkte](#info-endpunkte)
 - [Nutzungsbeispiele](#nutzungsbeispiele)
 - [Umgebungsvariablen](#umgebungsvariablen)
@@ -121,7 +122,8 @@ Generiert vollständige Metadaten aus Text, URL oder Repository-Node.
 | `source_url` | string | — | URL (bei `input_source=url` oder `node_url`) |
 | `node_id` | string | — | Repository Node-ID (bei `node_id` oder `node_url`) |
 | `repository` | enum | `staging` | `staging` oder `prod` |
-| `extraction_method` | enum | `simple` | `simple` (schnell) oder `browser` (JS-Rendering) |
+| `extraction_method` | enum | `browser` | `browser` (JS-Rendering, Standard) oder `simple` (schnell) |
+| `output_format` | enum | `markdown` | `markdown` (Standard), `txt` (Klartext), `html` (rohes HTML) |
 | **Schema** ||||
 | `context` | string | `default` | Schema-Kontext |
 | `version` | string | `latest` | Schema-Version (`latest` oder z.B. `1.8.0`) |
@@ -234,7 +236,8 @@ Extrahiert oder regeneriert ein einzelnes Feld. Nützlich um einzelne Felder zu 
 | `source_url` | string | — | URL (bei `url`/`node_url`) |
 | `node_id` | string | — | Node-ID (bei `node_id`/`node_url`) |
 | `repository` | enum | `staging` | `staging` oder `prod` |
-| `extraction_method` | enum | `simple` | `simple` oder `browser` |
+| `extraction_method` | enum | `browser` | `browser` (Standard) oder `simple` |
+| `output_format` | enum | `markdown` | `markdown`, `txt`, `html` |
 | `schema_file` | string | **erforderlich** | Schema-Datei (z.B. `event.json`, `core.json`) |
 | `field_id` | string | **erforderlich** | Feld-ID (z.B. `schema:startDate`, `cclom:title`) |
 | `existing_metadata` | object | — | Bestehende Werte als Kontext |
@@ -290,7 +293,8 @@ Erkennt den Inhaltstyp (Schema) eines Textes via LLM.
 | `source_url` | string | — | URL |
 | `node_id` | string | — | Node-ID |
 | `repository` | enum | `staging` | Repository |
-| `extraction_method` | enum | `simple` | Extraction-Methode |
+| `extraction_method` | enum | `browser` | `browser` (Standard) oder `simple` |
+| `output_format` | enum | `markdown` | `markdown`, `txt`, `html` |
 | `context` | string | `default` | Schema-Kontext |
 | `version` | string | `latest` | Schema-Version |
 | `language` | string | `de` | Sprache |
@@ -441,6 +445,7 @@ Lädt Metadaten ins WLO edu-sharing Repository hoch.
 | `repository` | string | `staging` | `staging` oder `prod` |
 | `check_duplicates` | bool | `true` | Dublettenprüfung via `ccm:wwwurl` |
 | `start_workflow` | bool | `true` | Review-Workflow starten |
+| `source` | string | — | Bezugsquelle / Publisher-Override. Überschreibt `ccm:oeh_publisher_combined` |
 
 #### Repositories
 
@@ -522,6 +527,51 @@ Nach Node-Erstellung werden automatisch Aspects hinzugefügt, die für bestimmte
   ]
 }
 ```
+
+---
+
+### POST /upload/verify/{node_id}
+
+Prüft hochgeladene Metadaten gegen die tatsächlichen Werte im Repository (SOLL/IST-Vergleich).
+
+#### Request
+
+| Parameter | Typ | Default | Beschreibung |
+|-----------|-----|---------|--------------|
+| `node_id` | string (URL-Pfad) | **erforderlich** | Node-ID des hochgeladenen Objekts |
+| `expected_metadata` | object | — | Erwartete Metadaten (z.B. Output von `/generate`). Für SOLL/IST-Diff |
+| `repository` | string | `staging` | `staging` oder `prod` |
+
+#### Response
+
+```json
+{
+  "success": true,
+  "node_id": "abc123-def456-...",
+  "repository": "staging",
+  "actual_metadata": { "cclom:title": ["Workshop KI"], ... },
+  "diff": [
+    { "field_id": "cclom:title", "status": "match", "expected": "Workshop KI", "actual": ["Workshop KI"] },
+    { "field_id": "schema:startDate", "status": "mismatch", "expected": "2026-03-15T09:00", "actual": ["1742166000000"] },
+    { "field_id": "cclom:general_keyword", "status": "missing_in_repo", "expected": ["KI", "Bildung"], "actual": null }
+  ],
+  "summary": {
+    "match": 8,
+    "mismatch": 2,
+    "missing_in_repo": 1,
+    "extra_in_repo": 3,
+    "not_written": 0
+  }
+}
+```
+
+| Status | Bedeutung |
+|--------|----------|
+| `match` | SOLL = IST |
+| `mismatch` | SOLL ≠ IST (Wert wurde geschrieben, aber unterscheidet sich) |
+| `missing_in_repo` | Feld im SOLL, aber nicht im Repository |
+| `extra_in_repo` | Feld im Repository, aber nicht im SOLL |
+| `not_written` | Feld hat kein `repo_field` — wird nicht ins Repository geschrieben |
 
 ---
 
@@ -624,6 +674,8 @@ curl -X POST http://localhost:8000/generate \
   -d '{
     "input_source": "url",
     "source_url": "https://example.com/event-page",
+    "extraction_method": "browser",
+    "output_format": "markdown",
     "schema_file": "auto"
   }'
 ```
@@ -637,6 +689,7 @@ curl -X POST http://localhost:8000/generate \
     "input_source": "node_url",
     "node_id": "cbf66543-fb90-4e69-a392-03f305139e3f",
     "repository": "staging",
+    "extraction_method": "browser",
     "schema_file": "auto"
   }'
 ```
@@ -801,7 +854,7 @@ Prefix `METADATA_AGENT_` wird automatisch vorangestellt (außer API-Keys).
 | `METADATA_AGENT_REPOSITORY_PROD_URL` | `https://redaktion.openeduhub.net/edu-sharing/rest` | Prod-Repository |
 | `METADATA_AGENT_REPOSITORY_STAGING_URL` | `https://repository.staging.openeduhub.net/edu-sharing/rest` | Staging-Repository |
 | `METADATA_AGENT_TEXT_EXTRACTION_API_URL` | `https://text-extraction.staging.openeduhub.net` | Text-Extraction API |
-| `METADATA_AGENT_TEXT_EXTRACTION_DEFAULT_METHOD` | `simple` | `simple` oder `browser` |
+| `METADATA_AGENT_TEXT_EXTRACTION_DEFAULT_METHOD` | `browser` | `browser` (Standard) oder `simple` |
 
 ### Sonstige
 

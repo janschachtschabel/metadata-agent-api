@@ -500,8 +500,16 @@ async def get_schema_definition(context: str, version: str, schema_file: str):
 
 | Wert | Beschreibung |
 |------|-------------|
-| `simple` | Schnelle HTML-Extraktion (Standard) |
-| `browser` | Vollständiges Browser-Rendering für JS-Seiten |
+| `simple` | Schnelle HTML-Extraktion |
+| `browser` | Vollständiges Browser-Rendering für JS-Seiten (Standard) |
+
+## Output Format (output_format)
+
+| Wert | Beschreibung |
+|------|-------------|
+| `markdown` | Markdown-Format (Standard) |
+| `txt` | Reiner Text |
+| `html` | Rohes HTML |
 
 ## Repository (repository)
 
@@ -528,7 +536,8 @@ async def get_schema_definition(context: str, version: str, schema_file: str):
                                 "input_source": "text",
                                 "text": "Workshop 'KI in der Bildung' am 15. März 2025 in Berlin.\nLernen Sie die Grundlagen der künstlichen Intelligenz kennen.",
                                 "source_url": "",
-                                "extraction_method": "simple",
+                                "extraction_method": "browser",
+                                "output_format": "markdown",
                                 "node_id": "",
                                 "repository": "staging",
                                 "context": "default",
@@ -545,7 +554,8 @@ async def get_schema_definition(context: str, version: str, schema_file: str):
                                 "input_source": "url",
                                 "text": "",
                                 "source_url": "https://www.wirlernenonline.de",
-                                "extraction_method": "simple",
+                                "extraction_method": "browser",
+                                "output_format": "markdown",
                                 "node_id": "",
                                 "repository": "staging",
                                 "context": "default",
@@ -562,7 +572,8 @@ async def get_schema_definition(context: str, version: str, schema_file: str):
                                 "input_source": "node_id",
                                 "text": "",
                                 "source_url": "",
-                                "extraction_method": "simple",
+                                "extraction_method": "browser",
+                                "output_format": "markdown",
                                 "node_id": "cbf66543-fb90-4e69-a392-03f305139e3f",
                                 "repository": "staging",
                                 "context": "default",
@@ -721,8 +732,16 @@ async def detect_content_type(req: DetectContentTypeRequest):
 
 | Wert | Beschreibung |
 |------|-------------|
-| `simple` | Schnelle HTML-Extraktion (Standard) |
-| `browser` | Vollständiges Browser-Rendering für JS-Seiten |
+| `simple` | Schnelle HTML-Extraktion |
+| `browser` | Vollständiges Browser-Rendering für JS-Seiten (Standard) |
+
+## Output Format (output_format)
+
+| Wert | Beschreibung |
+|------|-------------|
+| `markdown` | Markdown-Format (Standard) |
+| `txt` | Reiner Text |
+| `html` | Rohes HTML |
 
 ## Repository (repository)
 
@@ -756,7 +775,8 @@ async def detect_content_type(req: DetectContentTypeRequest):
                                 "input_source": "text",
                                 "text": "Workshop 'KI in der Bildung' am 15. März 2025 in Berlin.",
                                 "source_url": "",
-                                "extraction_method": "simple",
+                                "extraction_method": "browser",
+                                "output_format": "markdown",
                                 "node_id": "",
                                 "repository": "staging",
                                 "context": "default",
@@ -777,7 +797,8 @@ async def detect_content_type(req: DetectContentTypeRequest):
                                 "input_source": "url",
                                 "text": "",
                                 "source_url": "https://www.wirlernenonline.de",
-                                "extraction_method": "simple",
+                                "extraction_method": "browser",
+                                "output_format": "markdown",
                                 "node_id": "",
                                 "repository": "staging",
                                 "context": "default",
@@ -798,7 +819,8 @@ async def detect_content_type(req: DetectContentTypeRequest):
                                 "input_source": "node_id",
                                 "text": "",
                                 "source_url": "",
-                                "extraction_method": "simple",
+                                "extraction_method": "browser",
+                                "output_format": "markdown",
                                 "node_id": "cbf66543-fb90-4e69-a392-03f305139e3f",
                                 "repository": "staging",
                                 "context": "default",
@@ -819,7 +841,8 @@ async def detect_content_type(req: DetectContentTypeRequest):
                                 "input_source": "text",
                                 "text": "Der Workshop wurde auf den 20. März 2025 verschoben.",
                                 "source_url": "",
-                                "extraction_method": "simple",
+                                "extraction_method": "browser",
+                                "output_format": "markdown",
                                 "node_id": "",
                                 "repository": "staging",
                                 "context": "default",
@@ -1031,8 +1054,16 @@ async def extract_field(req: ExtractFieldRequest):
 
 | Wert | Beschreibung |
 |------|-------------|
-| `simple` | Schnelle HTML-Extraktion (Standard) |
-| `browser` | Vollständiges Browser-Rendering für JS-Seiten |
+| `simple` | Schnelle HTML-Extraktion |
+| `browser` | Vollständiges Browser-Rendering für JS-Seiten (Standard) |
+
+## Output Format (output_format)
+
+| Wert | Beschreibung |
+|------|-------------|
+| `markdown` | Markdown-Format (Standard) |
+| `txt` | Reiner Text |
+| `html` | Rohes HTML |
 
 ## Repository (repository)
 
@@ -1079,7 +1110,8 @@ async def extract_field(req: ExtractFieldRequest):
                                 "input_source": "text",
                                 "text": "Workshop 'KI in der Bildung' am 15. März 2025 in Berlin.\nLernen Sie die Grundlagen der künstlichen Intelligenz kennen.",
                                 "source_url": "",
-                                "extraction_method": "simple",
+                                "extraction_method": "browser",
+                                "output_format": "markdown",
                                 "node_id": "",
                                 "repository": "staging",
                                 "existing_metadata": {},
@@ -1104,7 +1136,8 @@ async def extract_field(req: ExtractFieldRequest):
                                 "input_source": "url",
                                 "text": "",
                                 "source_url": "https://www.wirlernenonline.de",
-                                "extraction_method": "simple",
+                                "extraction_method": "browser",
+                                "output_format": "markdown",
                                 "node_id": "",
                                 "repository": "staging",
                                 "existing_metadata": {},
@@ -1129,7 +1162,8 @@ async def extract_field(req: ExtractFieldRequest):
                                 "input_source": "node_id",
                                 "text": "",
                                 "source_url": "",
-                                "extraction_method": "simple",
+                                "extraction_method": "browser",
+                                "output_format": "markdown",
                                 "node_id": "cbf66543-fb90-4e69-a392-03f305139e3f",
                                 "repository": "staging",
                                 "existing_metadata": {},
@@ -1154,7 +1188,8 @@ async def extract_field(req: ExtractFieldRequest):
                                 "input_source": "node_url",
                                 "text": "",
                                 "source_url": "",
-                                "extraction_method": "simple",
+                                "extraction_method": "browser",
+                                "output_format": "markdown",
                                 "node_id": "cbf66543-fb90-4e69-a392-03f305139e3f",
                                 "repository": "staging",
                                 "existing_metadata": {},
@@ -1179,7 +1214,8 @@ async def extract_field(req: ExtractFieldRequest):
                                 "input_source": "text",
                                 "text": "Workshop 'KI in der Bildung' am 15. März 2025 in Berlin.",
                                 "source_url": "",
-                                "extraction_method": "simple",
+                                "extraction_method": "browser",
+                                "output_format": "markdown",
                                 "node_id": "",
                                 "repository": "staging",
                                 "existing_metadata": {
