@@ -434,6 +434,10 @@ class UploadRequest(BaseModel):
         default=True,
         description="Start review workflow after upload"
     )
+    source: Optional[str] = Field(
+        default=None,
+        description="Bezugsquelle / Publisher-Name. Wenn angegeben, wird ccm:oeh_publisher_combined mit diesem Wert überschrieben."
+    )
     
     model_config = {
         "json_schema_extra": {
@@ -448,7 +452,8 @@ class UploadRequest(BaseModel):
                 },
                 "repository": "staging",
                 "check_duplicates": True,
-                "start_workflow": True
+                "start_workflow": True,
+                "source": "Klexikon"
             }]
         }
     }
@@ -481,6 +486,59 @@ class UploadResponse(BaseModel):
     fields_written: Optional[int] = None
     fields_skipped: Optional[int] = None
     field_errors: Optional[list[FieldUploadError]] = None
+
+
+class FieldDiff(BaseModel):
+    """Diff info for a single metadata field."""
+    field_id: str
+    status: str  # "match", "mismatch", "missing_in_repo", "extra_in_repo", "not_written"
+    expected: Optional[Any] = None
+    actual: Optional[Any] = None
+
+
+class VerifyRequest(BaseModel):
+    """Request for verifying uploaded metadata against repository."""
+    expected_metadata: Optional[dict[str, Any]] = Field(
+        default=None,
+        description="Expected metadata (e.g. output from /generate). If provided, a SOLL/IST diff is computed."
+    )
+    repository: str = Field(
+        default="staging",
+        description="Repository: 'staging' or 'prod'"
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [{
+                "expected_metadata": {
+                    "cclom:title": "Example Event",
+                    "cclom:general_description": "Description...",
+                    "ccm:wwwurl": "https://example.com/event",
+                    "ccm:taxonid": "http://w3id.org/openeduhub/vocabs/discipline/12002"
+                },
+                "repository": "staging"
+            }]
+        }
+    }
+
+
+class VerifyResponse(BaseModel):
+    """Response from upload verification."""
+    success: bool
+    node_id: str
+    repository: str
+    actual_metadata: dict[str, Any] = Field(
+        description="Flat metadata as read from the repository"
+    )
+    diff: Optional[list[FieldDiff]] = Field(
+        default=None,
+        description="Field-level diff (only when expected_metadata is provided)"
+    )
+    summary: Optional[dict[str, int]] = Field(
+        default=None,
+        description="Diff summary: match, mismatch, missing_in_repo, extra_in_repo, not_written counts"
+    )
+    error: Optional[str] = None
 
 
 class DetectContentTypeRequest(BaseModel):

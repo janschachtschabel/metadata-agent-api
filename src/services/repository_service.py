@@ -739,6 +739,250 @@ class RepositoryService:
         except Exception as e:
             print(f"⚠️ Aspect update error: {e}")
     
+    async def verify_node(
+        self,
+        node_id: str,
+        repository: str = "staging",
+        expected_metadata: dict[str, Any] | None = None,
+        context: str = "default",
+        version: str = "latest",
+    ) -> dict[str, Any]:
+        """
+        Read metadata from repository and optionally compare against expected values.
+        
+        Args:
+            node_id: The node ID to verify
+            repository: 'staging' or 'prod'
+            expected_metadata: If provided, compute field-level diff
+            context: Schema context for repo_field filtering
+            version: Schema version for repo_field filtering
+            
+        Returns:
+            Dict with actual_metadata, optional diff and summary
+        """
+        config = _get_repository_configs().get(repository)
+        if not config:
+            return {"success": False, "error": f"Unknown repository: {repository}"}
+        
+        base_url = config["base_url"]
+        
+        try:
+            timeout = httpx.Timeout(30.0, connect=10.0)
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                # Fetch node metadata
+                url = f"{base_url}/rest/node/v1/nodes/-home-/{node_id}/metadata?propertyFilter=-all-"
+                response = await client.get(
+                    url,
+                    headers={
+                        "Authorization": self._auth_header,
+                        "Accept": "application/json"
+                    }
+                )
+                
+                if response.status_code != 200:
+                    return {
+                        "success": False,
+                        "error": f"Failed to fetch node: HTTP {response.status_code} — {response.text[:300]}"
+                    }
+                
+                data = response.json()
+                properties = data.get("node", {}).get("properties", {})
+                
+                # Convert to flat metadata (same logic as input_source_service)
+                actual = self._properties_to_flat(properties)
+                
+                result = {
+                    "success": True,
+                    "node_id": node_id,
+                    "repository": repository,
+                    "actual_metadata": actual,
+                }
+                
+                # If expected metadata provided, compute diff
+                if expected_metadata:
+                    diff, summary = self._compute_diff(
+                        expected_metadata, actual, context, version
+                    )
+                    result["diff"] = diff
+                    result["summary"] = summary
+                
+                return result
+                
+        except httpx.TimeoutException as e:
+            return {"success": False, "error": f"Timeout: {e}"}
+        except Exception as e:
+            return {"success": False, "error": f"{type(e).__name__}: {e}"}
+    
+    def _properties_to_flat(self, properties: dict) -> dict:
+        """Convert repository array-style properties to flat metadata."""
+        flat = {}
+        for key, value in properties.items():
+            # Skip internal/system properties
+            if key.startswith("sys:") or key.startswith("virtual:"):
+                continue
+            # Skip DISPLAYNAME variants
+            if key.endswith("_DISPLAYNAME"):
+                continue
+            # Skip VCARD sub-fields (keep only the main VCARD field)
+            if "VCARD_" in key:
+                continue
+            # Skip cm: system fields (keep only metadata-relevant ones)
+            cm_keep = {"cm:author", "cm:latitude", "cm:longitude"}
+            if key.startswith("cm:") and key not in cm_keep:
+                continue
+            
+            if isinstance(value, list):
+                if len(value) == 1:
+                    flat[key] = value[0]
+                elif len(value) > 1:
+                    flat[key] = value
+                # Skip empty lists
+            elif value is not None:
+                flat[key] = value
+        
+        return flat
+    
+    def _compute_diff(
+        self,
+        expected: dict,
+        actual: dict,
+        context: str,
+        version: str,
+    ) -> tuple[list[dict], dict]:
+        """
+        Compute field-level SOLL/IST diff.
+        
+        Returns:
+            Tuple of (diff_list, summary_counts)
+        """
+        # Clean expected metadata (remove processing/header keys)
+        excluded = {
+            "contextName", "schemaVersion", "metadataset",
+            "language", "exportedAt", "processing", "_origins",
+            "repository", "check_duplicates", "start_workflow",
+        }
+        clean_expected = {k: v for k, v in expected.items() if k not in excluded}
+        
+        # Load repo fields to know which fields were eligible for writing
+        schema_file = expected.get("metadataset")
+        repo_field_ids = get_repo_fields(context, version, schema_file)
+        
+        diff = []
+        summary = {"match": 0, "mismatch": 0, "missing_in_repo": 0, "extra_in_repo": 0, "not_written": 0}
+        
+        # Check all expected fields
+        seen_keys = set()
+        for field_id, expected_val in clean_expected.items():
+            seen_keys.add(field_id)
+            
+            # Skip empty expected values
+            if expected_val is None or expected_val == "" or expected_val == []:
+                continue
+            
+            # Fields that were never eligible for repo write
+            if field_id.startswith("virtual:") or field_id.startswith("schema:"):
+                # These are internal fields that get transformed (e.g. schema:location → cm:latitude)
+                diff.append({
+                    "field_id": field_id,
+                    "status": "not_written",
+                    "expected": expected_val,
+                    "actual": None,
+                })
+                summary["not_written"] += 1
+                continue
+            
+            if repo_field_ids and field_id not in repo_field_ids:
+                diff.append({
+                    "field_id": field_id,
+                    "status": "not_written",
+                    "expected": expected_val,
+                    "actual": None,
+                })
+                summary["not_written"] += 1
+                continue
+            
+            actual_val = actual.get(field_id)
+            
+            if actual_val is None:
+                # Special case: cm:author is transformed to ccm:lifecyclecontributer_author
+                if field_id == "cm:author":
+                    author_fn = actual.get("ccm:lifecyclecontributer_authorFN")
+                    if author_fn:
+                        diff.append({
+                            "field_id": field_id,
+                            "status": "match",
+                            "expected": expected_val,
+                            "actual": f"(transformed → ccm:lifecyclecontributer_authorFN: {author_fn})",
+                        })
+                        summary["match"] += 1
+                        continue
+                
+                diff.append({
+                    "field_id": field_id,
+                    "status": "missing_in_repo",
+                    "expected": expected_val,
+                    "actual": None,
+                })
+                summary["missing_in_repo"] += 1
+            elif self._values_match(expected_val, actual_val):
+                diff.append({
+                    "field_id": field_id,
+                    "status": "match",
+                    "expected": expected_val,
+                    "actual": actual_val,
+                })
+                summary["match"] += 1
+            else:
+                diff.append({
+                    "field_id": field_id,
+                    "status": "mismatch",
+                    "expected": expected_val,
+                    "actual": actual_val,
+                })
+                summary["mismatch"] += 1
+        
+        # Check for extra fields in repo that weren't in expected
+        for field_id, actual_val in actual.items():
+            if field_id in seen_keys:
+                continue
+            if actual_val is None or actual_val == "" or actual_val == []:
+                continue
+            diff.append({
+                "field_id": field_id,
+                "status": "extra_in_repo",
+                "expected": None,
+                "actual": actual_val,
+            })
+            summary["extra_in_repo"] += 1
+        
+        # Sort: problems first, then matches
+        status_order = {"missing_in_repo": 0, "mismatch": 1, "not_written": 2, "extra_in_repo": 3, "match": 4}
+        diff.sort(key=lambda d: status_order.get(d["status"], 5))
+        
+        return diff, summary
+    
+    def _values_match(self, expected: Any, actual: Any) -> bool:
+        """Compare expected and actual values, handling type differences."""
+        # Normalize both to comparable form
+        exp_norm = self._normalize_compare(expected)
+        act_norm = self._normalize_compare(actual)
+        return exp_norm == act_norm
+    
+    def _normalize_compare(self, value: Any) -> Any:
+        """Normalize a value for comparison."""
+        if isinstance(value, list):
+            if len(value) == 1:
+                return self._normalize_compare(value[0])
+            return sorted(str(v).strip().lower() for v in value)
+        if isinstance(value, dict):
+            # Extract URI or label for comparison
+            if "uri" in value:
+                return str(value["uri"]).strip().lower()
+            if "label" in value:
+                return str(value["label"]).strip().lower()
+            return json.dumps(value, sort_keys=True, ensure_ascii=False).lower()
+        return str(value).strip().lower()
+
     async def _set_collections(
         self,
         client: httpx.AsyncClient,

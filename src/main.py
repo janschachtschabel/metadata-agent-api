@@ -27,6 +27,9 @@ from .models.schemas import (
     UploadResponse,
     UploadedNodeInfo,
     FieldUploadError,
+    VerifyRequest,
+    VerifyResponse,
+    FieldDiff,
     DetectContentTypeRequest,
     DetectContentTypeResponse,
     ContentTypeInfo,
@@ -1701,11 +1704,13 @@ async def upload_to_repository(request: Request):
         repository = data.pop("repository", "staging")
         check_duplicates = data.pop("check_duplicates", True)
         start_workflow = data.pop("start_workflow", True)
+        source = data.pop("source", None)
         data = {
             "metadata": data,
             "repository": repository,
             "check_duplicates": check_duplicates,
             "start_workflow": start_workflow,
+            "source": source,
         }
     
     # Validate with Pydantic model
@@ -1731,6 +1736,10 @@ async def upload_to_repository(request: Request):
     # Extract context/version from metadata for schema-driven field resolution
     context = req.metadata.get("contextName", "default")
     version = req.metadata.get("schemaVersion", "latest")
+    
+    # Apply source override if provided
+    if req.source:
+        req.metadata["ccm:oeh_publisher_combined"] = req.source
     
     result = await repo_service.upload_metadata(
         metadata=req.metadata,
@@ -1762,6 +1771,145 @@ async def upload_to_repository(request: Request):
         fields_written=result.get("fields_written"),
         fields_skipped=result.get("fields_skipped"),
         field_errors=field_errors,
+    )
+
+
+# ============================================================================
+# Upload Verification Endpoint
+# ============================================================================
+
+@app.post(
+    "/upload/verify/{node_id}",
+    response_model=VerifyResponse,
+    summary="Upload-Ergebnis prüfen (SOLL/IST-Vergleich)",
+    description="""Liest die Metadaten eines Nodes aus dem Repository und vergleicht sie optional mit den erwarteten Werten.
+
+## Nutzung
+
+**Nur lesen** (ohne Body): Gibt die aktuellen Metadaten des Nodes zurück.
+
+**SOLL/IST-Vergleich** (mit Body): Vergleicht die erwarteten Metadaten (z.B. Output von `/generate`) mit den tatsächlich geschriebenen Werten.
+
+## Diff-Status pro Feld
+
+| Status | Bedeutung |
+|--------|-----------|
+| `match` | Wert stimmt überein |
+| `mismatch` | Wert weicht ab (SOLL ≠ IST) |
+| `missing_in_repo` | Feld wurde erwartet, ist aber nicht im Repository |
+| `extra_in_repo` | Feld ist im Repository, war aber nicht erwartet |
+| `not_written` | Feld war nicht repo-fähig (virtual:, schema:, oder kein repo_field) |
+
+## Summary
+
+Zählt die Anzahl der Felder pro Status-Kategorie.
+""",
+    openapi_extra={
+        "requestBody": {
+            "required": False,
+            "content": {
+                "application/json": {
+                    "schema": {"$ref": "#/components/schemas/VerifyRequest"},
+                    "examples": {
+                        "nur_lesen": {
+                            "summary": "1. Nur Metadaten lesen",
+                            "description": "Gibt die aktuellen Repository-Metadaten zurück (kein Vergleich).",
+                            "value": {
+                                "repository": "staging"
+                            }
+                        },
+                        "mit_vergleich": {
+                            "summary": "2. SOLL/IST-Vergleich",
+                            "description": "Kopiere den Output von /generate als expected_metadata rein.",
+                            "value": {
+                                "expected_metadata": {
+                                    "contextName": "default",
+                                    "schemaVersion": "1.8.1",
+                                    "metadataset": "event.json",
+                                    "cclom:title": "Workshop KI in der Bildung",
+                                    "ccm:wwwurl": "https://example.com/workshop",
+                                    "ccm:taxonid": "http://w3id.org/openeduhub/vocabs/discipline/12002"
+                                },
+                                "repository": "staging"
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+)
+async def verify_upload(node_id: str, request: Request):
+    """
+    Verify uploaded metadata by reading it back from the repository.
+    
+    Optionally compares against expected metadata to produce a field-level diff.
+    """
+    repo_service = get_repository_service()
+    
+    if not repo_service:
+        raise HTTPException(
+            status_code=503,
+            detail="Repository service not configured. Set WLO_GUEST_USERNAME and WLO_GUEST_PASSWORD environment variables."
+        )
+    
+    # Parse optional body
+    expected_metadata = None
+    repository = "staging"
+    context = "default"
+    version = "latest"
+    
+    try:
+        raw_body = await request.body()
+        if raw_body and raw_body.strip():
+            body_str = raw_body.decode("utf-8")
+            data = json.loads(sanitize_json_string(body_str))
+            
+            req = VerifyRequest(**data)
+            expected_metadata = req.expected_metadata
+            repository = req.repository
+            
+            # Extract context/version from expected metadata if available
+            if expected_metadata:
+                context = expected_metadata.get("contextName", "default")
+                version = expected_metadata.get("schemaVersion", "latest")
+    except json.JSONDecodeError:
+        pass  # No body or invalid JSON → just read
+    except Exception:
+        pass
+    
+    if repository not in ("staging", "prod", "production"):
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid repository: {repository}. Use 'staging' or 'prod'."
+        )
+    
+    result = await repo_service.verify_node(
+        node_id=node_id,
+        repository=repository,
+        expected_metadata=expected_metadata,
+        context=context,
+        version=version,
+    )
+    
+    if not result.get("success"):
+        raise HTTPException(
+            status_code=502,
+            detail=result.get("error", "Failed to verify node")
+        )
+    
+    # Build response
+    diff_list = None
+    if result.get("diff"):
+        diff_list = [FieldDiff(**d) for d in result["diff"]]
+    
+    return VerifyResponse(
+        success=True,
+        node_id=node_id,
+        repository=repository,
+        actual_metadata=result["actual_metadata"],
+        diff=diff_list,
+        summary=result.get("summary"),
     )
 
 
