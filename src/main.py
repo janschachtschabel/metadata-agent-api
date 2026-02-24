@@ -1704,11 +1704,13 @@ async def upload_to_repository(request: Request):
         repository = data.pop("repository", "staging")
         check_duplicates = data.pop("check_duplicates", True)
         start_workflow = data.pop("start_workflow", True)
+        source = data.pop("source", None)
         data = {
             "metadata": data,
             "repository": repository,
             "check_duplicates": check_duplicates,
             "start_workflow": start_workflow,
+            "source": source,
         }
     
     # Validate with Pydantic model
@@ -1734,6 +1736,10 @@ async def upload_to_repository(request: Request):
     # Extract context/version from metadata for schema-driven field resolution
     context = req.metadata.get("contextName", "default")
     version = req.metadata.get("schemaVersion", "latest")
+    
+    # Apply source override if provided
+    if req.source:
+        req.metadata["ccm:oeh_publisher_combined"] = req.source
     
     result = await repo_service.upload_metadata(
         metadata=req.metadata,

@@ -434,6 +434,10 @@ class UploadRequest(BaseModel):
         default=True,
         description="Start review workflow after upload"
     )
+    source: Optional[str] = Field(
+        default=None,
+        description="Bezugsquelle / Publisher-Name. Wenn angegeben, wird ccm:oeh_publisher_combined mit diesem Wert überschrieben."
+    )
     
     model_config = {
         "json_schema_extra": {
@@ -448,7 +452,8 @@ class UploadRequest(BaseModel):
                 },
                 "repository": "staging",
                 "check_duplicates": True,
-                "start_workflow": True
+                "start_workflow": True,
+                "source": "Klexikon"
             }]
         }
     }
