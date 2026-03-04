@@ -453,12 +453,12 @@ class ScreenshotRequest(BaseModel):
         description="Capture method: 'pageshot' (external API, default) or 'playwright' (internal, privacy-safe)"
     )
     width: int = Field(
-        default=1280,
+        default=800,
         ge=320, le=3840,
         description="Viewport width (320-3840)"
     )
     height: int = Field(
-        default=900,
+        default=500,
         ge=200, le=2160,
         description="Viewport height (200-2160)"
     )
@@ -490,8 +490,8 @@ class ScreenshotRequest(BaseModel):
             "examples": [{
                 "url": "https://klexikon.zum.de/wiki/Erde",
                 "method": "pageshot",
-                "width": 1280,
-                "height": 900,
+                "width": 800,
+                "height": 500,
                 "format": "png"
             }]
         }

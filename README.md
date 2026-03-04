@@ -595,8 +595,8 @@ Erstellt einen Screenshot einer Webseite. Optional kann der Screenshot direkt al
 |-----------|-----|---------|--------------|
 | `url` | string | **erforderlich** | URL der Webseite |
 | `method` | enum | `pageshot` | `pageshot` (extern, schnell) oder `playwright` (intern, datenschutzfreundlich) |
-| `width` | int | `1280` | Viewport-Breite (320–3840) |
-| `height` | int | `900` | Viewport-Höhe (200–2160) |
+| `width` | int | `800` | Viewport-Breite (320–3840) |
+| `height` | int | `500` | Viewport-Höhe (200–2160) |
 | `format` | string | `png` | Bildformat: `png`, `jpeg`, `webp` |
 | `full_page` | bool | `false` | Gesamte scrollbare Seite erfassen |
 | `delay` | int | `2000` | Wartezeit vor Aufnahme in ms (0–10000) |
@@ -619,8 +619,8 @@ Erstellt einen Screenshot einer Webseite. Optional kann der Screenshot direkt al
   "url": "https://example.com",
   "format": "png",
   "mimetype": "image/png",
-  "width": 1280,
-  "height": 900,
+  "width": 800,
+  "height": 500,
   "size_bytes": 245000,
   "capture_time_ms": 2800,
   "image_base64": "iVBORw0KGgo...",

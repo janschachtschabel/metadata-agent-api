@@ -72,8 +72,8 @@ class Settings(BaseSettings):
     
     # Screenshot Settings
     screenshot_method: str = "pageshot"  # 'pageshot' (external) or 'playwright' (internal)
-    screenshot_width: int = 1280
-    screenshot_height: int = 900
+    screenshot_width: int = 800
+    screenshot_height: int = 500
     screenshot_format: str = "png"
     screenshot_block_ads: bool = True
     screenshot_full_page: bool = False
