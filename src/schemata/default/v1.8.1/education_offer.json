@@ -94,6 +94,22 @@
         "de": "Preise & Angebote",
         "en": "Prices & Offers"
       }
+    },
+    {
+      "id": "license",
+      "icon": "gavel",
+      "label": {
+        "de": "Lizenz, Quelle, Mitwirkende",
+        "en": "License, Source, Contributors"
+      }
+    },
+    {
+      "id": "education",
+      "icon": "school",
+      "label": {
+        "de": "Pädagogisch/Didaktisch",
+        "en": "Educational"
+      }
     }
   ],
   "fields": [
@@ -131,14 +147,14 @@
             {
               "label": {
                 "de": "Bildungsgang",
-                "en": "educational pathway"
+                "en": "Educational Program"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/educational-program"
             },
             {
               "label": {
                 "de": "Schulbildungsgang",
-                "en": "school educational pathway"
+                "en": "School Program"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/school-program",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/educational-program"
@@ -146,7 +162,7 @@
             {
               "label": {
                 "de": "Grundschulbildung",
-                "en": "primary education"
+                "en": "Primary Education"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/primary-education",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/school-program"
@@ -154,7 +170,7 @@
             {
               "label": {
                 "de": "Weiterführende Schule",
-                "en": "secondary school"
+                "en": "Secondary Education"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/secondary-education",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/school-program"
@@ -162,7 +178,7 @@
             {
               "label": {
                 "de": "Berufsvorbereitende Bildung",
-                "en": "vocational preparatory education"
+                "en": "Career Preparation Education"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/career-preparation",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/school-program"
@@ -170,7 +186,7 @@
             {
               "label": {
                 "de": "Ausbildungsgang",
-                "en": "training pathway"
+                "en": "Vocational Program"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/vocational-program",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/educational-program"
@@ -178,7 +194,7 @@
             {
               "label": {
                 "de": "Duale Ausbildung",
-                "en": "dual education"
+                "en": "Dual Training"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/dual-training",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/vocational-program"
@@ -186,7 +202,7 @@
             {
               "label": {
                 "de": "Schulische Berufsausbildung",
-                "en": "school-based vocational training"
+                "en": "School-based Vocational Training"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/school-based-training",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/vocational-program"
@@ -194,7 +210,7 @@
             {
               "label": {
                 "de": "Fachschulausbildung",
-                "en": "technical school education"
+                "en": "Technical College Education"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/technical-college",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/vocational-program"
@@ -202,7 +218,7 @@
             {
               "label": {
                 "de": "Umschulung",
-                "en": "retraining"
+                "en": "Retraining Program"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/retraining-program",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/vocational-program"
@@ -210,7 +226,7 @@
             {
               "label": {
                 "de": "Studiengang",
-                "en": "degree program"
+                "en": "Degree Program"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/degree-program",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/educational-program"
@@ -234,7 +250,7 @@
             {
               "label": {
                 "de": "Staatsexamen-Studiengang",
-                "en": "state examination degree program"
+                "en": "State Examination Program"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/state-exam-program",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/degree-program"
@@ -242,7 +258,7 @@
             {
               "label": {
                 "de": "Diplom-/Magister-Studiengang",
-                "en": "diploma/Magister degree program"
+                "en": "Diploma/Magister Program"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/diploma-program",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/degree-program"
@@ -250,7 +266,7 @@
             {
               "label": {
                 "de": "Promotionsstudium",
-                "en": "doctoral studies"
+                "en": "Doctoral Program"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/doctoral-program",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/degree-program"
@@ -258,14 +274,14 @@
             {
               "label": {
                 "de": "Bildungsprogramm",
-                "en": "educational program"
+                "en": "Education Program"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/education-program"
             },
             {
               "label": {
                 "de": "Fortbildung/Aufstiegsqualifikation",
-                "en": "continuing education/qualification for advancement"
+                "en": "Continuing Education/Advancement Qualification"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/continuing-education",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/education-program"
@@ -273,7 +289,7 @@
             {
               "label": {
                 "de": "Aufstiegsfortbildung",
-                "en": "advancement training"
+                "en": "Advancement Training"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/advancement-training",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/continuing-education"
@@ -281,7 +297,7 @@
             {
               "label": {
                 "de": "Anpassungsfortbildung",
-                "en": "adaptation training"
+                "en": "Adaptation Training"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/adaptation-training",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/continuing-education"
@@ -289,7 +305,7 @@
             {
               "label": {
                 "de": "Kammer-Zertifikat",
-                "en": "chamber certificate"
+                "en": "Chamber Certificate"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/chamber-certificate",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/continuing-education"
@@ -297,7 +313,7 @@
             {
               "label": {
                 "de": "Lehrgang/Kurs-Serie",
-                "en": "Course/Program Series"
+                "en": "Course Series/Program"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/course-series",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/education-program"
@@ -329,7 +345,7 @@
             {
               "label": {
                 "de": "Rehabilitative Programme",
-                "en": "Rehabilitative Programs"
+                "en": "Rehabilitation Programs"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/rehabilitation-program",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/education-program"
@@ -345,7 +361,7 @@
             {
               "label": {
                 "de": "Nachqualifizierung",
-                "en": "Further Qualification"
+                "en": "Requalification"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/requalification",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/rehabilitation-program"
@@ -368,7 +384,7 @@
             {
               "label": {
                 "de": "Fachkurs/Spezialisierung",
-                "en": "Specialized Course/Specialization"
+                "en": "Specialist Course"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/specialist-course",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/course-seminar"
@@ -432,7 +448,7 @@
             {
               "label": {
                 "de": "Kompetenz-Workshop",
-                "en": "Competency Workshop"
+                "en": "Competence Workshop"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/competence-workshop",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/workshop-training"
@@ -456,7 +472,7 @@
             {
               "label": {
                 "de": "Führerschein-Ausbildung",
-                "en": "Driver's License Training"
+                "en": "Driver Training"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/driver-training",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/license-qualification"
@@ -480,7 +496,7 @@
             {
               "label": {
                 "de": "Ergänzungsangebot",
-                "en": "Supplementary Offer"
+                "en": "Supplementary Offering"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/supplementary-offering"
             },
@@ -519,7 +535,7 @@
             {
               "label": {
                 "de": "Beratung/Coaching",
-                "en": "Consulting/Coaching"
+                "en": "Counseling/Coaching"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/counseling-coaching",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/supplementary-offering"
@@ -527,7 +543,7 @@
             {
               "label": {
                 "de": "Bildungsberatung",
-                "en": "Educational Consulting"
+                "en": "Educational Counseling"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/educational-counseling",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/counseling-coaching"
@@ -551,14 +567,15 @@
             {
               "label": {
                 "de": "Selbstlernformat",
-                "en": "Self-learning format"
+                "en": "Self-Learning Format"
               },
-              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/self-learning"
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/self-learning",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/supplementary-offering"
             },
             {
               "label": {
                 "de": "Online-Kurs (selbstgesteuert)",
-                "en": "Online Course (self-paced)"
+                "en": "Online Course (Self-directed)"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/online-course-self",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/self-learning"
@@ -566,7 +583,7 @@
             {
               "label": {
                 "de": "Lernmaterial",
-                "en": "Learning material"
+                "en": "Learning Material"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/learning-material",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/self-learning"
@@ -574,7 +591,7 @@
             {
               "label": {
                 "de": "E-Learning-Modul",
-                "en": "E-Learning module"
+                "en": "E-Learning Module"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/elearning-module",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/self-learning"
@@ -582,14 +599,14 @@
             {
               "label": {
                 "de": "Kinder-/Jugendbildung",
-                "en": "Children's/Youth education"
+                "en": "Youth Education"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-education"
             },
             {
               "label": {
                 "de": "Frühkindliches Angebot",
-                "en": "Early childhood offering"
+                "en": "Early Childhood Offering"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/early-childhood-offering",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-education"
@@ -597,7 +614,7 @@
             {
               "label": {
                 "de": "Frühförderung",
-                "en": "Early support"
+                "en": "Early Support"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/early-support",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/early-childhood-offering"
@@ -605,7 +622,7 @@
             {
               "label": {
                 "de": "Eltern-Kind-Kurs",
-                "en": "Parent-child course"
+                "en": "Parent-Child Course"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/parent-child-course",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/early-childhood-offering"
@@ -613,7 +630,7 @@
             {
               "label": {
                 "de": "Spielgruppe (bildungsorientiert)",
-                "en": "Playgroup (education-oriented)"
+                "en": "Educational Playgroup"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/educational-playgroup",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/early-childhood-offering"
@@ -621,7 +638,7 @@
             {
               "label": {
                 "de": "Vorschulprogramm",
-                "en": "Preschool program"
+                "en": "Preschool Program"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/preschool-program",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/early-childhood-offering"
@@ -629,7 +646,7 @@
             {
               "label": {
                 "de": "Außerschulisches Angebot",
-                "en": "Extracurricular offering"
+                "en": "Extracurricular Offering"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/extracurricular-offering",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-education"
@@ -645,7 +662,7 @@
             {
               "label": {
                 "de": "Sportliche Bildung",
-                "en": "Physical Education"
+                "en": "Sports Education"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/sports-education",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/extracurricular-offering"
@@ -692,8 +709,8 @@
             },
             {
               "label": {
-                "de": "Lernförderung (Jugend)",
-                "en": "Learning Support (Youth)"
+                "de": "Lernförderung",
+                "en": "Learning Support"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/learning-support-youth",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/supplementary-school-education"
@@ -709,15 +726,15 @@
             {
               "label": {
                 "de": "Ferienakademie",
-                "en": "Holiday Academy"
+                "en": "Vacation Academy"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/vacation-academy",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/supplementary-school-education"
             },
             {
               "label": {
-                "de": "Jugendbildung (Organisation)",
-                "en": "Youth Education (Organization)"
+                "de": "Jugendbildung",
+                "en": "Youth Organization Education"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-organization",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-education"
@@ -741,7 +758,7 @@
             {
               "label": {
                 "de": "Internationale Begegnungen",
-                "en": "International Encounters"
+                "en": "International Exchange"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/international-exchange",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-organization"
@@ -749,7 +766,7 @@
             {
               "label": {
                 "de": "Erlebnispädagogik",
-                "en": "Experiential Education"
+                "en": "Adventure Education"
               },
               "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/adventure-education",
               "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-organization"
@@ -2543,13 +2560,133 @@
         },
         "repo_field": false
       }
+    },
+    {
+      "id": "ccm:oeh_publisher_combined",
+      "group": "license",
+      "label": {
+        "de": "Publisher / Herausgeber",
+        "en": "Publisher"
+      },
+      "description": {
+        "de": "Verlag oder Herausgeber",
+        "en": "Publisher"
+      },
+      "prompt": {
+        "de": "Extrahiere den Verlag, die Plattform oder die herausgebende Organisation – nicht den/die Autor:in. Suche nach Impressum, Copyright-Hinweisen, Domainnamen oder Logos. Gib nur EINEN Namen als String zurück. Beispiele: 'Bundeszentrale für politische Bildung', 'Cornelsen Verlag', 'Serlo Education e.V.'.",
+        "en": "Extract the publisher, platform, or publishing organization – not the author. Look for imprint, copyright notices, domain names, or logos. Return only ONE name as string. Examples: 'Federal Agency for Civic Education', 'Oxford University Press', 'Khan Academy'."
+      },
+      "system": {
+        "path": "ccm:oeh_publisher_combined",
+        "uri": "ccm:oeh_publisher_combined",
+        "datatype": "string",
+        "multiple": false,
+        "required": false,
+        "ask_user": true,
+        "ai_fillable": true,
+        "repo_field": true,
+        "index": {
+          "keyword": true
+        },
+        "normalization": {
+          "trim": true
+        }
+      }
+    },
+    {
+      "id": "ccm:educationalintendedenduserrole",
+      "group": "education",
+      "label": {
+        "de": "Zielgruppe",
+        "en": "Intended Audience"
+      },
+      "description": {
+        "de": "Zielgruppe(n) auswählen",
+        "en": "Select target audience(s)"
+      },
+      "prompt": {
+        "de": "Bestimme die Zielgruppe(n) der Ressource. Wähle NUR aus den vorgegebenen Vokabular-URIs – erfinde keine eigenen. Typische Zuordnungen: Unterrichtsmaterialien → Lehrer/in + Lerner/in; Elternratgeber → Eltern; Verwaltungsvorlagen → Verwaltung. Mehrfachauswahl möglich. Gib URIs als JSON-Array zurück. Beispiele: ['http://w3id.org/openeduhub/vocabs/intendedEndUserRole/teacher', 'http://w3id.org/openeduhub/vocabs/intendedEndUserRole/learner'], ['http://w3id.org/openeduhub/vocabs/intendedEndUserRole/parent'].",
+        "en": "Determine the target audience(s). Choose ONLY from provided vocabulary URIs – do not invent new ones. Typical mappings: teaching materials → teacher + learner; parent guides → parent; admin templates → manager. Multiple selections allowed. Return URIs as JSON array. Examples: ['http://w3id.org/openeduhub/vocabs/intendedEndUserRole/teacher', 'http://w3id.org/openeduhub/vocabs/intendedEndUserRole/learner'], ['http://w3id.org/openeduhub/vocabs/intendedEndUserRole/parent']."
+      },
+      "promptInstructions": {
+        "labelExactMatch": true
+      },
+      "system": {
+        "path": "ccm:educationalintendedenduserrole",
+        "uri": "ccm:educationalintendedenduserrole",
+        "datatype": "array",
+        "multiple": true,
+        "required": false,
+        "ask_user": true,
+        "ai_fillable": true,
+        "repo_field": true,
+        "index": {
+          "keyword": true
+        },
+        "vocabulary": {
+          "type": "skos",
+          "scheme": "http://w3id.org/openeduhub/vocabs/intendedEndUserRole/",
+          "concepts": [
+            {
+              "label": {
+                "de": "Autor/in",
+                "en": "author"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/intendedEndUserRole/author"
+            },
+            {
+              "label": {
+                "de": "Berater/in",
+                "en": "counsellor"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/intendedEndUserRole/counsellor"
+            },
+            {
+              "label": {
+                "de": "Lerner/in",
+                "en": "learner"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/intendedEndUserRole/learner"
+            },
+            {
+              "label": {
+                "de": "Verwaltung",
+                "en": "manager"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/intendedEndUserRole/manager"
+            },
+            {
+              "label": {
+                "de": "Eltern",
+                "en": "parent"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/intendedEndUserRole/parent"
+            },
+            {
+              "label": {
+                "de": "Lehrer/in",
+                "en": "teacher"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/intendedEndUserRole/teacher"
+            },
+            {
+              "label": {
+                "de": "andere",
+                "en": "other"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/intendedEndUserRole/other"
+            }
+          ]
+        },
+        "normalization": {
+          "trim": true,
+          "deduplicate": true,
+          "map_labels_to_uris": true
+        }
+      }
     }
   ],
   "output_template": {
-    "@type": [
-      "schema:Course",
-      "schema:EducationalOccupationalProgram"
-    ],
     "oeh:educationalOffering": [],
     "oeh:concretenessType": "",
     "oeh:granularityLevel": "",
@@ -2586,6 +2723,8 @@
       "url": ""
     },
     "schema:instructor": [],
-    "schema:offers": []
+    "schema:offers": [],
+    "ccm:oeh_publisher_combined": "",
+    "ccm:educationalintendedenduserrole": []
   }
 }

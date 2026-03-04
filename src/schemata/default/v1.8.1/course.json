@@ -70,6 +70,22 @@
         "de": "Preise & Angebote",
         "en": "Prices & Offers"
       }
+    },
+    {
+      "id": "license",
+      "icon": "gavel",
+      "label": {
+        "de": "Lizenz, Quelle, Mitwirkende",
+        "en": "License, Source, Contributors"
+      }
+    },
+    {
+      "id": "education",
+      "icon": "school",
+      "label": {
+        "de": "Pädagogisch/Didaktisch",
+        "en": "Educational"
+      }
     }
   ],
   "fields": [
@@ -96,63 +112,421 @@
         "required": false,
         "ask_user": true,
         "ai_fillable": true,
-        "index": { "keyword": true },
+        "index": {
+          "keyword": true
+        },
         "vocabulary": {
           "type": "skos",
           "scheme": "http://w3id.org/openeduhub/vocabs/educationalOffering/",
           "hierarchical": true,
           "concepts": [
-            { "label": { "de": "Einzelangebot", "en": "individual offering" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/single-offering" },
-            { "label": { "de": "Kurs/Seminar", "en": "Course/Seminar" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/course-seminar", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/single-offering" },
-            { "label": { "de": "Fachkurs/Spezialisierung", "en": "Subject Course/Specialization" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/subject-course", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/course-seminar" },
-            { "label": { "de": "Sprachkurs", "en": "Language Course" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/language-course", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/course-seminar" },
-            { "label": { "de": "IT-Schulung", "en": "IT Training" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/it-training", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/course-seminar" },
-            { "label": { "de": "Soft-Skills-Training", "en": "Soft Skills Training" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/soft-skills-training", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/course-seminar" },
-            { "label": { "de": "Kreativkurs", "en": "Creative Course" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/creative-course", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/course-seminar" },
-            { "label": { "de": "Gesundheits-/Fitnesskurs", "en": "Health/Fitness Course" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/health-fitness-course", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/course-seminar" },
-            { "label": { "de": "Workshop/Training", "en": "Workshop/Training" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/workshop-training", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/single-offering" },
-            { "label": { "de": "Praktisches Training", "en": "Practical Training" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/practical-training", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/workshop-training" },
-            { "label": { "de": "Kompetenz-Workshop", "en": "Skills Workshop" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/skills-workshop", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/workshop-training" },
-            { "label": { "de": "Methodentraining", "en": "Methods Training" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/methods-training", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/workshop-training" },
-            { "label": { "de": "Lizenz-/Befähigungsschulung", "en": "License/Qualification Training" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/license-training", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/single-offering" },
-            { "label": { "de": "Führerschein-Ausbildung", "en": "Driving License Training" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/driving-license", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/license-training" },
-            { "label": { "de": "Sicherheitsschulung", "en": "Safety Training" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/safety-training", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/license-training" },
-            { "label": { "de": "Compliance-Training", "en": "Compliance Training" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/compliance-training", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/license-training" },
-            { "label": { "de": "Ergänzungsangebot", "en": "supplementary offering" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/supplementary-offering", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/single-offering" },
-            { "label": { "de": "Nachhilfe/Förderung", "en": "tutoring/support" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/tutoring-support", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/supplementary-offering" },
-            { "label": { "de": "Lernunterstützung", "en": "learning support" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/learning-support", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/supplementary-offering" },
-            { "label": { "de": "Prüfungsvorbereitung", "en": "exam preparation" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/exam-prep", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/supplementary-offering" },
-            { "label": { "de": "Spezielle Förderung", "en": "special support" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/special-support", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/supplementary-offering" },
-            { "label": { "de": "Beratung/Coaching", "en": "counseling/coaching" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/counseling-coaching", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/single-offering" },
-            { "label": { "de": "Bildungsberatung", "en": "educational counseling" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/education-counseling", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/counseling-coaching" },
-            { "label": { "de": "Laufbahnberatung", "en": "career counseling" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/career-counseling", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/counseling-coaching" },
-            { "label": { "de": "Lerncoaching", "en": "learning coaching" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/learning-coaching", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/counseling-coaching" },
-            { "label": { "de": "Selbstlernformat", "en": "self-study format" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/self-study", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/single-offering" },
-            { "label": { "de": "Online-Kurs (selbstgesteuert)", "en": "Online Course (self-paced)" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/online-course-self", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/self-study" },
-            { "label": { "de": "Lernmaterial", "en": "Learning material" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/learning-material", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/self-study" },
-            { "label": { "de": "E-Learning-Modul", "en": "E-Learning module" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/elearning-module", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/self-study" },
-            { "label": { "de": "Kinder-/Jugendbildung", "en": "Children's/Youth education" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-education", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/single-offering" },
-            { "label": { "de": "Frühkindliches Angebot", "en": "Early childhood offering" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/early-childhood-offering", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-education" },
-            { "label": { "de": "Frühförderung", "en": "Early support" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/early-support", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/early-childhood-offering" },
-            { "label": { "de": "Eltern-Kind-Kurs", "en": "Parent-child course" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/parent-child-course", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/early-childhood-offering" },
-            { "label": { "de": "Spielgruppe (bildungsorientiert)", "en": "Playgroup (education-oriented)" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/educational-playgroup", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/early-childhood-offering" },
-            { "label": { "de": "Vorschulprogramm", "en": "Preschool program" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/preschool-program", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/early-childhood-offering" },
-            { "label": { "de": "Außerschulisches Angebot", "en": "Extracurricular offering" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/extracurricular-offering", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-education" },
-            { "label": { "de": "Musikunterricht/Musikschule", "en": "Music Education/Music School" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/music-education", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/extracurricular-offering" },
-            { "label": { "de": "Sportliche Bildung", "en": "Physical Education" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/sports-education", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/extracurricular-offering" },
-            { "label": { "de": "Kreative Bildung", "en": "Creative Education" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/creative-education", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/extracurricular-offering" },
-            { "label": { "de": "Technische Bildung", "en": "Technical Education" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/technical-education", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/extracurricular-offering" },
-            { "label": { "de": "Sprachkurse für Kinder", "en": "Language Courses for Children" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-language-course", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/extracurricular-offering" },
-            { "label": { "de": "Ergänzende Schulbildung", "en": "Supplementary School Education" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/supplementary-school-education", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-education" },
-            { "label": { "de": "Nachhilfe", "en": "Tutoring" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-tutoring", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/supplementary-school-education" },
-            { "label": { "de": "Lernförderung (Jugend)", "en": "Learning Support (Youth)" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/learning-support-youth", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/supplementary-school-education" },
-            { "label": { "de": "Begabtenförderung", "en": "Gifted Education" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/gifted-education", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/supplementary-school-education" },
-            { "label": { "de": "Ferienakademie", "en": "Holiday Academy" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/vacation-academy", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/supplementary-school-education" },
-            { "label": { "de": "Jugendbildung (Organisation)", "en": "Youth Education (Organization)" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-organization", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-education" },
-            { "label": { "de": "Jugendverbandsarbeit", "en": "Youth Association Work" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-association-work", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-organization" },
-            { "label": { "de": "Demokratiebildung", "en": "Democracy Education" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/democracy-education", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-organization" },
-            { "label": { "de": "Internationale Begegnungen", "en": "International Encounters" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/international-exchange", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-organization" },
-            { "label": { "de": "Erlebnispädagogik", "en": "Experiential Education" }, "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/adventure-education", "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-organization" }
+            {
+              "label": {
+                "de": "Einzelangebot",
+                "en": "individual offering"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/single-offering"
+            },
+            {
+              "label": {
+                "de": "Kurs/Seminar",
+                "en": "Course/Seminar"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/course-seminar",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/single-offering"
+            },
+            {
+              "label": {
+                "de": "Fachkurs/Spezialisierung",
+                "en": "Subject Course/Specialization"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/subject-course",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/course-seminar"
+            },
+            {
+              "label": {
+                "de": "Sprachkurs",
+                "en": "Language Course"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/language-course",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/course-seminar"
+            },
+            {
+              "label": {
+                "de": "IT-Schulung",
+                "en": "IT Training"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/it-training",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/course-seminar"
+            },
+            {
+              "label": {
+                "de": "Soft-Skills-Training",
+                "en": "Soft Skills Training"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/soft-skills-training",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/course-seminar"
+            },
+            {
+              "label": {
+                "de": "Kreativkurs",
+                "en": "Creative Course"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/creative-course",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/course-seminar"
+            },
+            {
+              "label": {
+                "de": "Gesundheits-/Fitnesskurs",
+                "en": "Health/Fitness Course"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/health-fitness-course",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/course-seminar"
+            },
+            {
+              "label": {
+                "de": "Workshop/Training",
+                "en": "Workshop/Training"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/workshop-training",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/single-offering"
+            },
+            {
+              "label": {
+                "de": "Praktisches Training",
+                "en": "Practical Training"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/practical-training",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/workshop-training"
+            },
+            {
+              "label": {
+                "de": "Kompetenz-Workshop",
+                "en": "Skills Workshop"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/skills-workshop",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/workshop-training"
+            },
+            {
+              "label": {
+                "de": "Methodentraining",
+                "en": "Methods Training"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/methods-training",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/workshop-training"
+            },
+            {
+              "label": {
+                "de": "Lizenz-/Befähigungsschulung",
+                "en": "License/Qualification Training"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/license-training",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/single-offering"
+            },
+            {
+              "label": {
+                "de": "Führerschein-Ausbildung",
+                "en": "Driving License Training"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/driving-license",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/license-training"
+            },
+            {
+              "label": {
+                "de": "Sicherheitsschulung",
+                "en": "Safety Training"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/safety-training",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/license-training"
+            },
+            {
+              "label": {
+                "de": "Compliance-Training",
+                "en": "Compliance Training"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/compliance-training",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/license-training"
+            },
+            {
+              "label": {
+                "de": "Ergänzungsangebot",
+                "en": "supplementary offering"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/supplementary-offering",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/single-offering"
+            },
+            {
+              "label": {
+                "de": "Nachhilfe/Förderung",
+                "en": "tutoring/support"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/tutoring-support",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/supplementary-offering"
+            },
+            {
+              "label": {
+                "de": "Lernunterstützung",
+                "en": "learning support"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/learning-support",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/supplementary-offering"
+            },
+            {
+              "label": {
+                "de": "Prüfungsvorbereitung",
+                "en": "exam preparation"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/exam-prep",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/supplementary-offering"
+            },
+            {
+              "label": {
+                "de": "Spezielle Förderung",
+                "en": "special support"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/special-support",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/supplementary-offering"
+            },
+            {
+              "label": {
+                "de": "Beratung/Coaching",
+                "en": "counseling/coaching"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/counseling-coaching",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/single-offering"
+            },
+            {
+              "label": {
+                "de": "Bildungsberatung",
+                "en": "educational counseling"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/education-counseling",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/counseling-coaching"
+            },
+            {
+              "label": {
+                "de": "Laufbahnberatung",
+                "en": "career counseling"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/career-counseling",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/counseling-coaching"
+            },
+            {
+              "label": {
+                "de": "Lerncoaching",
+                "en": "learning coaching"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/learning-coaching",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/counseling-coaching"
+            },
+            {
+              "label": {
+                "de": "Selbstlernformat",
+                "en": "self-study format"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/self-study",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/single-offering"
+            },
+            {
+              "label": {
+                "de": "Online-Kurs (selbstgesteuert)",
+                "en": "Online Course (self-paced)"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/online-course-self",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/self-study"
+            },
+            {
+              "label": {
+                "de": "Lernmaterial",
+                "en": "Learning material"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/learning-material",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/self-study"
+            },
+            {
+              "label": {
+                "de": "E-Learning-Modul",
+                "en": "E-Learning module"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/elearning-module",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/self-study"
+            },
+            {
+              "label": {
+                "de": "Kinder-/Jugendbildung",
+                "en": "Children's/Youth education"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-education",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/single-offering"
+            },
+            {
+              "label": {
+                "de": "Frühkindliches Angebot",
+                "en": "Early childhood offering"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/early-childhood-offering",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-education"
+            },
+            {
+              "label": {
+                "de": "Frühförderung",
+                "en": "Early support"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/early-support",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/early-childhood-offering"
+            },
+            {
+              "label": {
+                "de": "Eltern-Kind-Kurs",
+                "en": "Parent-child course"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/parent-child-course",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/early-childhood-offering"
+            },
+            {
+              "label": {
+                "de": "Spielgruppe (bildungsorientiert)",
+                "en": "Playgroup (education-oriented)"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/educational-playgroup",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/early-childhood-offering"
+            },
+            {
+              "label": {
+                "de": "Vorschulprogramm",
+                "en": "Preschool program"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/preschool-program",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/early-childhood-offering"
+            },
+            {
+              "label": {
+                "de": "Außerschulisches Angebot",
+                "en": "Extracurricular offering"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/extracurricular-offering",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-education"
+            },
+            {
+              "label": {
+                "de": "Musikunterricht/Musikschule",
+                "en": "Music Education/Music School"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/music-education",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/extracurricular-offering"
+            },
+            {
+              "label": {
+                "de": "Sportliche Bildung",
+                "en": "Physical Education"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/sports-education",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/extracurricular-offering"
+            },
+            {
+              "label": {
+                "de": "Kreative Bildung",
+                "en": "Creative Education"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/creative-education",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/extracurricular-offering"
+            },
+            {
+              "label": {
+                "de": "Technische Bildung",
+                "en": "Technical Education"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/technical-education",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/extracurricular-offering"
+            },
+            {
+              "label": {
+                "de": "Sprachkurse für Kinder",
+                "en": "Language Courses for Children"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-language-course",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/extracurricular-offering"
+            },
+            {
+              "label": {
+                "de": "Ergänzende Schulbildung",
+                "en": "Supplementary School Education"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/supplementary-school-education",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-education"
+            },
+            {
+              "label": {
+                "de": "Nachhilfe",
+                "en": "Tutoring"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-tutoring",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/supplementary-school-education"
+            },
+            {
+              "label": {
+                "de": "Lernförderung (Jugend)",
+                "en": "Learning Support (Youth)"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/learning-support-youth",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/supplementary-school-education"
+            },
+            {
+              "label": {
+                "de": "Begabtenförderung",
+                "en": "Gifted Education"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/gifted-education",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/supplementary-school-education"
+            },
+            {
+              "label": {
+                "de": "Ferienakademie",
+                "en": "Holiday Academy"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/vacation-academy",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/supplementary-school-education"
+            },
+            {
+              "label": {
+                "de": "Jugendbildung (Organisation)",
+                "en": "Youth Education (Organization)"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-organization",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-education"
+            },
+            {
+              "label": {
+                "de": "Jugendverbandsarbeit",
+                "en": "Youth Association Work"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-association-work",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-organization"
+            },
+            {
+              "label": {
+                "de": "Demokratiebildung",
+                "en": "Democracy Education"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/democracy-education",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-organization"
+            },
+            {
+              "label": {
+                "de": "Internationale Begegnungen",
+                "en": "International Encounters"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/international-exchange",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-organization"
+            },
+            {
+              "label": {
+                "de": "Erlebnispädagogik",
+                "en": "Experiential Education"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/educationalOffering/adventure-education",
+              "broader": "http://w3id.org/openeduhub/vocabs/educationalOffering/youth-organization"
+            }
           ]
         },
         "normalization": {
@@ -186,15 +560,31 @@
         "required": false,
         "ask_user": true,
         "ai_fillable": true,
-        "index": { "keyword": true },
+        "index": {
+          "keyword": true
+        },
         "vocabulary": {
           "type": "closed",
           "concepts": [
-            { "label": { "de": "Allgemeine Programmbeschreibung", "en": "General Program Description" }, "uri": "http://w3id.org/openeduhub/vocabs/concretenessType/general" },
-            { "label": { "de": "Konkretes Angebot", "en": "Concrete Offer" }, "uri": "http://w3id.org/openeduhub/vocabs/concretenessType/concrete" }
+            {
+              "label": {
+                "de": "Allgemeine Programmbeschreibung",
+                "en": "General Program Description"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/concretenessType/general"
+            },
+            {
+              "label": {
+                "de": "Konkretes Angebot",
+                "en": "Concrete Offer"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/concretenessType/concrete"
+            }
           ]
         },
-        "normalization": { "trim": true },
+        "normalization": {
+          "trim": true
+        },
         "repo_field": false
       }
     },
@@ -221,16 +611,38 @@
         "required": false,
         "ask_user": true,
         "ai_fillable": true,
-        "index": { "keyword": true },
+        "index": {
+          "keyword": true
+        },
         "vocabulary": {
           "type": "closed",
           "concepts": [
-            { "label": { "de": "Kurs", "en": "course" }, "uri": "http://w3id.org/openeduhub/vocabs/granularityLevel/course" },
-            { "label": { "de": "Modul", "en": "module" }, "uri": "http://w3id.org/openeduhub/vocabs/granularityLevel/module" },
-            { "label": { "de": "Einheit", "en": "unit" }, "uri": "http://w3id.org/openeduhub/vocabs/granularityLevel/unit" }
+            {
+              "label": {
+                "de": "Kurs",
+                "en": "course"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/granularityLevel/course"
+            },
+            {
+              "label": {
+                "de": "Modul",
+                "en": "module"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/granularityLevel/module"
+            },
+            {
+              "label": {
+                "de": "Einheit",
+                "en": "unit"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/granularityLevel/unit"
+            }
           ]
         },
-        "normalization": { "trim": true },
+        "normalization": {
+          "trim": true
+        },
         "repo_field": false
       }
     },
@@ -257,9 +669,16 @@
         "required": false,
         "ask_user": true,
         "ai_fillable": true,
-        "index": { "keyword": true },
-        "items": { "type": "string" },
-        "normalization": { "trim": true, "deduplicate": true },
+        "index": {
+          "keyword": true
+        },
+        "items": {
+          "type": "string"
+        },
+        "normalization": {
+          "trim": true,
+          "deduplicate": true
+        },
         "repo_field": false
       }
     },
@@ -286,8 +705,12 @@
         "required": false,
         "ask_user": true,
         "ai_fillable": true,
-        "index": { "keyword": true },
-        "normalization": { "trim": true },
+        "index": {
+          "keyword": true
+        },
+        "normalization": {
+          "trim": true
+        },
         "repo_field": false
       }
     },
@@ -314,9 +737,16 @@
         "required": false,
         "ask_user": true,
         "ai_fillable": true,
-        "index": { "keyword": true },
-        "items": { "type": "string" },
-        "normalization": { "trim": true, "deduplicate": true },
+        "index": {
+          "keyword": true
+        },
+        "items": {
+          "type": "string"
+        },
+        "normalization": {
+          "trim": true,
+          "deduplicate": true
+        },
         "repo_field": false
       }
     },
@@ -343,8 +773,13 @@
         "required": false,
         "ask_user": true,
         "ai_fillable": true,
-        "index": { "keyword": true },
-        "normalization": { "trim": true, "deduplicate": true },
+        "index": {
+          "keyword": true
+        },
+        "normalization": {
+          "trim": true,
+          "deduplicate": true
+        },
         "repo_field": false
       }
     },
@@ -371,16 +806,38 @@
         "required": false,
         "ask_user": true,
         "ai_fillable": true,
-        "index": { "keyword": true },
+        "index": {
+          "keyword": true
+        },
         "vocabulary": {
           "type": "closed",
           "concepts": [
-            { "label": { "de": "Serie", "en": "Series" }, "uri": "http://w3id.org/openeduhub/vocabs/recurrencePattern/series" },
-            { "label": { "de": "Block", "en": "Block" }, "uri": "http://w3id.org/openeduhub/vocabs/recurrencePattern/block" },
-            { "label": { "de": "Einzel", "en": "Individual" }, "uri": "http://w3id.org/openeduhub/vocabs/recurrencePattern/single" }
+            {
+              "label": {
+                "de": "Serie",
+                "en": "Series"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/recurrencePattern/series"
+            },
+            {
+              "label": {
+                "de": "Block",
+                "en": "Block"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/recurrencePattern/block"
+            },
+            {
+              "label": {
+                "de": "Einzel",
+                "en": "Individual"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/recurrencePattern/single"
+            }
           ]
         },
-        "normalization": { "trim": true },
+        "normalization": {
+          "trim": true
+        },
         "repo_field": false
       }
     },
@@ -407,8 +864,12 @@
         "required": false,
         "ask_user": true,
         "ai_fillable": true,
-        "validation": { "regex": "^\\d{4}-\\d{2}-\\d{2}$" },
-        "normalization": { "trim": true },
+        "validation": {
+          "regex": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "normalization": {
+          "trim": true
+        },
         "repo_field": false
       }
     },
@@ -435,8 +896,12 @@
         "required": false,
         "ask_user": true,
         "ai_fillable": true,
-        "validation": { "regex": "^\\d{4}-\\d{2}-\\d{2}$" },
-        "normalization": { "trim": true },
+        "validation": {
+          "regex": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "normalization": {
+          "trim": true
+        },
         "repo_field": false
       }
     },
@@ -463,8 +928,12 @@
         "required": false,
         "ask_user": true,
         "ai_fillable": true,
-        "validation": { "regex": "^P(T?\\d+[YMWDHS].*)?$" },
-        "normalization": { "trim": true },
+        "validation": {
+          "regex": "^P(T?\\d+[YMWDHS].*)?$"
+        },
+        "normalization": {
+          "trim": true
+        },
         "repo_field": false
       }
     },
@@ -491,8 +960,12 @@
         "required": false,
         "ask_user": true,
         "ai_fillable": true,
-        "validation": { "regex": "^\\d{4}-\\d{2}-\\d{2}$" },
-        "normalization": { "trim": true },
+        "validation": {
+          "regex": "^\\d{4}-\\d{2}-\\d{2}$"
+        },
+        "normalization": {
+          "trim": true
+        },
         "repo_field": false
       }
     },
@@ -519,7 +992,9 @@
         "required": false,
         "ask_user": true,
         "ai_fillable": true,
-        "normalization": { "trim": true },
+        "normalization": {
+          "trim": true
+        },
         "repo_field": false
       }
     },
@@ -572,8 +1047,13 @@
         "required": false,
         "ask_user": true,
         "ai_fillable": true,
-        "index": { "fulltext": true },
-        "normalization": { "trim": true, "deduplicate": true },
+        "index": {
+          "fulltext": true
+        },
+        "normalization": {
+          "trim": true,
+          "deduplicate": true
+        },
         "repo_field": false
       }
     },
@@ -600,9 +1080,16 @@
         "required": false,
         "ask_user": true,
         "ai_fillable": true,
-        "index": { "keyword": true },
-        "items": { "type": "string" },
-        "normalization": { "trim": true, "deduplicate": true },
+        "index": {
+          "keyword": true
+        },
+        "items": {
+          "type": "string"
+        },
+        "normalization": {
+          "trim": true,
+          "deduplicate": true
+        },
         "repo_field": false
       }
     },
@@ -655,8 +1142,13 @@
         "required": false,
         "ask_user": true,
         "ai_fillable": true,
-        "index": { "keyword": true },
-        "normalization": { "trim": true, "deduplicate": true },
+        "index": {
+          "keyword": true
+        },
+        "normalization": {
+          "trim": true,
+          "deduplicate": true
+        },
         "repo_field": false
       }
     },
@@ -683,8 +1175,12 @@
         "required": false,
         "ask_user": true,
         "ai_fillable": true,
-        "index": { "keyword": true },
-        "normalization": { "trim": true },
+        "index": {
+          "keyword": true
+        },
+        "normalization": {
+          "trim": true
+        },
         "repo_field": false
       }
     },
@@ -717,67 +1213,337 @@
           "variants": [
             {
               "@type": "Place",
-              "label": { "de": "Physischer Ort", "en": "Physical Location" },
-              "description": { "de": "Physischer Kursort mit Adresse", "en": "Physical course location with address" },
+              "label": {
+                "de": "Physischer Ort",
+                "en": "Physical Location"
+              },
+              "description": {
+                "de": "Physischer Kursort mit Adresse",
+                "en": "Physical course location with address"
+              },
               "fields": [
                 {
                   "id": "name",
-                  "label": { "de": "Name", "en": "Name" },
-                  "description": { "de": "Name des Ortes", "en": "Name of the location" },
-                  "prompt": { "de": "Ortsname, z.B. 'VHS Mitte, Raum 204'.", "en": "Location name, e.g. 'VHS Center, Room 204'." },
-                  "system": { "datatype": "string", "normalization": { "trim": true }, "required": false, "ask_user": true, "ai_fillable": true }
+                  "label": {
+                    "de": "Name",
+                    "en": "Name"
+                  },
+                  "description": {
+                    "de": "Name des Ortes",
+                    "en": "Name of the location"
+                  },
+                  "prompt": {
+                    "de": "Ortsname, z.B. 'VHS Mitte, Raum 204'.",
+                    "en": "Location name, e.g. 'VHS Center, Room 204'."
+                  },
+                  "system": {
+                    "datatype": "string",
+                    "normalization": {
+                      "trim": true
+                    },
+                    "required": false,
+                    "ask_user": true,
+                    "ai_fillable": true
+                  }
                 },
                 {
                   "id": "sameAs",
-                  "label": { "de": "Verweis", "en": "Same As" },
-                  "description": { "de": "Externe URI-Referenz", "en": "External URI reference" },
-                  "prompt": { "de": "URI zu externer Referenz.", "en": "URI to external reference." },
-                  "system": { "datatype": "string", "normalization": { "trim": true }, "required": false, "ask_user": true, "ai_fillable": true }
+                  "label": {
+                    "de": "Verweis",
+                    "en": "Same As"
+                  },
+                  "description": {
+                    "de": "Externe URI-Referenz",
+                    "en": "External URI reference"
+                  },
+                  "prompt": {
+                    "de": "URI zu externer Referenz.",
+                    "en": "URI to external reference."
+                  },
+                  "system": {
+                    "datatype": "string",
+                    "normalization": {
+                      "trim": true
+                    },
+                    "required": false,
+                    "ask_user": true,
+                    "ai_fillable": true
+                  }
                 },
                 {
                   "id": "address",
-                  "label": { "de": "Adresse", "en": "Address" },
-                  "description": { "de": "Postanschrift", "en": "Postal address" },
-                  "prompt": { "de": "Postanschrift mit Straße, PLZ, Ort und Land.", "en": "Postal address with street, postal code, city, and country." },
+                  "label": {
+                    "de": "Adresse",
+                    "en": "Address"
+                  },
+                  "description": {
+                    "de": "Postanschrift",
+                    "en": "Postal address"
+                  },
+                  "prompt": {
+                    "de": "Postanschrift mit Straße, PLZ, Ort und Land.",
+                    "en": "Postal address with street, postal code, city, and country."
+                  },
                   "fields": [
-                    { "id": "streetAddress", "label": { "de": "Straße", "en": "Street" }, "description": { "de": "Straße und Hausnummer", "en": "Street and house number" }, "prompt": { "de": "Straße, z.B. 'Lindenstr. 97'.", "en": "Street, e.g. 'Lindenstr. 97'." }, "system": { "datatype": "string", "normalization": { "trim": true }, "required": false, "ask_user": true, "ai_fillable": true } },
-                    { "id": "postalCode", "label": { "de": "PLZ", "en": "Postal Code" }, "description": { "de": "Postleitzahl", "en": "Postal code" }, "prompt": { "de": "PLZ, z.B. '10969'.", "en": "Postal code, e.g. '10969'." }, "system": { "datatype": "string", "validation": { "pattern": "^[0-9]{4,10}$" }, "normalization": { "trim": true }, "required": false, "ask_user": true, "ai_fillable": true } },
-                    { "id": "addressLocality", "label": { "de": "Stadt", "en": "City" }, "description": { "de": "Stadt oder Gemeinde", "en": "City or municipality" }, "prompt": { "de": "Stadt, z.B. 'Berlin'.", "en": "City, e.g. 'Berlin'." }, "system": { "datatype": "string", "normalization": { "trim": true }, "required": false, "ask_user": true, "ai_fillable": true } },
-                    { "id": "addressRegion", "label": { "de": "Bundesland", "en": "State" }, "description": { "de": "Bundesland oder Region", "en": "State or region" }, "prompt": { "de": "Bundesland, z.B. 'Berlin'.", "en": "State, e.g. 'Berlin'." }, "system": { "datatype": "string", "normalization": { "trim": true }, "required": false, "ask_user": true, "ai_fillable": true } },
-                    { "id": "addressCountry", "label": { "de": "Land", "en": "Country" }, "description": { "de": "Land (ISO-Code)", "en": "Country (ISO code)" }, "prompt": { "de": "Ländercode, z.B. 'DE'.", "en": "Country code, e.g. 'DE'." }, "system": { "datatype": "string", "normalization": { "trim": true, "case": "upper" }, "required": false, "ask_user": true, "ai_fillable": true } }
+                    {
+                      "id": "streetAddress",
+                      "label": {
+                        "de": "Straße",
+                        "en": "Street"
+                      },
+                      "description": {
+                        "de": "Straße und Hausnummer",
+                        "en": "Street and house number"
+                      },
+                      "prompt": {
+                        "de": "Straße, z.B. 'Lindenstr. 97'.",
+                        "en": "Street, e.g. 'Lindenstr. 97'."
+                      },
+                      "system": {
+                        "datatype": "string",
+                        "normalization": {
+                          "trim": true
+                        },
+                        "required": false,
+                        "ask_user": true,
+                        "ai_fillable": true
+                      }
+                    },
+                    {
+                      "id": "postalCode",
+                      "label": {
+                        "de": "PLZ",
+                        "en": "Postal Code"
+                      },
+                      "description": {
+                        "de": "Postleitzahl",
+                        "en": "Postal code"
+                      },
+                      "prompt": {
+                        "de": "PLZ, z.B. '10969'.",
+                        "en": "Postal code, e.g. '10969'."
+                      },
+                      "system": {
+                        "datatype": "string",
+                        "validation": {
+                          "pattern": "^[0-9]{4,10}$"
+                        },
+                        "normalization": {
+                          "trim": true
+                        },
+                        "required": false,
+                        "ask_user": true,
+                        "ai_fillable": true
+                      }
+                    },
+                    {
+                      "id": "addressLocality",
+                      "label": {
+                        "de": "Stadt",
+                        "en": "City"
+                      },
+                      "description": {
+                        "de": "Stadt oder Gemeinde",
+                        "en": "City or municipality"
+                      },
+                      "prompt": {
+                        "de": "Stadt, z.B. 'Berlin'.",
+                        "en": "City, e.g. 'Berlin'."
+                      },
+                      "system": {
+                        "datatype": "string",
+                        "normalization": {
+                          "trim": true
+                        },
+                        "required": false,
+                        "ask_user": true,
+                        "ai_fillable": true
+                      }
+                    },
+                    {
+                      "id": "addressRegion",
+                      "label": {
+                        "de": "Bundesland",
+                        "en": "State"
+                      },
+                      "description": {
+                        "de": "Bundesland oder Region",
+                        "en": "State or region"
+                      },
+                      "prompt": {
+                        "de": "Bundesland, z.B. 'Berlin'.",
+                        "en": "State, e.g. 'Berlin'."
+                      },
+                      "system": {
+                        "datatype": "string",
+                        "normalization": {
+                          "trim": true
+                        },
+                        "required": false,
+                        "ask_user": true,
+                        "ai_fillable": true
+                      }
+                    },
+                    {
+                      "id": "addressCountry",
+                      "label": {
+                        "de": "Land",
+                        "en": "Country"
+                      },
+                      "description": {
+                        "de": "Land (ISO-Code)",
+                        "en": "Country (ISO code)"
+                      },
+                      "prompt": {
+                        "de": "Ländercode, z.B. 'DE'.",
+                        "en": "Country code, e.g. 'DE'."
+                      },
+                      "system": {
+                        "datatype": "string",
+                        "normalization": {
+                          "trim": true,
+                          "case": "upper"
+                        },
+                        "required": false,
+                        "ask_user": true,
+                        "ai_fillable": true
+                      }
+                    }
                   ],
-                  "system": { "datatype": "object", "required": false, "ask_user": true, "ai_fillable": true }
+                  "system": {
+                    "datatype": "object",
+                    "required": false,
+                    "ask_user": true,
+                    "ai_fillable": true
+                  }
                 },
                 {
                   "id": "geo",
-                  "label": { "de": "Koordinaten", "en": "Coordinates" },
-                  "description": { "de": "Breiten- und Längengrad", "en": "Latitude and longitude" },
-                  "prompt": { "de": "Geografische Koordinaten.", "en": "Geographic coordinates." },
+                  "label": {
+                    "de": "Koordinaten",
+                    "en": "Coordinates"
+                  },
+                  "description": {
+                    "de": "Breiten- und Längengrad",
+                    "en": "Latitude and longitude"
+                  },
+                  "prompt": {
+                    "de": "Geografische Koordinaten.",
+                    "en": "Geographic coordinates."
+                  },
                   "fields": [
-                    { "id": "latitude", "label": { "de": "Breitengrad", "en": "Latitude" }, "description": { "de": "Breite (-90 bis +90)", "en": "Latitude (-90 to +90)" }, "prompt": { "de": "Breitengrad, z.B. 52.5200.", "en": "Latitude, e.g. 52.5200." }, "system": { "datatype": "number", "validation": { "min": -90, "max": 90 }, "normalization": { "trim": true }, "required": false, "ask_user": true, "ai_fillable": true } },
-                    { "id": "longitude", "label": { "de": "Längengrad", "en": "Longitude" }, "description": { "de": "Länge (-180 bis +180)", "en": "Longitude (-180 to +180)" }, "prompt": { "de": "Längengrad, z.B. 13.4050.", "en": "Longitude, e.g. 13.4050." }, "system": { "datatype": "number", "validation": { "min": -180, "max": 180 }, "normalization": { "trim": true }, "required": false, "ask_user": true, "ai_fillable": true } }
+                    {
+                      "id": "latitude",
+                      "label": {
+                        "de": "Breitengrad",
+                        "en": "Latitude"
+                      },
+                      "description": {
+                        "de": "Breite (-90 bis +90)",
+                        "en": "Latitude (-90 to +90)"
+                      },
+                      "prompt": {
+                        "de": "Breitengrad, z.B. 52.5200.",
+                        "en": "Latitude, e.g. 52.5200."
+                      },
+                      "system": {
+                        "datatype": "number",
+                        "validation": {
+                          "min": -90,
+                          "max": 90
+                        },
+                        "normalization": {
+                          "trim": true
+                        },
+                        "required": false,
+                        "ask_user": true,
+                        "ai_fillable": true
+                      }
+                    },
+                    {
+                      "id": "longitude",
+                      "label": {
+                        "de": "Längengrad",
+                        "en": "Longitude"
+                      },
+                      "description": {
+                        "de": "Länge (-180 bis +180)",
+                        "en": "Longitude (-180 to +180)"
+                      },
+                      "prompt": {
+                        "de": "Längengrad, z.B. 13.4050.",
+                        "en": "Longitude, e.g. 13.4050."
+                      },
+                      "system": {
+                        "datatype": "number",
+                        "validation": {
+                          "min": -180,
+                          "max": 180
+                        },
+                        "normalization": {
+                          "trim": true
+                        },
+                        "required": false,
+                        "ask_user": true,
+                        "ai_fillable": true
+                      }
+                    }
                   ],
-                  "system": { "datatype": "object", "required": false, "ask_user": true, "ai_fillable": true }
+                  "system": {
+                    "datatype": "object",
+                    "required": false,
+                    "ask_user": true,
+                    "ai_fillable": true
+                  }
                 }
               ]
             },
             {
               "@type": "VirtualLocation",
-              "label": { "de": "Virtueller Ort", "en": "Virtual Location" },
-              "description": { "de": "Online-Plattform oder virtueller Raum", "en": "Online platform or virtual space" },
+              "label": {
+                "de": "Virtueller Ort",
+                "en": "Virtual Location"
+              },
+              "description": {
+                "de": "Online-Plattform oder virtueller Raum",
+                "en": "Online platform or virtual space"
+              },
               "fields": [
                 {
                   "id": "url",
-                  "label": { "de": "URL", "en": "URL" },
-                  "description": { "de": "Link zum virtuellen Kursort", "en": "Link to the virtual course location" },
-                  "prompt": { "de": "URL zum virtuellen Kursort, z.B. Zoom-Link oder Lernplattform.", "en": "URL to the virtual course location, e.g. Zoom link or learning platform." },
-                  "system": { "datatype": "string", "validation": { "format": "url" }, "normalization": { "trim": true }, "required": false, "ask_user": true, "ai_fillable": true }
+                  "label": {
+                    "de": "URL",
+                    "en": "URL"
+                  },
+                  "description": {
+                    "de": "Link zum virtuellen Kursort",
+                    "en": "Link to the virtual course location"
+                  },
+                  "prompt": {
+                    "de": "URL zum virtuellen Kursort, z.B. Zoom-Link oder Lernplattform.",
+                    "en": "URL to the virtual course location, e.g. Zoom link or learning platform."
+                  },
+                  "system": {
+                    "datatype": "string",
+                    "validation": {
+                      "format": "url"
+                    },
+                    "normalization": {
+                      "trim": true
+                    },
+                    "required": false,
+                    "ask_user": true,
+                    "ai_fillable": true
+                  }
                 }
               ]
             }
           ]
         },
-        "normalization": { "trim": true, "deduplicate": true },
+        "normalization": {
+          "trim": true,
+          "deduplicate": true
+        },
         "repo_field": false
       }
     },
@@ -810,24 +1576,448 @@
           "variants": [
             {
               "@type": "Default",
-              "label": { "de": "Preise/Angebote", "en": "Prices/Offers" },
-              "description": { "de": "Kursgebühren und Preisinfos", "en": "Course fees and price information" },
+              "label": {
+                "de": "Preise/Angebote",
+                "en": "Prices/Offers"
+              },
+              "description": {
+                "de": "Kursgebühren und Preisinfos",
+                "en": "Course fees and price information"
+              },
               "fields": [
-                { "id": "price", "label": { "de": "Preis", "en": "Price" }, "description": { "de": "Betrag", "en": "Amount" }, "prompt": { "de": "Preis als Zahl, z.B. 89, 250.00.", "en": "Price as number, e.g. 89, 250.00." }, "system": { "path": "price", "uri": "https://schema.org/price", "datatype": "number", "multiple": false, "required": false, "ask_user": true, "ai_fillable": true } },
-                { "id": "priceCurrency", "label": { "de": "Währung", "en": "Currency" }, "description": { "de": "ISO 4217 Code", "en": "ISO 4217 code" }, "prompt": { "de": "Währungscode, z.B. 'EUR'.", "en": "Currency code, e.g. 'EUR'." }, "system": { "path": "priceCurrency", "uri": "https://schema.org/priceCurrency", "datatype": "string", "multiple": false, "required": false, "ask_user": true, "ai_fillable": true } },
-                { "id": "url", "label": { "de": "URL", "en": "URL" }, "description": { "de": "Link zur Buchungsseite", "en": "Link to booking page" }, "prompt": { "de": "URL zur Buchungsseite.", "en": "URL to the booking page." }, "system": { "path": "url", "uri": "https://schema.org/url", "datatype": "string", "multiple": false, "required": false, "ask_user": true, "ai_fillable": true } }
+                {
+                  "id": "price",
+                  "label": {
+                    "de": "Preis",
+                    "en": "Price"
+                  },
+                  "description": {
+                    "de": "Betrag",
+                    "en": "Amount"
+                  },
+                  "prompt": {
+                    "de": "Preis als Zahl, z.B. 89, 250.00.",
+                    "en": "Price as number, e.g. 89, 250.00."
+                  },
+                  "system": {
+                    "path": "price",
+                    "uri": "https://schema.org/price",
+                    "datatype": "number",
+                    "multiple": false,
+                    "required": false,
+                    "ask_user": true,
+                    "ai_fillable": true
+                  }
+                },
+                {
+                  "id": "priceCurrency",
+                  "label": {
+                    "de": "Währung",
+                    "en": "Currency"
+                  },
+                  "description": {
+                    "de": "ISO 4217 Code",
+                    "en": "ISO 4217 code"
+                  },
+                  "prompt": {
+                    "de": "Währungscode, z.B. 'EUR'.",
+                    "en": "Currency code, e.g. 'EUR'."
+                  },
+                  "system": {
+                    "path": "priceCurrency",
+                    "uri": "https://schema.org/priceCurrency",
+                    "datatype": "string",
+                    "multiple": false,
+                    "required": false,
+                    "ask_user": true,
+                    "ai_fillable": true
+                  }
+                },
+                {
+                  "id": "url",
+                  "label": {
+                    "de": "URL",
+                    "en": "URL"
+                  },
+                  "description": {
+                    "de": "Link zur Buchungsseite",
+                    "en": "Link to booking page"
+                  },
+                  "prompt": {
+                    "de": "URL zur Buchungsseite.",
+                    "en": "URL to the booking page."
+                  },
+                  "system": {
+                    "path": "url",
+                    "uri": "https://schema.org/url",
+                    "datatype": "string",
+                    "multiple": false,
+                    "required": false,
+                    "ask_user": true,
+                    "ai_fillable": true
+                  }
+                }
               ]
             }
           ]
         },
-        "index": { "keyword": true },
-        "normalization": { "trim": true, "deduplicate": true },
+        "index": {
+          "keyword": true
+        },
+        "normalization": {
+          "trim": true,
+          "deduplicate": true
+        },
         "repo_field": false
+      }
+    },
+    {
+      "id": "cm:author",
+      "group": "license",
+      "label": {
+        "de": "Autor:in / Urheber:in",
+        "en": "Author / Creator"
+      },
+      "description": {
+        "de": "Autor:innen (kommagetrennt)",
+        "en": "Author(s) (comma-separated)"
+      },
+      "prompt": {
+        "de": "Extrahiere namentlich genannte Autor:innen oder Urheber:innen. Format: 'Vorname Nachname'. Bei Organisationen den vollständigen Namen. Nur explizit im Text genannte Personen – keine Herausgeber, Plattformbetreiber oder Redaktionen. Gib ein JSON-Array zurück. Beispiele: ['Prof. Dr. Maria Schmidt'], ['Max Mustermann', 'Erika Musterfrau'], ['Landesinstitut für Schulentwicklung'].",
+        "en": "Extract explicitly named author(s) or creator(s). Format: 'First Last'. For organizations, use full name. Only persons explicitly named in the text – no editors, platform operators, or editorial teams. Return a JSON array. Examples: ['Prof. Dr. Maria Schmidt'], ['John Doe', 'Jane Smith'], ['National Institute for School Development']."
+      },
+      "system": {
+        "path": "cm:author",
+        "uri": "cm:author",
+        "datatype": "array",
+        "multiple": true,
+        "required": false,
+        "ask_user": true,
+        "ai_fillable": true,
+        "repo_field": true,
+        "index": {
+          "keyword": true
+        },
+        "normalization": {
+          "trim": true,
+          "deduplicate": true
+        }
+      }
+    },
+    {
+      "id": "ccm:oeh_publisher_combined",
+      "group": "license",
+      "label": {
+        "de": "Publisher / Herausgeber",
+        "en": "Publisher"
+      },
+      "description": {
+        "de": "Verlag oder Herausgeber",
+        "en": "Publisher"
+      },
+      "prompt": {
+        "de": "Extrahiere den Verlag, die Plattform oder die herausgebende Organisation – nicht den/die Autor:in. Suche nach Impressum, Copyright-Hinweisen, Domainnamen oder Logos. Gib nur EINEN Namen als String zurück. Beispiele: 'Bundeszentrale für politische Bildung', 'Cornelsen Verlag', 'Serlo Education e.V.'.",
+        "en": "Extract the publisher, platform, or publishing organization – not the author. Look for imprint, copyright notices, domain names, or logos. Return only ONE name as string. Examples: 'Federal Agency for Civic Education', 'Oxford University Press', 'Khan Academy'."
+      },
+      "system": {
+        "path": "ccm:oeh_publisher_combined",
+        "uri": "ccm:oeh_publisher_combined",
+        "datatype": "string",
+        "multiple": false,
+        "required": false,
+        "ask_user": true,
+        "ai_fillable": true,
+        "repo_field": true,
+        "index": {
+          "keyword": true
+        },
+        "normalization": {
+          "trim": true
+        }
+      }
+    },
+    {
+      "id": "ccm:custom_license",
+      "group": "license",
+      "label": {
+        "de": "Benutzerdefinierte Lizenz",
+        "en": "Custom License"
+      },
+      "description": {
+        "de": "Individuelle Lizenzangabe",
+        "en": "Custom license text"
+      },
+      "prompt": {
+        "de": "Extrahiere individuelle Lizenzbedingungen, die NICHT zu einer Standard-CC-Lizenz passen. Das können Copyright-Vermerke, Nutzungshinweise oder Links zu eigenen Lizenztexten sein. NUR befüllen, wenn keine passende CC-Lizenz zutrifft. Beispiele: '© 2024 Universität München – nur für Bildungszwecke', 'Frei nutzbar für nicht-kommerzielle Lehre', 'https://example.com/nutzungsbedingungen'.",
+        "en": "Extract individual license terms that do NOT match a standard CC license. This can include copyright statements, usage notices, or links to custom license texts. Only populate if no standard CC license applies. Examples: '© 2024 University of Munich – educational use only', 'Free for non-commercial teaching', 'https://example.com/terms-of-use'."
+      },
+      "system": {
+        "path": "ccm:custom_license",
+        "uri": "ccm:custom_license",
+        "datatype": "string",
+        "multiple": false,
+        "required": false,
+        "ask_user": true,
+        "ai_fillable": true,
+        "repo_field": true,
+        "index": {
+          "keyword": true
+        },
+        "normalization": {
+          "trim": true
+        }
+      }
+    },
+    {
+      "id": "ccm:commonlicense_key",
+      "group": "license",
+      "label": {
+        "de": "Lizenztyp (CC)",
+        "en": "License Type (CC)"
+      },
+      "description": {
+        "de": "CC-Lizenztyp wählen",
+        "en": "Select CC license type"
+      },
+      "prompt": {
+        "de": "Erkenne die Creative-Commons-Lizenz der Ressource. Suche nach CC-Symbolen, Lizenz-Badges, Fußzeilen oder Lizenz-URLs (z.B. creativecommons.org/licenses/by-sa/). Gib NUR das Kürzel zurück, OHNE Versionsnummer. Erlaubte Werte: CC0, CC BY, CC BY-SA, CC BY-ND, CC BY-NC, CC BY-NC-SA, CC BY-NC-ND. Wenn keine CC-Lizenz erkennbar: null. Beispiele: 'CC BY-SA' (bei 'Namensnennung - Weitergabe unter gleichen Bedingungen'), 'CC0' (bei 'Public Domain'), 'CC BY-NC' (bei 'nur nicht-kommerziell').",
+        "en": "Identify the Creative Commons license. Look for CC symbols, license badges, footers, or license URLs (e.g., creativecommons.org/licenses/by-sa/). Return ONLY the abbreviation, WITHOUT version number. Allowed values: CC0, CC BY, CC BY-SA, CC BY-ND, CC BY-NC, CC BY-NC-SA, CC BY-NC-ND. If no CC license found: null. Examples: 'CC BY-SA' (for 'Attribution-ShareAlike'), 'CC0' (for 'Public Domain'), 'CC BY-NC' (for 'non-commercial only')."
+      },
+      "system": {
+        "path": "ccm:commonlicense_key",
+        "uri": "ccm:commonlicense_key",
+        "datatype": "string",
+        "multiple": false,
+        "required": false,
+        "ask_user": true,
+        "ai_fillable": true,
+        "repo_field": true,
+        "index": {
+          "keyword": true
+        },
+        "vocabulary": {
+          "type": "closed",
+          "concepts": [
+            {
+              "label": {
+                "de": "CC0",
+                "en": "CC0"
+              },
+              "value": "CC0"
+            },
+            {
+              "label": {
+                "de": "CC BY",
+                "en": "CC BY"
+              },
+              "value": "CC BY"
+            },
+            {
+              "label": {
+                "de": "CC BY-SA",
+                "en": "CC BY-SA"
+              },
+              "value": "CC BY-SA"
+            },
+            {
+              "label": {
+                "de": "CC BY-ND",
+                "en": "CC BY-ND"
+              },
+              "value": "CC BY-ND"
+            },
+            {
+              "label": {
+                "de": "CC BY-NC",
+                "en": "CC BY-NC"
+              },
+              "value": "CC BY-NC"
+            },
+            {
+              "label": {
+                "de": "CC BY-NC-SA",
+                "en": "CC BY-NC-SA"
+              },
+              "value": "CC BY-NC-SA"
+            },
+            {
+              "label": {
+                "de": "CC BY-NC-ND",
+                "en": "CC BY-NC-ND"
+              },
+              "value": "CC BY-NC-ND"
+            }
+          ]
+        },
+        "normalization": {
+          "trim": true,
+          "case": "upper"
+        }
+      }
+    },
+    {
+      "id": "ccm:commonlicense_cc_version",
+      "group": "license",
+      "label": {
+        "de": "Lizenzversion",
+        "en": "License Version"
+      },
+      "description": {
+        "de": "Version, z.B. 4.0",
+        "en": "Version, e.g. 4.0"
+      },
+      "prompt": {
+        "de": "Extrahiere die Versionsnummer der CC-Lizenz. Suche in Lizenz-URLs (z.B. '/licenses/by/4.0/') oder im Lizenztext. Gängige Versionen: 4.0, 3.0, 2.5, 2.0, 1.0. Gib NUR die Nummer zurück (z.B. '4.0'). Wenn keine Version erkennbar, aber eine CC-Lizenz vorhanden: '4.0' als Standard annehmen. Beispiele: '4.0', '3.0'.",
+        "en": "Extract the CC license version number. Look in license URLs (e.g., '/licenses/by/4.0/') or license text. Common versions: 4.0, 3.0, 2.5, 2.0, 1.0. Return ONLY the number (e.g., '4.0'). If no version found but CC license present: assume '4.0'. Examples: '4.0', '3.0'."
+      },
+      "system": {
+        "path": "ccm:commonlicense_cc_version",
+        "uri": "ccm:commonlicense_cc_version",
+        "datatype": "string",
+        "multiple": false,
+        "required": false,
+        "ask_user": true,
+        "ai_fillable": true,
+        "repo_field": true,
+        "index": {
+          "keyword": true
+        },
+        "validation": {
+          "pattern": "^[0-9]+(\\.[0-9]+)?$"
+        },
+        "normalization": {
+          "trim": true
+        }
+      }
+    },
+    {
+      "id": "ccm:educationalintendedenduserrole",
+      "group": "education",
+      "label": {
+        "de": "Zielgruppe",
+        "en": "Intended Audience"
+      },
+      "description": {
+        "de": "Zielgruppe(n) auswählen",
+        "en": "Select target audience(s)"
+      },
+      "prompt": {
+        "de": "Bestimme die Zielgruppe(n) der Ressource. Wähle NUR aus den vorgegebenen Vokabular-URIs – erfinde keine eigenen. Typische Zuordnungen: Unterrichtsmaterialien → Lehrer/in + Lerner/in; Elternratgeber → Eltern; Verwaltungsvorlagen → Verwaltung. Mehrfachauswahl möglich. Gib URIs als JSON-Array zurück. Beispiele: ['http://w3id.org/openeduhub/vocabs/intendedEndUserRole/teacher', 'http://w3id.org/openeduhub/vocabs/intendedEndUserRole/learner'], ['http://w3id.org/openeduhub/vocabs/intendedEndUserRole/parent'].",
+        "en": "Determine the target audience(s). Choose ONLY from provided vocabulary URIs – do not invent new ones. Typical mappings: teaching materials → teacher + learner; parent guides → parent; admin templates → manager. Multiple selections allowed. Return URIs as JSON array. Examples: ['http://w3id.org/openeduhub/vocabs/intendedEndUserRole/teacher', 'http://w3id.org/openeduhub/vocabs/intendedEndUserRole/learner'], ['http://w3id.org/openeduhub/vocabs/intendedEndUserRole/parent']."
+      },
+      "promptInstructions": {
+        "labelExactMatch": true
+      },
+      "system": {
+        "path": "ccm:educationalintendedenduserrole",
+        "uri": "ccm:educationalintendedenduserrole",
+        "datatype": "array",
+        "multiple": true,
+        "required": false,
+        "ask_user": true,
+        "ai_fillable": true,
+        "repo_field": true,
+        "index": {
+          "keyword": true
+        },
+        "vocabulary": {
+          "type": "skos",
+          "scheme": "http://w3id.org/openeduhub/vocabs/intendedEndUserRole/",
+          "concepts": [
+            {
+              "label": {
+                "de": "Autor/in",
+                "en": "author"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/intendedEndUserRole/author"
+            },
+            {
+              "label": {
+                "de": "Berater/in",
+                "en": "counsellor"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/intendedEndUserRole/counsellor"
+            },
+            {
+              "label": {
+                "de": "Lerner/in",
+                "en": "learner"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/intendedEndUserRole/learner"
+            },
+            {
+              "label": {
+                "de": "Verwaltung",
+                "en": "manager"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/intendedEndUserRole/manager"
+            },
+            {
+              "label": {
+                "de": "Eltern",
+                "en": "parent"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/intendedEndUserRole/parent"
+            },
+            {
+              "label": {
+                "de": "Lehrer/in",
+                "en": "teacher"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/intendedEndUserRole/teacher"
+            },
+            {
+              "label": {
+                "de": "andere",
+                "en": "other"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/intendedEndUserRole/other"
+            }
+          ]
+        },
+        "normalization": {
+          "trim": true,
+          "deduplicate": true,
+          "map_labels_to_uris": true
+        }
+      }
+    },
+    {
+      "id": "schema:teaches",
+      "group": "details",
+      "label": {
+        "de": "Vermittelte Kompetenzen",
+        "en": "Competencies Taught"
+      },
+      "description": {
+        "de": "Kompetenzen, Fähigkeiten oder Wissen, die vermittelt werden",
+        "en": "Competencies, skills, or knowledge that are taught"
+      },
+      "prompt": {
+        "de": "Welche Kompetenzen, Fähigkeiten oder Kenntnisse werden vermittelt? Gib ein JSON-Array zurück. Beispiele: ['Programmierung in Python', 'Datenanalyse', 'Kritisches Denken'], ['Grundlagen der Buchführung', 'Bilanzierung'].",
+        "en": "What competencies, skills, or knowledge are taught? Return a JSON array. Examples: ['Python Programming', 'Data Analysis', 'Critical Thinking'], ['Accounting Basics', 'Financial Reporting']."
+      },
+      "system": {
+        "path": "schema:teaches",
+        "uri": "https://schema.org/teaches",
+        "datatype": "array",
+        "multiple": true,
+        "required": false,
+        "ask_user": true,
+        "ai_fillable": true,
+        "repo_field": false,
+        "index": {
+          "keyword": true,
+          "fulltext": true
+        },
+        "normalization": {
+          "trim": true,
+          "deduplicate": true
+        }
       }
     }
   ],
   "output_template": {
-    "@type": ["schema:Course"],
     "oeh:educationalOffering": [],
     "oeh:concretenessType": "",
     "oeh:granularityLevel": "",
@@ -846,8 +2036,18 @@
     "schema:instructor": [],
     "schema:numberOfCredits": null,
     "schema:financialAidEligible": [],
-    "schema:provider": { "name": "", "url": "" },
+    "schema:provider": {
+      "name": "",
+      "url": ""
+    },
     "schema:location": [],
-    "schema:offers": []
+    "schema:offers": [],
+    "cm:author": [],
+    "ccm:oeh_publisher_combined": "",
+    "ccm:custom_license": "",
+    "ccm:commonlicense_key": "",
+    "ccm:commonlicense_cc_version": "",
+    "ccm:educationalintendedenduserrole": [],
+    "schema:teaches": []
   }
 }

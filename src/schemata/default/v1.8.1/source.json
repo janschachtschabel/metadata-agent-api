@@ -78,70 +78,50 @@
           "keyword": true
         },
         "vocabulary": {
-          "type": "closed",
+          "type": "skos",
+          "scheme": "http://w3id.org/openeduhub/vocabs/sourceType/",
           "concepts": [
             {
-              "uri": "http://w3id.org/openeduhub/vocabs/sourceKind/collection-channel",
               "label": {
-                "de": "Kollektion/Kanal",
-                "en": "Collection/Channel"
-              }
+                "de": "Kollektion, Sammlung oder Kanal"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/sourceType/collection"
             },
             {
-              "uri": "http://w3id.org/openeduhub/vocabs/sourceKind/dictionary",
               "label": {
-                "de": "Wörterbuch",
-                "en": "Dictionary"
-              }
+                "de": "Portal"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/sourceType/portal"
             },
             {
-              "uri": "http://w3id.org/openeduhub/vocabs/sourceKind/portal",
               "label": {
-                "de": "Portal",
-                "en": "Portal"
-              }
+                "de": "Stream, Podcast, RSS"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/sourceType/stream"
             },
             {
-              "uri": "http://w3id.org/openeduhub/vocabs/sourceKind/stream-rss",
               "label": {
-                "de": "Stream/RSS",
-                "en": "Stream/RSS"
-              }
+                "de": "Lexikon, Enzyklopädie, Wiki"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/sourceType/encyclopaedia"
             },
             {
-              "uri": "http://w3id.org/openeduhub/vocabs/sourceKind/encyclopedia",
               "label": {
-                "de": "Lexikon/Enzyklopädie",
-                "en": "Lexicon/Encyclopedia"
-              }
+                "de": "Datenbank"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/sourceType/database"
             },
             {
-              "uri": "http://w3id.org/openeduhub/vocabs/sourceKind/database",
               "label": {
-                "de": "Datenbank",
-                "en": "Database"
-              }
+                "de": "Blog"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/sourceType/blog"
             },
             {
-              "uri": "http://w3id.org/openeduhub/vocabs/sourceKind/repository",
               "label": {
-                "de": "Repository",
-                "en": "Repository"
-              }
-            },
-            {
-              "uri": "http://w3id.org/openeduhub/vocabs/sourceKind/search-engine",
-              "label": {
-                "de": "Suchmaschine",
-                "en": "Search Engine"
-              }
-            },
-            {
-              "uri": "http://w3id.org/openeduhub/vocabs/sourceKind/referatory",
-              "label": {
-                "de": "Referatory",
-                "en": "Referatory"
-              }
+                "de": "Sonstige Quelle"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/sourceType/other"
             }
           ]
         },

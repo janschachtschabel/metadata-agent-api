@@ -1858,73 +1858,85 @@
           "keyword": true
         },
         "vocabulary": {
-          "type": "closed",
+          "type": "skos",
+          "scheme": "http://w3id.org/openeduhub/vocabs/rolesOfPersons/",
           "concepts": [
+            {
+              "label": {
+                "de": "E-Learning-Experte",
+                "en": "E-learning professional"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/rolesOfPersons/elearningexperte"
+            },
+            {
+              "label": {
+                "de": "Lehrperson",
+                "en": "Teacher"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/rolesOfPersons/lehrperson"
+            },
+            {
+              "label": {
+                "de": "Instruktionsdesigner/in",
+                "en": "Instructional designer"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/rolesOfPersons/instruktionsdesignerin"
+            },
+            {
+              "label": {
+                "de": "Schüler/in oder Student/in",
+                "en": "Student"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/rolesOfPersons/schülerstudent"
+            },
             {
               "label": {
                 "de": "Berater/in",
                 "en": "Consultant"
-              }
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/rolesOfPersons/beraterin"
             },
             {
               "label": {
                 "de": "Bibliothekar/in",
                 "en": "Librarian"
-              }
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/rolesOfPersons/bibliothekarin"
             },
             {
               "label": {
-                "de": "E-Learning-Experte",
-                "en": "E-Learning expert"
-              }
+                "de": "OER-Befürworter/in",
+                "en": "OER advocate"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/rolesOfPersons/oerbefürworterin"
             },
             {
               "label": {
                 "de": "Entwickler/in",
                 "en": "Developer"
-              }
-            },
-            {
-              "label": {
-                "de": "Instruktionsdesigner/in",
-                "en": "Instructional Designer"
-              }
-            },
-            {
-              "label": {
-                "de": "Lehrperson",
-                "en": "teacher"
-              }
-            },
-            {
-              "label": {
-                "de": "OER-Befürworter/in",
-                "en": "OER Advocate"
-              }
-            },
-            {
-              "label": {
-                "de": "Politische/r Entscheidungsträger/in",
-                "en": "Policy Maker"
-              }
-            },
-            {
-              "label": {
-                "de": "Schüler/in",
-                "en": "Student"
-              }
-            },
-            {
-              "label": {
-                "de": "Student/in",
-                "en": "Student"
-              }
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/rolesOfPersons/entwicklerin"
             },
             {
               "label": {
                 "de": "Wissenschaftler/in",
-                "en": "Scientist/Researcher"
-              }
+                "en": "Scientist"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/rolesOfPersons/wissenschaftlerin"
+            },
+            {
+              "label": {
+                "de": "Politische/r Entscheidungsträger/in",
+                "en": "Policy maker"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/rolesOfPersons/politischeentscheidungsträgerin"
+            },
+            {
+              "label": {
+                "de": "Sonstige",
+                "en": "Other"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/rolesOfPersons/sonstige"
             }
           ]
         },
