@@ -192,8 +192,7 @@
           "keyword": true
         },
         "vocabulary": {
-          "type": "skos",
-          "scheme": "http://w3id.org/openeduhub/vocabs/locationType/",
+          "type": "closed",
           "concepts": [
             {
               "label": {
@@ -3748,6 +3747,9 @@
     }
   ],
   "output_template": {
+    "@type": [
+      "schema:Organization"
+    ],
     "schema:name": "",
     "schema:legalName": "",
     "schema:alternateName": [],

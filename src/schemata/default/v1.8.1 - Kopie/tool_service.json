@@ -71,22 +71,6 @@
         "de": "Verknüpfungen",
         "en": "Connections"
       }
-    },
-    {
-      "id": "license",
-      "icon": "gavel",
-      "label": {
-        "de": "Lizenz, Quelle, Mitwirkende",
-        "en": "License, Source, Contributors"
-      }
-    },
-    {
-      "id": "education",
-      "icon": "school",
-      "label": {
-        "de": "Pädagogisch/Didaktisch",
-        "en": "Educational"
-      }
     }
   ],
   "fields": [
@@ -212,501 +196,149 @@
           "keyword": true
         },
         "vocabulary": {
-          "type": "skos",
-          "scheme": "http://w3id.org/openeduhub/vocabs/toolType/",
+          "type": "closed",
           "concepts": [
             {
+              "uri": "http://w3id.org/openeduhub/vocabs/toolCategory/lms",
               "label": {
-                "de": "Kooperation, Kollaboration und Kreatives"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/collaboration"
+                "de": "Lernmanagement (LMS)",
+                "en": "Learning Management (LMS)"
+              }
             },
             {
+              "uri": "http://w3id.org/openeduhub/vocabs/toolCategory/virtual-classroom",
               "label": {
-                "de": "Interaktives Concept Board"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/conceptBoard",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/collaboration"
+                "de": "Virtuelles Klassenzimmer",
+                "en": "Virtual Classroom"
+              }
             },
             {
+              "uri": "http://w3id.org/openeduhub/vocabs/toolCategory/video-conferencing",
               "label": {
-                "de": "Mindmap"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/mindmap",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/collaboration"
+                "de": "Videokonferenz",
+                "en": "Video Conferencing"
+              }
             },
             {
+              "uri": "http://w3id.org/openeduhub/vocabs/toolCategory/collaboration-communication",
               "label": {
-                "de": "File-Sharing"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/fileSharing",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/collaboration"
+                "de": "Zusammenarbeit & Kommunikation",
+                "en": "Collaboration & Communication"
+              }
             },
             {
+              "uri": "http://w3id.org/openeduhub/vocabs/toolCategory/authoring",
               "label": {
-                "de": "Kollaboratives Editieren, Gestalten und Sammeln"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/collaborativeEditing",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/collaboration"
+                "de": "Autorenwerkzeuge",
+                "en": "Authoring Tools"
+              }
             },
             {
+              "uri": "http://w3id.org/openeduhub/vocabs/toolCategory/assessment-quiz",
               "label": {
-                "de": "Präsentation (Tool)"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/presentation"
+                "de": "Assessment & Quiz",
+                "en": "Assessment & Quiz"
+              }
             },
             {
+              "uri": "http://w3id.org/openeduhub/vocabs/toolCategory/whiteboard",
               "label": {
-                "de": "Präsentations-Software"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/presentationSoftware",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/presentation"
+                "de": "Whiteboard / Zeichnen",
+                "en": "Whiteboard / Drawing"
+              }
             },
             {
+              "uri": "http://w3id.org/openeduhub/vocabs/toolCategory/mindmapping",
               "label": {
-                "de": "Visualisierungs-Software"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/visualizationSoftware",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/presentation"
+                "de": "Mindmapping / Konzeptkarten",
+                "en": "Mindmapping / Concept Maps"
+              }
             },
             {
+              "uri": "http://w3id.org/openeduhub/vocabs/toolCategory/coding-ide",
               "label": {
-                "de": "Inhalteverwaltung, Suche"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/contentManagement"
+                "de": "Programmierung / IDE",
+                "en": "Coding / IDE"
+              }
             },
             {
+              "uri": "http://w3id.org/openeduhub/vocabs/toolCategory/media-editing",
               "label": {
-                "de": "Web-Content-Managment"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/webCMS",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/contentManagement"
+                "de": "Medienbearbeitung (Audio/Video/Bild)",
+                "en": "Media Editing (Audio/Video/Image)"
+              }
             },
             {
+              "uri": "http://w3id.org/openeduhub/vocabs/toolCategory/survey-feedback",
               "label": {
-                "de": "Suchmaschine"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/searchEngine",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/contentManagement"
+                "de": "Umfrage & Feedback",
+                "en": "Survey & Feedback"
+              }
             },
             {
+              "uri": "http://w3id.org/openeduhub/vocabs/toolCategory/task-project-management",
               "label": {
-                "de": "Medien-Management"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/mediaManager",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/contentManagement"
+                "de": "Aufgaben- & Projektmanagement",
+                "en": "Task & Project Management"
+              }
             },
             {
+              "uri": "http://w3id.org/openeduhub/vocabs/toolCategory/knowledge-management",
               "label": {
-                "de": "Dateiablage"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/fileStorage",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/contentManagement"
+                "de": "Wissensmanagement",
+                "en": "Knowledge Management"
+              }
             },
             {
+              "uri": "http://w3id.org/openeduhub/vocabs/toolCategory/data-storage",
               "label": {
-                "de": "Lerninhalte-Management, Repositorien und Referatorien"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/repository",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/contentManagement"
+                "de": "Datenspeicherung & -verwaltung",
+                "en": "Data Storage & Management"
+              }
             },
             {
+              "uri": "http://w3id.org/openeduhub/vocabs/toolCategory/e-portfolio",
               "label": {
-                "de": "Nachschlagewerk"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/reference",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/contentManagement"
+                "de": "E-Portfolio",
+                "en": "E-Portfolio"
+              }
             },
             {
+              "uri": "http://w3id.org/openeduhub/vocabs/toolCategory/plagiarism-check",
               "label": {
-                "de": "Datenbank-System"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/database",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/contentManagement"
+                "de": "Plagiatsprüfung",
+                "en": "Plagiarism Check"
+              }
             },
             {
+              "uri": "http://w3id.org/openeduhub/vocabs/toolCategory/library-management",
               "label": {
-                "de": "Editoren"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/editors"
+                "de": "Bibliotheksverwaltung",
+                "en": "Library Management"
+              }
             },
             {
+              "uri": "http://w3id.org/openeduhub/vocabs/toolCategory/ai-tools",
               "label": {
-                "de": "Medienbearbeitung"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/mediaEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/editors"
+                "de": "KI-Tools / Sprachmodelle",
+                "en": "AI Tools / Language Models"
+              }
             },
             {
+              "uri": "http://w3id.org/openeduhub/vocabs/toolCategory/accessibility",
               "label": {
-                "de": "Simulationen (Editor für)"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/simulator",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/mediaEditor"
+                "de": "Barrierefreiheit / Inklusion",
+                "en": "Accessibility / Inclusion"
+              }
             },
             {
+              "uri": "http://w3id.org/openeduhub/vocabs/toolCategory/simulation-vr",
               "label": {
-                "de": "Audio-Editor (Tonschnitt-Software, Ton-Editor, Musik-Editor)"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/audioEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/mediaEditor"
-            },
-            {
-              "label": {
-                "de": "Animationen (Editor für)"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/animator",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/mediaEditor"
-            },
-            {
-              "label": {
-                "de": "Fotos und Rastergrafiken (Editor für)"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/imageEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/mediaEditor"
-            },
-            {
-              "label": {
-                "de": "Vektorgrafiken (Editor für)"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/vectorEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/mediaEditor"
-            },
-            {
-              "label": {
-                "de": "Augmented Reality Editor"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/arEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/mediaEditor"
-            },
-            {
-              "label": {
-                "de": "Video-Editor (Videoschnitt)"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/videoEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/mediaEditor"
-            },
-            {
-              "label": {
-                "de": "interaktive Medien, Mixed Media z.B. H5P"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/interactiveEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/mediaEditor"
-            },
-            {
-              "label": {
-                "de": "Virtual Reality Editor"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/vrEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/mediaEditor"
-            },
-            {
-              "label": {
-                "de": "für weitere Formate"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/formatEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/editors"
-            },
-            {
-              "label": {
-                "de": "Landkarten Editor (geographisch)"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/mapEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/formatEditor"
-            },
-            {
-              "label": {
-                "de": "Concept Map Editor und Wissenslandkarten"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/conceptMapEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/formatEditor"
-            },
-            {
-              "label": {
-                "de": "Webseiten-Editor, Web CMS"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/websiteEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/formatEditor"
-            },
-            {
-              "label": {
-                "de": "Mindmap-Editor"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/mindmapEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/formatEditor"
-            },
-            {
-              "label": {
-                "de": "Formeleditor"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/formulaEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/formatEditor"
-            },
-            {
-              "label": {
-                "de": "Markdown- oder HTML-Editor"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/markupEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/formatEditor"
-            },
-            {
-              "label": {
-                "de": "Noteneditor (Musikeditor)"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/musicEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/formatEditor"
-            },
-            {
-              "label": {
-                "de": "Editor Officedateiformate"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/officeEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/editors"
-            },
-            {
-              "label": {
-                "de": "Folieneditor"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/slideEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/officeEditor"
-            },
-            {
-              "label": {
-                "de": "Tabellenkalkulation"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/spreadsheet",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/officeEditor"
-            },
-            {
-              "label": {
-                "de": "Texteditor"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/textEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/officeEditor"
-            },
-            {
-              "label": {
-                "de": "Bildungsinhalte-Formate (Editor)"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/contentEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/editors"
-            },
-            {
-              "label": {
-                "de": "E-Prüfungs-Editor (z.B. QTI-Editor)"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/assessmentEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/contentEditor"
-            },
-            {
-              "label": {
-                "de": "Umfragen, Evaluationen (Editor für)"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/surveyEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/contentEditor"
-            },
-            {
-              "label": {
-                "de": "Kompetenz-, Lehrplan- und Lernzieleditor"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/lessonPlanEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/contentEditor"
-            },
-            {
-              "label": {
-                "de": "Quiz-, Voting- und Selbsttest-Editor"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/quizEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/contentEditor"
-            },
-            {
-              "label": {
-                "de": "Kurseditor und Lernplattform"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/courseEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/contentEditor"
-            },
-            {
-              "label": {
-                "de": "Lernabläufe und Lernszenarien (z.B. H5P)"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/scenarioEditor",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/contentEditor"
-            },
-            {
-              "label": {
-                "de": "Lernen, Quiz und Spiel"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/learning"
-            },
-            {
-              "label": {
-                "de": "E-Portfolio, Personal Learning Environment (PLE)"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/portfolio",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/learning"
-            },
-            {
-              "label": {
-                "de": "Mathematik-Tool"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/mathTool",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/learning"
-            },
-            {
-              "label": {
-                "de": "Quiz"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/quiz",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/learning"
-            },
-            {
-              "label": {
-                "de": "E-Tests und Selbsttest-Tools"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/assessmentTools",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/learning"
-            },
-            {
-              "label": {
-                "de": "E-Prüfungs-Software"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/assessmentSoftware",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/learning"
-            },
-            {
-              "label": {
-                "de": "Lernspiel-Umgebung"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/gameEnvironment",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/learning"
-            },
-            {
-              "label": {
-                "de": "Vokabel-Trainer und Karteikarten-Lernen"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/vocabTrainer",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/learning"
-            },
-            {
-              "label": {
-                "de": "Lern-App"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/learningApp",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/learning"
-            },
-            {
-              "label": {
-                "de": "Sprachlern-Tool und -App"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/languageTool",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/learning"
-            },
-            {
-              "label": {
-                "de": "Unterrichtsorganisation und Verwaltung Bildungsorganisation"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/classroomManagement"
-            },
-            {
-              "label": {
-                "de": "Kalender"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/calendar",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/classroomManagement"
-            },
-            {
-              "label": {
-                "de": "Klassenverwaltungs-App"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/classApp",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/classroomManagement"
-            },
-            {
-              "label": {
-                "de": "Lernplattform und Kursorganisation"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/learningPlatform",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/classroomManagement"
-            },
-            {
-              "label": {
-                "de": "Stundenplan-Software"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/scheduleSoftware",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/classroomManagement"
-            },
-            {
-              "label": {
-                "de": "Bildungsverwaltungssoftware"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/adminSoftware",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/classroomManagement"
-            },
-            {
-              "label": {
-                "de": "Kommunikation und Feedback"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/communication"
-            },
-            {
-              "label": {
-                "de": "Messenger"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/messenger",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/communication"
-            },
-            {
-              "label": {
-                "de": "Diskussionsforen"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/forum",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/communication"
-            },
-            {
-              "label": {
-                "de": "Live-Umfrage"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/poll",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/communication"
-            },
-            {
-              "label": {
-                "de": "Argumentation, Plattformen für strukturierte Diskussion"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/debatePlatform",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/communication"
-            },
-            {
-              "label": {
-                "de": "Umfrage und Evaluations-Plattform"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/surveyPlatform",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/communication"
-            },
-            {
-              "label": {
-                "de": "Videokonferenzen"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/videoCall",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/communication"
-            },
-            {
-              "label": {
-                "de": "Mail"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/email",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/communication"
-            },
-            {
-              "label": {
-                "de": "Audiokonferenz"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/toolType/audioCall",
-              "broader": "http://w3id.org/openeduhub/vocabs/toolType/communication"
+                "de": "Simulation / VR / AR",
+                "en": "Simulation / VR / AR"
+              }
             }
-          ],
-          "hierarchical": true
+          ]
         },
         "normalization": {
           "trim": true,
@@ -1330,7 +962,7 @@
         "en": "URL to the Privacy Policy."
       },
       "prompt": {
-        "de": "URL der Datenschutzerklärung, z.B. 'https://example.com/privacy'.",
+        "de": "URL der Datenschutzerkl\u00e4rung, z.B. 'https://example.com/privacy'.",
         "en": "URL of the privacy policy, e.g. 'https://example.com/privacy'."
       },
       "system": {
@@ -1365,7 +997,7 @@
         "en": "Assessment/Status, e.g., GDPR compliance, AVV available."
       },
       "prompt": {
-        "de": "Datenschutz-Status. Verwende EXAKT: 'DSGVO-konform (Selbstauskunft)', 'AV-Vertrag vorhanden', 'Datenverarbeitung in EU/EWR', 'Datenverarbeitung außerhalb EU/EWR', 'Unklar/prüfen'.",
+        "de": "Datenschutz-Status. Verwende EXAKT: 'DSGVO-konform (Selbstauskunft)', 'AV-Vertrag vorhanden', 'Datenverarbeitung in EU/EWR', 'Datenverarbeitung au\u00dferhalb EU/EWR', 'Unklar/pr\u00fcfen'.",
         "en": "Data protection status. Use EXACT: 'GDPR-compliant (self-disclosure)', 'Data Processing Agreement available', 'Data processing in EU/EEA', 'Data processing outside EU/EEA', 'Unclear/check'."
       },
       "system": {
@@ -1403,14 +1035,14 @@
             {
               "uri": "http://w3id.org/openeduhub/vocabs/dataProtection/processing-outside-eu",
               "label": {
-                "de": "Datenverarbeitung außerhalb EU/EWR",
+                "de": "Datenverarbeitung au\u00dferhalb EU/EWR",
                 "en": "Data processing outside EU/EEA"
               }
             },
             {
               "uri": "http://w3id.org/openeduhub/vocabs/dataProtection/unclear",
               "label": {
-                "de": "Unklar/prüfen",
+                "de": "Unklar/pr\u00fcfen",
                 "en": "Unclear/check"
               }
             }
@@ -1499,7 +1131,7 @@
         "en": "Notes/Standards (e.g., ISO 27001, 2FA, SSO)."
       },
       "prompt": {
-        "de": "IT-Sicherheitshinweise, z.B. 'ISO 27001', '2FA', 'SSO', 'Ende-zu-Ende-Verschlüsselung'.",
+        "de": "IT-Sicherheitshinweise, z.B. 'ISO 27001', '2FA', 'SSO', 'Ende-zu-Ende-Verschl\u00fcsselung'.",
         "en": "IT security notes, e.g. 'ISO 27001', '2FA', 'SSO', 'end-to-end encryption'."
       },
       "system": {
@@ -1532,7 +1164,7 @@
         "en": "Supported standards/protocols (LTI, SCORM, xAPI, IMS …)."
       },
       "prompt": {
-        "de": "Unterstützte Standards, z.B. 'LTI 1.3', 'SCORM 2004', 'xAPI', 'IMS Global'.",
+        "de": "Unterst\u00fctzte Standards, z.B. 'LTI 1.3', 'SCORM 2004', 'xAPI', 'IMS Global'.",
         "en": "Supported standards, e.g. 'LTI 1.3', 'SCORM 2004', 'xAPI', 'IMS Global'."
       },
       "system": {
@@ -1596,7 +1228,7 @@
             {
               "uri": "http://w3id.org/openeduhub/vocabs/intendedEndUserRole/student_k12",
               "label": {
-                "de": "Schüler/innen",
+                "de": "Sch\u00fcler/innen",
                 "en": "Students (K-12)"
               }
             },
@@ -1696,11 +1328,11 @@
         "en": "Modalities"
       },
       "description": {
-        "de": "Analog/Digital, benötigte Software/Hardware, Online/Offline.",
+        "de": "Analog/Digital, ben\u00f6tigte Software/Hardware, Online/Offline.",
         "en": "Analog/Digital, required software/hardware, Online/Offline."
       },
       "prompt": {
-        "de": "Modalitäten. Verwende EXAKT: 'Digital', 'Analog', 'Online', 'Offline', 'Benötigt Zusatzsoftware', 'Benötigt Zusatzhardware'.",
+        "de": "Modalit\u00e4ten. Verwende EXAKT: 'Digital', 'Analog', 'Online', 'Offline', 'Ben\u00f6tigt Zusatzsoftware', 'Ben\u00f6tigt Zusatzhardware'.",
         "en": "Modalities. Use EXACT: 'Digital', 'Analog', 'Online', 'Offline', 'Requires additional software', 'Requires additional hardware'."
       },
       "system": {
@@ -1745,14 +1377,14 @@
             {
               "uri": "http://w3id.org/openeduhub/vocabs/toolModality/requires-additional-software",
               "label": {
-                "de": "Benötigt Zusatzsoftware",
+                "de": "Ben\u00f6tigt Zusatzsoftware",
                 "en": "Requires additional software"
               }
             },
             {
               "uri": "http://w3id.org/openeduhub/vocabs/toolModality/requires-additional-hardware",
               "label": {
-                "de": "Benötigt Zusatzhardware",
+                "de": "Ben\u00f6tigt Zusatzhardware",
                 "en": "Requires additional hardware"
               }
             }
@@ -1772,15 +1404,15 @@
       "id": "schema:inLanguage",
       "group": "technical",
       "label": {
-        "de": "Sprache(n) der Benutzeroberfläche",
+        "de": "Sprache(n) der Benutzeroberfl\u00e4che",
         "en": "User Interface Language(s)"
       },
       "description": {
-        "de": "Sprache(n), in denen die Benutzeroberfläche des Tools verfügbar ist.",
+        "de": "Sprache(n), in denen die Benutzeroberfl\u00e4che des Tools verf\u00fcgbar ist.",
         "en": "Language(s) in which the tool's user interface is available."
       },
       "prompt": {
-        "de": "Sprache(n) der Benutzeroberfläche, z.B. 'de', 'en', 'fr', 'es'.",
+        "de": "Sprache(n) der Benutzeroberfl\u00e4che, z.B. 'de', 'en', 'fr', 'es'.",
         "en": "UI language(s), e.g. 'de', 'en', 'fr', 'es'."
       },
       "system": {
@@ -1806,15 +1438,15 @@
       "id": "schema:featureList",
       "group": "technical",
       "label": {
-        "de": "Funktionsübersicht",
+        "de": "Funktions\u00fcbersicht",
         "en": "Feature List"
       },
       "description": {
-        "de": "Wichtigste Funktionen und Fähigkeiten des Tools (Stichpunkte).",
+        "de": "Wichtigste Funktionen und F\u00e4higkeiten des Tools (Stichpunkte).",
         "en": "Key features and capabilities of the tool (bullet points)."
       },
       "prompt": {
-        "de": "Wichtigste Funktionen, z.B. 'Bildschirmfreigabe', 'Breakout-Räume', 'Chat', 'Aufnahme', 'Whiteboard'.",
+        "de": "Wichtigste Funktionen, z.B. 'Bildschirmfreigabe', 'Breakout-R\u00e4ume', 'Chat', 'Aufnahme', 'Whiteboard'.",
         "en": "Key features, e.g. 'Screen sharing', 'Breakout rooms', 'Chat', 'Recording', 'Whiteboard'."
       },
       "system": {
@@ -1873,11 +1505,11 @@
         "en": "Accessibility Features"
       },
       "description": {
-        "de": "Unterstützte Barrierefreiheits-Merkmale des Tools.",
+        "de": "Unterst\u00fctzte Barrierefreiheits-Merkmale des Tools.",
         "en": "Supported accessibility features of the tool."
       },
       "prompt": {
-        "de": "Barrierefreiheit. Verwende EXAKT: 'Screenreader-Unterstützung', 'Tastaturnavigation', 'Untertitel/Captions', 'Hoher Kontrast', 'Vergrößerung', 'Leichte Sprache', 'Gebärdensprache'.",
+        "de": "Barrierefreiheit. Verwende EXAKT: 'Screenreader-Unterst\u00fctzung', 'Tastaturnavigation', 'Untertitel/Captions', 'Hoher Kontrast', 'Vergr\u00f6\u00dferung', 'Leichte Sprache', 'Geb\u00e4rdensprache'.",
         "en": "Accessibility. Use EXACT: 'Screen reader support', 'Keyboard navigation', 'Captions/Subtitles', 'High contrast', 'Magnification', 'Easy language', 'Sign language'."
       },
       "system": {
@@ -1894,7 +1526,7 @@
             {
               "uri": "http://w3id.org/openeduhub/vocabs/accessibilityFeature/screen-reader",
               "label": {
-                "de": "Screenreader-Unterstützung",
+                "de": "Screenreader-Unterst\u00fctzung",
                 "en": "Screen reader support"
               }
             },
@@ -1922,7 +1554,7 @@
             {
               "uri": "http://w3id.org/openeduhub/vocabs/accessibilityFeature/magnification",
               "label": {
-                "de": "Vergrößerung",
+                "de": "Vergr\u00f6\u00dferung",
                 "en": "Magnification"
               }
             },
@@ -1936,7 +1568,7 @@
             {
               "uri": "http://w3id.org/openeduhub/vocabs/accessibilityFeature/sign-language",
               "label": {
-                "de": "Gebärdensprache",
+                "de": "Geb\u00e4rdensprache",
                 "en": "Sign language"
               }
             }
@@ -2023,162 +1655,6 @@
         },
         "repo_field": false
       }
-    },
-    {
-      "id": "ccm:oeh_publisher_combined",
-      "group": "license",
-      "label": {
-        "de": "Publisher / Herausgeber",
-        "en": "Publisher"
-      },
-      "description": {
-        "de": "Verlag oder Herausgeber",
-        "en": "Publisher"
-      },
-      "prompt": {
-        "de": "Extrahiere den Verlag, die Plattform oder die herausgebende Organisation – nicht den/die Autor:in. Suche nach Impressum, Copyright-Hinweisen, Domainnamen oder Logos. Gib nur EINEN Namen als String zurück. Beispiele: 'Bundeszentrale für politische Bildung', 'Cornelsen Verlag', 'Serlo Education e.V.'.",
-        "en": "Extract the publisher, platform, or publishing organization – not the author. Look for imprint, copyright notices, domain names, or logos. Return only ONE name as string. Examples: 'Federal Agency for Civic Education', 'Oxford University Press', 'Khan Academy'."
-      },
-      "system": {
-        "path": "ccm:oeh_publisher_combined",
-        "uri": "ccm:oeh_publisher_combined",
-        "datatype": "string",
-        "multiple": false,
-        "required": false,
-        "ask_user": true,
-        "ai_fillable": true,
-        "repo_field": true,
-        "index": {
-          "keyword": true
-        },
-        "normalization": {
-          "trim": true
-        }
-      }
-    },
-    {
-      "id": "ccm:educationalintendedenduserrole",
-      "group": "education",
-      "label": {
-        "de": "Zielgruppe",
-        "en": "Intended Audience"
-      },
-      "description": {
-        "de": "Zielgruppe(n) auswählen",
-        "en": "Select target audience(s)"
-      },
-      "prompt": {
-        "de": "Bestimme die Zielgruppe(n) der Ressource. Wähle NUR aus den vorgegebenen Vokabular-URIs – erfinde keine eigenen. Typische Zuordnungen: Unterrichtsmaterialien → Lehrer/in + Lerner/in; Elternratgeber → Eltern; Verwaltungsvorlagen → Verwaltung. Mehrfachauswahl möglich. Gib URIs als JSON-Array zurück. Beispiele: ['http://w3id.org/openeduhub/vocabs/intendedEndUserRole/teacher', 'http://w3id.org/openeduhub/vocabs/intendedEndUserRole/learner'], ['http://w3id.org/openeduhub/vocabs/intendedEndUserRole/parent'].",
-        "en": "Determine the target audience(s). Choose ONLY from provided vocabulary URIs – do not invent new ones. Typical mappings: teaching materials → teacher + learner; parent guides → parent; admin templates → manager. Multiple selections allowed. Return URIs as JSON array. Examples: ['http://w3id.org/openeduhub/vocabs/intendedEndUserRole/teacher', 'http://w3id.org/openeduhub/vocabs/intendedEndUserRole/learner'], ['http://w3id.org/openeduhub/vocabs/intendedEndUserRole/parent']."
-      },
-      "promptInstructions": {
-        "labelExactMatch": true
-      },
-      "system": {
-        "path": "ccm:educationalintendedenduserrole",
-        "uri": "ccm:educationalintendedenduserrole",
-        "datatype": "array",
-        "multiple": true,
-        "required": false,
-        "ask_user": true,
-        "ai_fillable": true,
-        "repo_field": true,
-        "index": {
-          "keyword": true
-        },
-        "vocabulary": {
-          "type": "skos",
-          "scheme": "http://w3id.org/openeduhub/vocabs/intendedEndUserRole/",
-          "concepts": [
-            {
-              "label": {
-                "de": "Autor/in",
-                "en": "author"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/intendedEndUserRole/author"
-            },
-            {
-              "label": {
-                "de": "Berater/in",
-                "en": "counsellor"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/intendedEndUserRole/counsellor"
-            },
-            {
-              "label": {
-                "de": "Lerner/in",
-                "en": "learner"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/intendedEndUserRole/learner"
-            },
-            {
-              "label": {
-                "de": "Verwaltung",
-                "en": "manager"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/intendedEndUserRole/manager"
-            },
-            {
-              "label": {
-                "de": "Eltern",
-                "en": "parent"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/intendedEndUserRole/parent"
-            },
-            {
-              "label": {
-                "de": "Lehrer/in",
-                "en": "teacher"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/intendedEndUserRole/teacher"
-            },
-            {
-              "label": {
-                "de": "andere",
-                "en": "other"
-              },
-              "uri": "http://w3id.org/openeduhub/vocabs/intendedEndUserRole/other"
-            }
-          ]
-        },
-        "normalization": {
-          "trim": true,
-          "deduplicate": true,
-          "map_labels_to_uris": true
-        }
-      }
-    },
-    {
-      "id": "ccm:custom_license",
-      "group": "license",
-      "label": {
-        "de": "Benutzerdefinierte Lizenz",
-        "en": "Custom License"
-      },
-      "description": {
-        "de": "Individuelle Lizenzangabe",
-        "en": "Custom license text"
-      },
-      "prompt": {
-        "de": "Extrahiere individuelle Lizenzbedingungen, die NICHT zu einer Standard-CC-Lizenz passen. Das können Copyright-Vermerke, Nutzungshinweise oder Links zu eigenen Lizenztexten sein. NUR befüllen, wenn keine passende CC-Lizenz zutrifft. Beispiele: '© 2024 Universität München – nur für Bildungszwecke', 'Frei nutzbar für nicht-kommerzielle Lehre', 'https://example.com/nutzungsbedingungen'.",
-        "en": "Extract individual license terms that do NOT match a standard CC license. This can include copyright statements, usage notices, or links to custom license texts. Only populate if no standard CC license applies. Examples: '© 2024 University of Munich – educational use only', 'Free for non-commercial teaching', 'https://example.com/terms-of-use'."
-      },
-      "system": {
-        "path": "ccm:custom_license",
-        "uri": "ccm:custom_license",
-        "datatype": "string",
-        "multiple": false,
-        "required": false,
-        "ask_user": true,
-        "ai_fillable": true,
-        "repo_field": true,
-        "index": {
-          "keyword": true
-        },
-        "normalization": {
-          "trim": true
-        }
-      }
     }
   ],
   "output_template": {
@@ -2214,9 +1690,6 @@
     "ccm:use_cases": [],
     "ccm:modalities": [],
     "sdo:sameAs": [],
-    "sdo:relatedLink": [],
-    "ccm:oeh_publisher_combined": "",
-    "ccm:educationalintendedenduserrole": [],
-    "ccm:custom_license": ""
+    "sdo:relatedLink": []
   }
 }

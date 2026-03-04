@@ -179,6 +179,50 @@ def get_content_types(context: str, version: str) -> list[dict[str, Any]]:
         return []
 
 
+def resolve_schema_file_from_uri(uri: str, context: str, version: str) -> Optional[str]:
+    """
+    Resolve a vocab URI to the corresponding schema_file name.
+    
+    Example: 'http://w3id.org/openeduhub/vocabs/contentTypes/event' -> 'event.json'
+    Returns None if no match found.
+    """
+    content_types = get_content_types(context, version)
+    for ct in content_types:
+        if ct.get("uri") == uri:
+            return ct.get("schema_file")
+    return None
+
+
+def get_content_type_uri(schema_file: str, context: str, version: str) -> Optional[str]:
+    """
+    Get the vocab URI for a given schema_file.
+    
+    Example: 'event.json' -> 'http://w3id.org/openeduhub/vocabs/contentTypes/event'
+    Returns None if no URI is defined for this schema_file.
+    """
+    content_types = get_content_types(context, version)
+    for ct in content_types:
+        if ct.get("schema_file") == schema_file:
+            return ct.get("uri") or None
+    return None
+
+
+def resolve_schema_file_or_uri(schema_file_or_uri: str, context: str, version: str) -> str:
+    """
+    Accept either a schema_file name (e.g. 'event.json') or a vocab URI
+    (e.g. 'http://w3id.org/openeduhub/vocabs/contentTypes/event') and return the schema_file name.
+    
+    If the input looks like a URI (starts with 'http'), it is resolved.
+    Otherwise it is returned as-is.
+    """
+    if schema_file_or_uri.startswith("http://") or schema_file_or_uri.startswith("https://"):
+        resolved = resolve_schema_file_from_uri(schema_file_or_uri, context, version)
+        if resolved:
+            return resolved
+        raise ValueError(f"No schema_file found for URI: {schema_file_or_uri}")
+    return schema_file_or_uri
+
+
 def detect_schema_from_text(text: str, context: str, version: str) -> str:
     """Detect the most appropriate schema based on text content."""
     text_lower = text.lower()
