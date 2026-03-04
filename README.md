@@ -16,6 +16,7 @@ Generiert strukturierte Metadaten nach dem [WLO/OEH-Schema](https://wirlernenonl
   - [POST /export/markdown](#post-exportmarkdown)
   - [POST /upload](#post-upload)
   - [POST /upload/verify/{node_id}](#post-uploadverifynodeid)
+  - [POST /screenshot](#post-screenshot)
   - [Info-Endpunkte](#info-endpunkte)
 - [Nutzungsbeispiele](#nutzungsbeispiele)
 - [Umgebungsvariablen](#umgebungsvariablen)
@@ -141,6 +142,9 @@ Generiert vollständige Metadaten aus Text, URL oder Repository-Node.
 | `existing_metadata` | object | — | Bestehende Metadaten als Basis |
 | `regenerate_fields` | array | — | Nur diese Feld-IDs neu extrahieren |
 | `regenerate_empty` | bool | `false` | Leere Felder in `existing_metadata` neu extrahieren |
+| **Screenshot** ||||
+| `screenshot_method` | string | — | `pageshot` (extern) oder `playwright` (intern, datenschutzfreundlich). Ohne Angabe: kein Screenshot |
+| `preview_url` | string | — | URL für Screenshot (auto-detected aus `source_url` oder `ccm:wwwurl`) |
 
 #### Input-Quellen
 
@@ -158,7 +162,7 @@ Die Metadaten-Felder liegen **direkt auf Top-Level** (nicht in einem `metadata`-
 ```json
 {
   "contextName": "default",
-  "schemaVersion": "1.8.0",
+  "schemaVersion": "1.8.1",
   "metadataset": "event.json",
   "language": "de",
   "exportedAt": "2026-01-23T08:00:00+00:00",
@@ -195,6 +199,8 @@ Die Metadaten-Felder liegen **direkt auf Top-Level** (nicht in einem `metadata`-
 ```
 
 > **Hinweis:** Leere Default-Werte (`""`, `[]`, `{}`, `null`) werden aus der Response gefiltert — nur Felder mit tatsächlichen Werten erscheinen.
+>
+> **Screenshot:** Wenn `screenshot_method` angegeben wurde und ein Screenshot erfolgreich war, enthält die Response zusätzlich `preview_image_url` als Base64 Data-URL (`data:image/png;base64,...`).
 
 #### Verfügbare Schemas
 
@@ -217,9 +223,11 @@ Die Metadaten-Felder liegen **direkt auf Top-Level** (nicht in einem `metadata`-
 
 | Kontext | Beschreibung | Schemas |
 |---------|--------------|--------|
-| `default` | WLO/OEH Standard | 11 Schemas (alle) |
-| `redesign_26` | Redesign 2026 | 11 Schemas (alle, angepasste Felder/Gruppen) |
+| `default` | WLO/OEH Standard | 11 Schemas (+ 3 deaktiviert) |
+| `redesign_26` | Redesign 2026 | 11 Schemas (angepasste Felder/Gruppen) |
 | `mds_oeh` | OEH Metadatenset (kompakt) | 5 Schemas (core, event, education_offer, organization, person) |
+
+> **Deaktivierte Schemas:** `education_program.json`, `course.json`, `curriculum.json` — vorhanden aber nicht in der automatischen Erkennung.
 
 ---
 
@@ -260,7 +268,7 @@ Extrahiert oder regeneriert ein einzelnes Feld. Nützlich um einzelne Felder zu 
   "changed": true,
   "normalized": false,
   "context": "default",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "schema_file": "event.json",
   "processing": {
     "llm_provider": "b-api-openai",
@@ -326,7 +334,7 @@ Erkennt den Inhaltstyp (Schema) eines Textes via LLM.
     }
   ],
   "context": "default",
-  "version": "1.8.0",
+  "version": "1.8.1",
   "processing_time_ms": 800
 }
 ```
@@ -347,13 +355,13 @@ Der Body kann **direkt der `/generate`-Output** sein (flaches Format) oder ein O
 # Variante 1: Direkter /generate-Output
 curl -X POST http://localhost:8000/validate \
   -H "Content-Type: application/json" \
-  -d '{"contextName":"default","schemaVersion":"1.8.0","metadataset":"event.json",
+  -d '{"contextName":"default","schemaVersion":"1.8.1","metadataset":"event.json",
        "cclom:title":"Mein Workshop","schema:startDate":"2026-03-15"}'
 
 # Variante 2: Explizit mit metadata-Wrapper
 curl -X POST http://localhost:8000/validate \
   -H "Content-Type: application/json" \
-  -d '{"metadata": {...}, "context": "default", "version": "1.8.0"}'
+  -d '{"metadata": {...}, "context": "default", "version": "1.8.1"}'
 ```
 
 | Parameter | Typ | Default | Beschreibung |
@@ -446,6 +454,8 @@ Lädt Metadaten ins WLO edu-sharing Repository hoch.
 | `check_duplicates` | bool | `true` | Dublettenprüfung via `ccm:wwwurl` |
 | `start_workflow` | bool | `true` | Review-Workflow starten |
 | `source` | string | — | Bezugsquelle / Publisher-Override. Überschreibt `ccm:oeh_publisher_combined` |
+| `preview_url` | string | — | URL für Vorschaubild-Screenshot. Wenn leer, wird `ccm:wwwurl` aus den Metadaten verwendet |
+| `screenshot_method` | string | `pageshot` | Screenshot-Methode: `pageshot` (extern) oder `playwright` (intern, datenschutzfreundlich) |
 
 #### Repositories
 
@@ -575,6 +585,67 @@ Prüft hochgeladene Metadaten gegen die tatsächlichen Werte im Repository (SOLL
 
 ---
 
+### POST /screenshot
+
+Erstellt einen Screenshot einer Webseite. Optional kann der Screenshot direkt als Vorschaubild auf einen edu-sharing Node hochgeladen werden.
+
+#### Request
+
+| Parameter | Typ | Default | Beschreibung |
+|-----------|-----|---------|--------------|
+| `url` | string | **erforderlich** | URL der Webseite |
+| `method` | enum | `pageshot` | `pageshot` (extern, schnell) oder `playwright` (intern, datenschutzfreundlich) |
+| `width` | int | `1280` | Viewport-Breite (320–3840) |
+| `height` | int | `900` | Viewport-Höhe (200–2160) |
+| `format` | string | `png` | Bildformat: `png`, `jpeg`, `webp` |
+| `full_page` | bool | `false` | Gesamte scrollbare Seite erfassen |
+| `delay` | int | `2000` | Wartezeit vor Aufnahme in ms (0–10000) |
+| `node_id` | string | — | Optional: Screenshot als Vorschaubild auf diesen Node hochladen |
+| `repository` | string | `staging` | Repository für Preview-Upload: `staging` oder `prod` |
+
+#### Methoden
+
+| Methode | Datenschutz | Geschwindigkeit | Beschreibung |
+|---------|-------------|-----------------|-------------|
+| `pageshot` | ⚠️ URL wird an externen Service gesendet | ~3s | Externer PageShot API Service (Standard) |
+| `playwright` | ✅ Intern, keine Daten nach außen | ~3–5s | Lokaler Chromium-Browser (erfordert Playwright-Installation) |
+
+#### Response
+
+```json
+{
+  "success": true,
+  "method": "pageshot",
+  "url": "https://example.com",
+  "format": "png",
+  "mimetype": "image/png",
+  "width": 1280,
+  "height": 900,
+  "size_bytes": 245000,
+  "capture_time_ms": 2800,
+  "image_base64": "iVBORw0KGgo...",
+  "preview_uploaded": null,
+  "node_id": null
+}
+```
+
+#### Mit Preview-Upload
+
+```bash
+curl -X POST http://localhost:8000/screenshot \
+  -H "Content-Type: application/json" \
+  -d '{
+    "url": "https://example.com/event",
+    "method": "pageshot",
+    "node_id": "abc123-def456-...",
+    "repository": "staging"
+  }'
+```
+
+> **Hinweis:** Für Preview-Upload werden `WLO_GUEST_USERNAME` und `WLO_GUEST_PASSWORD` benötigt.
+
+---
+
 ### Info-Endpunkte
 
 #### GET /health
@@ -593,8 +664,8 @@ Listet alle verfügbaren Schema-Kontexte mit Versionen.
     {
       "name": "default",
       "display_name": "WLO/OEH Standard",
-      "versions": ["1.8.0"],
-      "default_version": "1.8.0"
+      "versions": ["1.8.1", "1.8.0"],
+      "default_version": "1.8.1"
     },
     {
       "name": "redesign_26",
@@ -845,7 +916,7 @@ Prefix `METADATA_AGENT_` wird automatisch vorangestellt (außer API-Keys).
 | Variable | Default | Beschreibung |
 |----------|---------|--------------|
 | `METADATA_AGENT_DEFAULT_CONTEXT` | `default` | Standard-Kontext |
-| `METADATA_AGENT_DEFAULT_VERSION` | `1.8.0` | Standard-Version |
+| `METADATA_AGENT_DEFAULT_VERSION` | `1.8.1` | Standard-Version |
 
 ### Repository & Crawler
 
@@ -947,7 +1018,7 @@ Alle Attribute können auch per JavaScript gesetzt werden: `canvas.layout = 'det
 | `api-url` | URL | URL der Metadata Agent API **(Pflicht)** |
 | `layout` | siehe oben | Layout-Variante |
 | `context-name` | `default`, `redesign_26` | Schema-Kontext |
-| `schema-version` | `1.8.0`, `latest` | Schema-Version |
+| `schema-version` | `1.8.1`, `latest` | Schema-Version |
 | `language` | `de`, `en` | Sprache (i18n) |
 | `columns` | `1`–`4` | Spaltenanzahl (nur detail-Layout) |
 | `background-color` | CSS-Farbe | Hintergrundfarbe, z.B. `#f5f5f5` |
@@ -979,6 +1050,9 @@ Alle Attribute können auch per JavaScript gesetzt werden: `canvas.layout = 'det
 | `highlight-ai` | KI-generierte Felder farblich hervorheben (Standard: `true`) |
 | `flat-groups` | Feldgruppen pro Schema zusammenfassen (Standard: `false`) |
 | `auto-extract` | Automatisch extrahieren nach Laden |
+| `show-preview` | Vorschaubild anzeigen (Standard: `true`) |
+| `enable-screenshot` | Screenshot bei URL-Extraktion (Standard: `true`) |
+| `screenshot-method` | Screenshot-Methode: `pageshot` (Standard) oder `playwright` |
 
 #### Daten direkt setzen
 
