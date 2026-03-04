@@ -560,6 +560,15 @@ class UploadRequest(BaseModel):
         default=ScreenshotMethod.PAGESHOT,
         description="Screenshot method: 'pageshot' (default) or 'playwright' (privacy-safe)"
     )
+    # Extended Data options
+    write_extended_data: bool = Field(
+        default=True,
+        description="Write extended fields (ccm:oeh_extendedType, ccm:oeh_extendedData, ccm:oeh_extendedText) to node. Default: true."
+    )
+    extended_text: Optional[str] = Field(
+        default=None,
+        description="Raw source text before extraction (user input, extracted page content, etc.). Written to ccm:oeh_extendedText."
+    )
     
     model_config = {
         "json_schema_extra": {
@@ -577,7 +586,9 @@ class UploadRequest(BaseModel):
                 "start_workflow": True,
                 "source": "Klexikon",
                 "preview_url": "https://example.com/event",
-                "screenshot_method": "pageshot"
+                "screenshot_method": "pageshot",
+                "write_extended_data": True,
+                "extended_text": "Raw text content..."
             }]
         }
     }

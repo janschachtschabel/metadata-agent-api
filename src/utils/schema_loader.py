@@ -157,7 +157,7 @@ def get_content_types(context: str, version: str) -> list[dict[str, Any]]:
     try:
         core_schema = load_schema(context, version, "core.json")
         
-        # Find the content type field (ccm:oeh_flex_lrt or similar)
+        # Find the content type field (ccm:oeh_extendedType or similar)
         for field in core_schema.get("fields", []):
             vocab = field.get("system", {}).get("vocabulary", {})
             concepts = vocab.get("concepts", [])

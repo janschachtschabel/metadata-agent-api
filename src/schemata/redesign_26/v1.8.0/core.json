@@ -547,7 +547,7 @@
       }
     },
     {
-      "id": "ccm:oeh_flex_lrt",
+      "id": "ccm:oeh_extendedType",
       "group": "typification",
       "label": {
         "de": "Inhaltsart(en)",
@@ -562,8 +562,8 @@
         "en": ""
       },
       "system": {
-        "path": "ccm:oeh_flex_lrt",
-        "uri": "ccm:oeh_flex_lrt",
+        "path": "ccm:oeh_extendedType",
+        "uri": "ccm:oeh_extendedType",
         "datatype": "array",
         "multiple": false,
         "required": false,
@@ -1375,7 +1375,7 @@
     "ccm:commonlicense_key": "",
     "ccm:commonlicense_cc_version": "",
     "cclom:general_language": "",
-    "ccm:oeh_flex_lrt": [],
+    "ccm:oeh_extendedType": [],
     "ccm:educationalintendedenduserrole": [],
     "ccm:educationalcontext": [],
     "ccm:taxonid": []

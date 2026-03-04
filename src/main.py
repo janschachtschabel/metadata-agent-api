@@ -1519,6 +1519,10 @@ async def generate_metadata(request: Request):
     if result.get("_origins"):
         response["_origins"] = result["_origins"]
     
+    # Add _source_text (raw text before extraction) for extended data upload
+    if text:
+        response["_source_text"] = text
+    
     # Add preview image URL if screenshot was captured
     if preview_image_url:
         response["preview_image_url"] = preview_image_url
@@ -1767,6 +1771,8 @@ Kopiere einfach den kompletten Output von `/generate` direkt hier rein.
 | `start_workflow` | `true` (Standard), `false` | Review-Workflow starten |
 | `preview_url` | URL (leer = auto) | URL für Vorschaubild-Screenshot. Wenn leer, wird `ccm:wwwurl` aus den Metadaten verwendet. |
 | `screenshot_method` | `pageshot` (Standard), `playwright` | Methode für Screenshot-Erfassung. `pageshot` = externe API, `playwright` = intern/privacy-safe. |
+| `write_extended_data` | `true` (Standard), `false` | Extended-Felder schreiben (`ccm:oeh_extendedType`, `ccm:oeh_extendedData`, `ccm:oeh_extendedText`). |
+| `extended_text` | String (leer = auto) | Rohtext vor der Extraktion. Wird in `ccm:oeh_extendedText` geschrieben. |
 
 ## Workflow
 
@@ -1774,7 +1780,8 @@ Kopiere einfach den kompletten Output von `/generate` direkt hier rein.
 2. **Node erstellen**: Legt neuen Node mit Basisdaten an
 3. **Metadaten setzen**: Überträgt alle Metadaten
 4. **Collections**: Fügt Node zu Collections hinzu (falls angegeben)
-5. **Workflow starten** (optional): Startet Review-Prozess
+5. **Extended Fields** (optional): Schreibt `ccm:oeh_extendedType` (Inhaltstyp-URI), `ccm:oeh_extendedData` (Metadaten-JSON), `ccm:oeh_extendedText` (Rohtext)
+6. **Workflow starten** (optional): Startet Review-Prozess
 
 ## Response
 
@@ -1801,7 +1808,9 @@ Kopiere einfach den kompletten Output von `/generate` direkt hier rein.
                                 "check_duplicates": True,
                                 "start_workflow": True,
                                 "preview_url": "",
-                                "screenshot_method": "pageshot"
+                                "screenshot_method": "pageshot",
+                                "write_extended_data": True,
+                                "extended_text": "Rohtext der Webseite vor der KI-Extraktion..."
                             }
                         }
                     }
@@ -1848,6 +1857,8 @@ async def upload_to_repository(request: Request):
         source = data.pop("source", None)
         preview_url = data.pop("preview_url", None)
         screenshot_method = data.pop("screenshot_method", "pageshot")
+        write_extended_data = data.pop("write_extended_data", True)
+        extended_text = data.pop("extended_text", None)
         data = {
             "metadata": data,
             "repository": repository,
@@ -1856,6 +1867,8 @@ async def upload_to_repository(request: Request):
             "source": source,
             "preview_url": preview_url,
             "screenshot_method": screenshot_method,
+            "write_extended_data": write_extended_data,
+            "extended_text": extended_text,
         }
     
     # Validate with Pydantic model
@@ -1916,6 +1929,8 @@ async def upload_to_repository(request: Request):
         start_workflow=req.start_workflow,
         context=context,
         version=version,
+        write_extended_data=req.write_extended_data,
+        extended_text=req.extended_text,
     )
     
     # ── Upload screenshot as preview (if screenshot was started and node was created) ──

@@ -456,6 +456,8 @@ Lädt Metadaten ins WLO edu-sharing Repository hoch.
 | `source` | string | — | Bezugsquelle / Publisher-Override. Überschreibt `ccm:oeh_publisher_combined` |
 | `preview_url` | string | — | URL für Vorschaubild-Screenshot. Wenn leer, wird `ccm:wwwurl` aus den Metadaten verwendet |
 | `screenshot_method` | string | `pageshot` | Screenshot-Methode: `pageshot` (extern) oder `playwright` (intern, datenschutzfreundlich) |
+| `write_extended_data` | bool | `true` | Extended-Felder schreiben (`ccm:oeh_extendedType`, `ccm:oeh_extendedData`, `ccm:oeh_extendedText`) |
+| `extended_text` | string | — | Rohtext vor der KI-Extraktion. Wird in `ccm:oeh_extendedText` geschrieben |
 
 #### Repositories
 
@@ -471,7 +473,20 @@ Lädt Metadaten ins WLO edu-sharing Repository hoch.
 3. **Aspects setzen** — Fügt benötigte Alfresco-Aspects hinzu (siehe unten)
 4. **Metadaten setzen** — Überträgt alle Metadaten-Felder (`obeyMds=false`)
 5. **Collections** — Fügt Node zu Collections hinzu (falls in Metadaten)
-6. **Workflow starten** — Startet Review-Prozess (optional)
+6. **Extended Fields** — Schreibt `ccm:oeh_extendedType/Data/Text` (optional, Standard: aktiv)
+7. **Workflow starten** — Startet Review-Prozess (optional)
+
+#### Extended Metadata Fields
+
+Wenn `write_extended_data=true` (Standard), werden nach dem Haupt-Metadaten-Upload drei zusätzliche Felder geschrieben:
+
+| Feld | Inhalt | Quelle |
+|------|--------|--------|
+| `ccm:oeh_extendedType` | URI des Inhaltstyps | `metadataset` → `core.json` Vocabulary-URI (z.B. `http://w3id.org/openeduhub/vocabs/contentTypes/event`) |
+| `ccm:oeh_extendedData` | Vollständiges Metadaten-JSON | Alle Metadaten-Felder als JSON-String (ohne interne Processing-Keys) |
+| `ccm:oeh_extendedText` | Rohtext vor Extraktion | `extended_text`-Parameter (User-Eingabe, extrahierter Seiteninhalt, etc.) |
+
+Diese Felder werden mit `obeyMds=false` geschrieben und umgehen den MDS-Filter.
 
 #### Automatische Transformationen beim Upload
 

@@ -7,7 +7,7 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-from ..utils.schema_loader import get_repo_fields
+from ..utils.schema_loader import get_repo_fields, get_content_type_uri
 
 
 def _get_repository_configs() -> dict:
@@ -69,6 +69,8 @@ class RepositoryService:
         start_workflow: bool = True,
         context: str = "default",
         version: str = "latest",
+        write_extended_data: bool = True,
+        extended_text: Optional[str] = None,
     ) -> dict[str, Any]:
         """
         Upload metadata to WLO repository.
@@ -78,6 +80,8 @@ class RepositoryService:
             repository: "staging" or "production"
             check_duplicates: Check for duplicates by ccm:wwwurl
             start_workflow: Start review workflow after upload
+            write_extended_data: Write ccm:oeh_extendedType/Data/Text fields
+            extended_text: Raw source text before extraction
             
         Returns:
             Upload result with nodeId, success status, etc.
@@ -150,7 +154,14 @@ class RepositoryService:
                 if collection_ids:
                     await self._set_collections(client, base_url, node_id, collection_ids)
                 
-                # 5. Start workflow
+                # 5. Write extended data fields (bypasses repo_field filter)
+                extended_result = None
+                if write_extended_data:
+                    extended_result = await self._write_extended_fields(
+                        client, base_url, node_id, metadata, context, version, extended_text
+                    )
+                
+                # 6. Start workflow
                 if start_workflow:
                     await self._start_workflow(client, base_url, node_id)
                 
@@ -455,6 +466,101 @@ class RepositoryService:
             "fields_skipped": fields_skipped,
             "field_errors": field_errors
         }
+    
+    async def _write_extended_fields(
+        self,
+        client: httpx.AsyncClient,
+        base_url: str,
+        node_id: str,
+        metadata: dict[str, Any],
+        context: str,
+        version: str,
+        extended_text: Optional[str] = None,
+    ) -> dict[str, Any]:
+        """
+        Write the 3 extended metadata fields to a node (bypasses repo_field filter).
+        
+        Fields:
+        - ccm:oeh_extendedType: URI of the content type from core.json vocabulary
+        - ccm:oeh_extendedData: Full metadata JSON after generation/extraction
+        - ccm:oeh_extendedText: Raw source text before extraction
+        """
+        metadata_url = f"{base_url}/rest/node/v1/nodes/-home-/{node_id}/metadata?versionComment=EXTENDED_DATA&obeyMds=false"
+        
+        extended_fields: dict[str, list[str]] = {}
+        
+        # 1. ccm:oeh_extendedType — resolve URI from metadataset (schema_file)
+        schema_file = metadata.get("metadataset")
+        if schema_file:
+            type_uri = get_content_type_uri(schema_file, context, version)
+            if type_uri:
+                extended_fields["ccm:oeh_extendedType"] = [type_uri]
+                print(f"📎 extendedType: {type_uri} (from {schema_file})")
+            else:
+                print(f"⚠️ extendedType: No URI found for schema_file={schema_file}")
+        
+        # 2. ccm:oeh_extendedData — full metadata as JSON string
+        # Remove internal processing keys, keep only actual metadata fields
+        excluded_keys = {"contextName", "schemaVersion", "metadataset", "metadataset_uri", "language", "exportedAt", "processing", "_origins", "_source_text", "preview_image_url"}
+        data_dict = {k: v for k, v in metadata.items() if k not in excluded_keys}
+        if data_dict:
+            extended_fields["ccm:oeh_extendedData"] = [json.dumps(data_dict, ensure_ascii=False)]
+            print(f"📎 extendedData: {len(json.dumps(data_dict, ensure_ascii=False))} chars")
+        
+        # 3. ccm:oeh_extendedText — raw source text
+        if extended_text:
+            extended_fields["ccm:oeh_extendedText"] = [extended_text]
+            print(f"📎 extendedText: {len(extended_text)} chars")
+        
+        if not extended_fields:
+            print("⚠️ No extended fields to write")
+            return {"success": True, "fields_written": 0}
+        
+        # Write all extended fields in one request
+        try:
+            response = await client.post(
+                metadata_url,
+                headers={
+                    "Authorization": self._auth_header,
+                    "Content-Type": "application/json",
+                    "Accept": "application/json"
+                },
+                json=extended_fields
+            )
+            
+            if response.status_code in (200, 201):
+                print(f"✅ Extended fields written: {list(extended_fields.keys())}")
+                return {"success": True, "fields_written": len(extended_fields)}
+            else:
+                error_text = response.text[:300]
+                print(f"⚠️ Extended fields bulk write failed ({response.status_code}): {error_text}")
+                
+                # Fallback: write field-by-field
+                written = 0
+                for field_id, field_value in extended_fields.items():
+                    try:
+                        single_resp = await client.post(
+                            metadata_url,
+                            headers={
+                                "Authorization": self._auth_header,
+                                "Content-Type": "application/json",
+                                "Accept": "application/json"
+                            },
+                            json={field_id: field_value}
+                        )
+                        if single_resp.status_code in (200, 201):
+                            written += 1
+                            print(f"   ✅ {field_id}")
+                        else:
+                            print(f"   ❌ {field_id}: {single_resp.status_code}")
+                    except Exception as e:
+                        print(f"   ❌ {field_id}: {e}")
+                
+                return {"success": written > 0, "fields_written": written}
+                
+        except Exception as e:
+            print(f"❌ Extended fields write failed: {e}")
+            return {"success": False, "fields_written": 0, "error": str(e)}
     
     def _normalize_for_repo(
         self, metadata: dict, repo_field_ids: set[str] | None = None
