@@ -994,9 +994,10 @@ class RepositoryService:
         """
         # Clean expected metadata (remove processing/header keys)
         excluded = {
-            "contextName", "schemaVersion", "metadataset",
-            "language", "exportedAt", "processing", "_origins",
+            "contextName", "schemaVersion", "metadataset", "metadataset_uri",
+            "language", "exportedAt", "processing", "_origins", "_source_text",
             "repository", "check_duplicates", "start_workflow",
+            "preview_url", "preview:url", "preview_image_url",
         }
         clean_expected = {k: v for k, v in expected.items() if k not in excluded}
         
@@ -1103,7 +1104,47 @@ class RepositoryService:
         # Normalize both to comparable form
         exp_norm = self._normalize_compare(expected)
         act_norm = self._normalize_compare(actual)
-        return exp_norm == act_norm
+        if exp_norm == act_norm:
+            return True
+        
+        # Special case: ISO date string vs epoch millis (repo auto-converts)
+        return self._dates_match(exp_norm, act_norm)
+    
+    def _dates_match(self, a: Any, b: Any) -> bool:
+        """Check if two values represent the same datetime (ISO vs epoch millis)."""
+        try:
+            a_ts = self._to_epoch_ms(str(a))
+            b_ts = self._to_epoch_ms(str(b))
+            if a_ts is not None and b_ts is not None:
+                # Allow 60s tolerance (repo may round)
+                return abs(a_ts - b_ts) < 60_000
+            return False
+        except Exception:
+            return False
+    
+    def _to_epoch_ms(self, value: str) -> int | None:
+        """Try to interpret a string as epoch milliseconds."""
+        from datetime import datetime, timezone
+        
+        # Already epoch millis?
+        try:
+            num = int(value)
+            if num > 1_000_000_000_000:  # clearly epoch millis (> year 2001)
+                return num
+            if num > 1_000_000_000:  # epoch seconds
+                return num * 1000
+        except (ValueError, TypeError):
+            pass
+        
+        # ISO date string?
+        for fmt in ("%Y-%m-%dT%H:%M:%S.%fZ", "%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%dT%H:%M:%S", "%Y-%m-%dT%H:%M"):
+            try:
+                dt = datetime.strptime(value, fmt).replace(tzinfo=timezone.utc)
+                return int(dt.timestamp() * 1000)
+            except (ValueError, TypeError):
+                continue
+        
+        return None
     
     def _normalize_compare(self, value: Any) -> Any:
         """Normalize a value for comparison."""
