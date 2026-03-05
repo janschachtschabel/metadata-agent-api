@@ -524,10 +524,10 @@ class RepositoryService:
             else:
                 print(f"⚠️ extendedType: No URI found for schema_file={schema_file}")
         
-        # 1b. oeh:new_lrt — map extended type to learning resource type
+        # 1b. ccm:oeh_lrt — map extended type to learning resource type
         if type_uri and type_uri in EXTENDED_TYPE_TO_NEW_LRT:
             lrt_uri = EXTENDED_TYPE_TO_NEW_LRT[type_uri]
-            extended_fields["oeh:new_lrt"] = [lrt_uri]
+            extended_fields["ccm:oeh_lrt"] = [lrt_uri]
             print(f"📎 new_lrt: {lrt_uri} (from extendedType {type_uri.split('/')[-1]})")
         
         # 2. ccm:oeh_extendedData — full metadata as JSON string

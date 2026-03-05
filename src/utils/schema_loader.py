@@ -179,6 +179,20 @@ def get_content_types(context: str, version: str) -> list[dict[str, Any]]:
         return []
 
 
+def get_content_type_prompt(context: str, version: str, language: str = "de") -> Optional[str]:
+    """Get the prompt text for the content type field from core.json."""
+    try:
+        core_schema = load_schema(context, version, "core.json")
+        for field in core_schema.get("fields", []):
+            vocab = field.get("system", {}).get("vocabulary", {})
+            if vocab.get("concepts") and any(c.get("schema_file") for c in vocab["concepts"]):
+                prompt = field.get("prompt", {})
+                return prompt.get(language) or prompt.get("de") or prompt.get("en")
+        return None
+    except Exception:
+        return None
+
+
 def resolve_schema_file_from_uri(uri: str, context: str, version: str) -> Optional[str]:
     """
     Resolve a vocab URI to the corresponding schema_file name.

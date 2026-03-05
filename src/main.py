@@ -56,6 +56,7 @@ from .utils.schema_loader import (
     get_available_schemas,
     load_schema,
     get_content_types,
+    get_content_type_prompt,
     get_latest_version,
     resolve_schema_file_or_uri,
     get_content_type_uri,
@@ -674,8 +675,9 @@ async def detect_content_type(req: DetectContentTypeRequest):
         llm_provider=req.llm_provider,
         llm_model=req.llm_model
     )
+    prompt_hint = get_content_type_prompt(req.context or "default", req.version or "latest", req.language)
     detected_schema = await service.llm_service.detect_content_type(
-        text, content_types, req.language
+        text, content_types, req.language, prompt_hint=prompt_hint
     )
     
     # Close non-default LLM service HTTP client to prevent leak
