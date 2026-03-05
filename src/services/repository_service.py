@@ -31,6 +31,18 @@ def _get_repository_configs() -> dict:
     }
 
 
+# Mapping: ccm:oeh_extendedType URI → oeh:new_lrt URI
+# Sets the learning resource type (LRT) based on the detected content type.
+EXTENDED_TYPE_TO_NEW_LRT = {
+    "http://w3id.org/openeduhub/vocabs/contentTypes/event": "http://w3id.org/openeduhub/vocabs/new_lrt/955590ae-5f06-4513-98e9-91dfa8d5a05e",
+    "http://w3id.org/openeduhub/vocabs/contentTypes/source": "http://w3id.org/openeduhub/vocabs/new_lrt/3869b453-d3c1-4b34-8f25-9127e9d68766",
+    "http://w3id.org/openeduhub/vocabs/contentTypes/education_offer": "http://w3id.org/openeduhub/vocabs/new_lrt/03ab835b-c39c-48d1-b5af-7611de2f6464",
+    "http://w3id.org/openeduhub/vocabs/contentTypes/tool_service": "http://w3id.org/openeduhub/vocabs/new_lrt/cefccf75-cba3-427d-9a0f-35b4fedcbba1",
+    "http://w3id.org/openeduhub/vocabs/contentTypes/didactic_concepts": "http://w3id.org/openeduhub/vocabs/new_lrt/0a79a1d0-583b-47ce-86a7-517ab352d796",
+    "http://w3id.org/openeduhub/vocabs/contentTypes/learning_material": "http://w3id.org/openeduhub/vocabs/new_lrt/1846d876-d8fd-476a-b540-b8ffd713fedb",
+}
+
+
 class RepositoryService:
     """
     Service for uploading metadata to WLO edu-sharing repository.
@@ -387,6 +399,11 @@ class RepositoryService:
         # Handle license transformation
         self._transform_license(normalized, metadata)
         
+        # Default license: COPYRIGHT_FREE if no license was set
+        if "ccm:commonlicense_key" not in normalized:
+            normalized["ccm:commonlicense_key"] = ["COPYRIGHT_FREE"]
+            print("📜 Default license: COPYRIGHT_FREE (no license detected)")
+        
         # Extract geo coordinates from schema:location → cm:latitude / cm:longitude
         self._extract_geo_coordinates(normalized, metadata)
         
@@ -497,6 +514,7 @@ class RepositoryService:
         extended_fields: dict[str, list[str]] = {}
         
         # 1. ccm:oeh_extendedType — resolve URI from metadataset (schema_file)
+        type_uri = None
         schema_file = metadata.get("metadataset")
         if schema_file:
             type_uri = get_content_type_uri(schema_file, context, version)
@@ -505,6 +523,12 @@ class RepositoryService:
                 print(f"📎 extendedType: {type_uri} (from {schema_file})")
             else:
                 print(f"⚠️ extendedType: No URI found for schema_file={schema_file}")
+        
+        # 1b. oeh:new_lrt — map extended type to learning resource type
+        if type_uri and type_uri in EXTENDED_TYPE_TO_NEW_LRT:
+            lrt_uri = EXTENDED_TYPE_TO_NEW_LRT[type_uri]
+            extended_fields["oeh:new_lrt"] = [lrt_uri]
+            print(f"📎 new_lrt: {lrt_uri} (from extendedType {type_uri.split('/')[-1]})")
         
         # 2. ccm:oeh_extendedData — full metadata as JSON string
         # Remove internal processing keys, keep only actual metadata fields

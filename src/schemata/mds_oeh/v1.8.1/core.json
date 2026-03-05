@@ -531,8 +531,8 @@
         "en": "Content type of the resource – determines which additional fields are shown."
       },
       "prompt": {
-        "de": "Wähle den passenden Inhaltstyp. Lernmaterial = Arbeitsblätter, Videos, OER; Bildungsgang = Studiengänge, Ausbildungen; Kurs = Seminare, Workshops, VHS-Kurse; Lehrplan = Rahmenpläne, Bildungsstandards; Veranstaltung = Konferenzen, Tagungen; Person = Autoren, Referenten; Organisation = Schulen, Hochschulen, Verlage; Tool/Dienst = Software, Apps, Plattformen; Beruf = Berufsbilder, Tätigkeitsfelder; Didaktische Planung = Unterrichtsentwürfe, Methoden; KI-Prompt = Prompt-Templates.",
-        "en": "Select the matching content type. Learning Material = worksheets, videos, OER; Education Program = degree programs, vocational training; Course = seminars, workshops; Curriculum = framework plans, standards; Event = conferences; Person = authors, speakers; Organization = schools, universities, publishers; Tool/Service = software, apps, platforms; Occupation = job profiles; Didactic Planning = lesson designs, methods; AI Prompt = prompt templates."
+        "de": "Wähle den passenden Inhaltstyp. Lernmaterial = Arbeitsblätter, Videos, OER; Bildungsangebot = Kurse, Seminare, Workshops, VHS-Kurse, Studiengänge, Weiterbildungen; Lehrplan = Rahmenpläne, Bildungsstandards; Veranstaltung = Konferenzen, Tagungen; Person = Autoren, Referenten; Organisation = Schulen, Hochschulen, Verlage; Tool/Dienst = Software, Apps, Plattformen; Beruf = Berufsbilder, Tätigkeitsfelder; Didaktische Planung = Unterrichtsentwürfe, Methoden; KI-Prompt = Prompt-Templates.",
+        "en": "Select the matching content type. Learning Material = worksheets, videos, OER; Educational Offering = courses, seminars, workshops, degree programs, continuing education; Curriculum = framework plans, standards; Event = conferences; Person = authors, speakers; Organization = schools, universities, publishers; Tool/Service = software, apps, platforms; Occupation = job profiles; Didactic Planning = lesson designs, methods; AI Prompt = prompt templates."
       },
       "system": {
         "path": "ccm:oeh_extendedType",
@@ -560,20 +560,11 @@
             },
             {
               "label": {
-                "de": "Bildungsgang",
-                "en": "Education Program"
+                "de": "Bildungsangebot",
+                "en": "Educational Offering"
               },
               "icon": "school",
-              "schema_file": "education_program.json",
-              "uri": "http://w3id.org/openeduhub/vocabs/contentTypes/education_offer"
-            },
-            {
-              "label": {
-                "de": "Kurs / Bildungsangebot",
-                "en": "Course / Educational Offering"
-              },
-              "icon": "class",
-              "schema_file": "course.json",
+              "schema_file": "education_offer.json",
               "uri": "http://w3id.org/openeduhub/vocabs/contentTypes/education_offer"
             },
             {
