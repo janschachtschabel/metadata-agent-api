@@ -1212,6 +1212,10 @@ IMPORTANT RULES:
         
         if language == "de":
             prompt = f"""Analysiere folgenden Text und bestimme den passenden Inhaltstyp.
+
+WICHTIG: Bewerte die DARGESTELLTE RESSOURCE auf der Seite, NICHT den Betreiber der Website.
+Beispiel: Eine Veranstaltungsseite auf weimar.de ist eine Veranstaltung, NICHT eine Organisation.
+Frage dich: Was wird dem Besucher auf dieser konkreten Seite präsentiert?
 {hint_block}
 Erlaubte Werte (wähle GENAU EINEN der folgenden schema_file-Werte):
 {options_block}
@@ -1223,6 +1227,10 @@ Erlaubte Werte (wähle GENAU EINEN der folgenden schema_file-Werte):
 Antworte mit JSON: {{"content_type": "<schema_file>"}}"""
         else:
             prompt = f"""Analyze the following text and determine the appropriate content type.
+
+IMPORTANT: Evaluate the RESOURCE PRESENTED on the page, NOT the website operator.
+Example: An event page on a city website is an Event, NOT an Organization.
+Ask yourself: What is being presented to the visitor on this specific page?
 {hint_block}
 Allowed values (choose EXACTLY ONE of the following schema_file values):
 {options_block}
