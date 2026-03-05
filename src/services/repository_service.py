@@ -165,14 +165,14 @@ class RepositoryService:
                 if start_workflow:
                     await self._start_workflow(client, base_url, node_id)
                 
-                # Extract key metadata for response
-                title = clean_metadata.get("cclom:title")
+                # Extract key metadata for response (with fallbacks for organization schema)
+                title = clean_metadata.get("cclom:title") or clean_metadata.get("schema:name")
                 if isinstance(title, list):
                     title = title[0] if title else None
-                description = clean_metadata.get("cclom:general_description")
+                description = clean_metadata.get("cclom:general_description") or clean_metadata.get("schema:description")
                 if isinstance(description, list):
                     description = description[0] if description else None
-                wwwurl = clean_metadata.get("ccm:wwwurl")
+                wwwurl = clean_metadata.get("ccm:wwwurl") or clean_metadata.get("schema:url")
                 if isinstance(wwwurl, list):
                     wwwurl = wwwurl[0] if wwwurl else None
                 
@@ -311,18 +311,25 @@ class RepositoryService:
         """Create node with minimal essential fields."""
         create_url = f"{base_url}/rest/node/v1/nodes/-home-/{inbox_id}/children?type=ccm:io&renameIfExists=true&versionComment=MAIN_FILE_UPLOAD"
         
-        # Only 5 essential fields for node creation
-        essential_fields = [
-            "cclom:title",
-            "cclom:general_description", 
-            "cclom:general_keyword",
-            "ccm:wwwurl",
-            "cclom:general_language"
+        # Essential fields for node creation, with fallbacks for different schemas
+        # (e.g. organization uses schema:name instead of cclom:title)
+        essential_fields_with_fallbacks = [
+            ("cclom:title", ["schema:name"]),
+            ("cclom:general_description", ["schema:description"]),
+            ("cclom:general_keyword", []),
+            ("ccm:wwwurl", ["schema:url"]),
+            ("cclom:general_language", []),
         ]
         
         clean_metadata = {"ccm:linktype": ["USER_GENERATED"]}
-        for field in essential_fields:
+        for field, fallbacks in essential_fields_with_fallbacks:
             value = metadata.get(field)
+            # Try fallbacks if primary field is empty
+            if value is None or value == "" or value == []:
+                for fb in fallbacks:
+                    value = metadata.get(fb)
+                    if value is not None and value != "" and value != []:
+                        break
             if value is not None and value != "" and value != []:
                 # Normalize to array
                 if isinstance(value, list):

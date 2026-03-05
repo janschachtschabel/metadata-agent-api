@@ -294,7 +294,7 @@ async def widget_info(request: Request):
                 "attributes": {
                     "api-url": "URL der Metadata Agent API",
                     "layout": "Layout-Variante: default, compact, minimal, detail",
-                    "context-name": "Schema-Kontext, z.B. 'default' oder 'redesign_26'",
+                    "context-name": "Schema-Kontext, z.B. 'default' oder 'mds_oeh'",
                     "show-input": "Eingabebereich anzeigen (true/false)",
                     "show-status-bar": "Statusleiste anzeigen (true/false)",
                     "show-controls": "Floating Controls anzeigen (true/false)",
@@ -1856,7 +1856,7 @@ async def upload_to_repository(request: Request):
         start_workflow = data.pop("start_workflow", True)
         source = data.pop("source", None)
         preview_url = data.pop("preview_url", None)
-        screenshot_method = data.pop("screenshot_method", "pageshot")
+        screenshot_method = data.pop("screenshot_method", "pageshot") or "pageshot"
         write_extended_data = data.pop("write_extended_data", True)
         extended_text = data.pop("extended_text", None)
         data = {

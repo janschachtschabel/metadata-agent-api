@@ -47,8 +47,12 @@ venv\Scripts\activate         # Windows
 # Dependencies
 pip install -r requirements.txt
 
+# Optional: Playwright für lokale Screenshots (screenshot_method=playwright)
+playwright install chromium
+
 # API-Key konfigurieren
-echo "B_API_KEY=dein-key-hier" > .env
+cp .env.template .env
+# B_API_KEY eintragen
 
 # Starten
 uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
@@ -56,11 +60,19 @@ uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
 
 ### Mit Docker
 
+Das Docker-Image enthält **Playwright + Chromium** für datenschutzfreundliche Screenshots (`screenshot_method=playwright`). Auf Vercel steht nur die externe `pageshot`-Methode zur Verfügung.
+
 ```bash
+# .env-Datei anlegen (siehe .env.template)
+cp .env.template .env
+# B_API_KEY eintragen, optional: WLO_GUEST_USERNAME/PASSWORD für /upload
+
+# Mit docker-compose (empfohlen)
 docker-compose up -d
-# oder manuell:
+
+# Oder manuell:
 docker build -t metadata-agent-api .
-docker run -d -p 8000:8000 -e B_API_KEY=dein-key metadata-agent-api
+docker run -d -p 8000:8000 --env-file .env metadata-agent-api
 ```
 
 ### Testen
@@ -101,6 +113,7 @@ Request → Input Source → LLM Extraction → Normalization → Response
 | `output_normalizer.py` | Strukturanpassung für Canvas-Webkomponente |
 | `geocoding_service.py` | Adressen → Koordinaten via Photon/Komoot API |
 | `repository_service.py` | Upload ins WLO edu-sharing Repository (Aspects, VCARD, Geo) |
+| `screenshot_service.py` | Screenshot-Erfassung via PageShot API oder Playwright (Chromium) |
 | `schema_loader.py` | Schema-Laden, Caching, Versions-Auflösung |
 
 ---
@@ -224,8 +237,7 @@ Die Metadaten-Felder liegen **direkt auf Top-Level** (nicht in einem `metadata`-
 | Kontext | Beschreibung | Schemas |
 |---------|--------------|--------|
 | `default` | WLO/OEH Standard | 11 Schemas (+ 3 deaktiviert) |
-| `redesign_26` | Redesign 2026 | 11 Schemas (angepasste Felder/Gruppen) |
-| `mds_oeh` | OEH Metadatenset (kompakt) | 5 Schemas (core, event, education_offer, organization, person) |
+| `mds_oeh` | OEH Metadatenset | 11 Schemas (+ 3 deaktiviert) |
 
 > **Deaktivierte Schemas:** `education_program.json`, `course.json`, `curriculum.json` — vorhanden aber nicht in der automatischen Erkennung.
 
@@ -683,16 +695,10 @@ Listet alle verfügbaren Schema-Kontexte mit Versionen.
       "default_version": "1.8.1"
     },
     {
-      "name": "redesign_26",
-      "display_name": "Redesign 2026",
-      "versions": ["1.8.0"],
-      "default_version": "1.8.0"
-    },
-    {
       "name": "mds_oeh",
       "display_name": "OEH Metadatenset",
-      "versions": ["1.8.0"],
-      "default_version": "1.8.0"
+      "versions": ["1.8.1", "1.8.0"],
+      "default_version": "1.8.1"
     }
   ],
   "default_context": "default"
@@ -931,7 +937,7 @@ Prefix `METADATA_AGENT_` wird automatisch vorangestellt (außer API-Keys).
 | Variable | Default | Beschreibung |
 |----------|---------|--------------|
 | `METADATA_AGENT_DEFAULT_CONTEXT` | `default` | Standard-Kontext |
-| `METADATA_AGENT_DEFAULT_VERSION` | `1.8.1` | Standard-Version |
+| `METADATA_AGENT_DEFAULT_VERSION` | `latest` | Standard-Version (`latest` = automatische Erkennung, oder z.B. `1.8.0`) |
 
 ### Repository & Crawler
 
@@ -1014,11 +1020,11 @@ Jedes Layout ist eine eigenständige Angular-Komponente mit eigener Darstellung.
 | `plugin` | Kompakte Sidebar für Browser-Extension — Eingabe, Fortschrittsbalken |
 | `dialog` | Review-Dialog für Modals — kein Eingabebereich, schwebende Speichern/Abbrechen-Buttons |
 | `detail` | Mehrspaltige (1–4) Nur-Lese-Vorschau — Standard: readonly |
-| `clean` | Minimale rahmenlose Ansicht für Einbettung/Review (ehem. `metadatenpruefdialog`) |
+| `clean` | Minimale rahmenlose Ansicht für Einbettung/Review — editierbar, kompakt, borderless |
 | `prueftisch` | 1-spaltige Prüftabelle mit gruppierten Karten |
-| `prueftisch-org` | Organisatorischer Prüftisch, readonly (ehem. `prueftisch-gross`) |
+| `prueftisch-org` | Organisatorischer Prüftisch — borderless, readonly, graue Gruppen-Header |
 
-> **Aliase:** `metadatenpruefdialog` → `clean`, `prueftisch-gross` → `prueftisch` (mit `columns=2`)
+> **Aliase:** `metadatenpruefdialog` → `clean`, `prueftisch-gross` → `prueftisch` (mit `columns=2`), `prueftisch-org-large` → `prueftisch-org` (mit `columns=2`)
 
 > **Hinweis:** `readonly` ist kein Layout, sondern ein universelles Attribut, kombinierbar mit jedem Layout via `readonly="true"`.
 
@@ -1032,10 +1038,9 @@ Alle Attribute können auch per JavaScript gesetzt werden: `canvas.layout = 'det
 |----------|-------|-------------|
 | `api-url` | URL | URL der Metadata Agent API **(Pflicht)** |
 | `layout` | siehe oben | Layout-Variante |
-| `context-name` | `default`, `redesign_26` | Schema-Kontext |
+| `context-name` | `default`, `mds_oeh` | Schema-Kontext |
 | `schema-version` | `1.8.1`, `latest` | Schema-Version |
-| `language` | `de`, `en` | Sprache (i18n) |
-| `columns` | `1`–`4` | Spaltenanzahl (nur detail-Layout) |
+| `columns` | `1`–`4` | Spaltenanzahl (Standard: 1, detail-Layout: 4) |
 | `background-color` | CSS-Farbe | Hintergrundfarbe, z.B. `#f5f5f5` |
 | `input-mode` | `text`, `url`, `nodeId` | Eingabemodus |
 
@@ -1048,11 +1053,17 @@ Alle Attribute können auch per JavaScript gesetzt werden: `canvas.layout = 'det
 | `show-core-fields` | Kernfelder (Titel, Beschreibung, Keywords) |
 | `show-special-fields` | Spezialfelder (Fach, Bildungsstufe etc.) |
 | `show-footer` | Fußzeile |
-| `show-floating-controls` | Floating Controls (Content-Type-Selector) |
-| `show-field-actions` | Feld-Aktionsbuttons (Bearbeiten, KI-Generieren) |
+| `show-floating-controls` | Floating Controls (Content-Type-Selector, Buttons) |
+| `show-field-actions` | Feld-Aktionsbuttons (Status, Info, Geo, Copy) |
 | `show-upload-button` | Upload-Button in Floating Controls |
-| `show-page-mode` | Seitenmodus-Umschalter (Plugin: „Webseite laden") |
+| `show-save-button` | Save/Download-Button in Floating Controls |
+| `show-json-loader` | JSON-Import-Button in Floating Controls |
+| `show-language-switcher` | Sprachumschalter (de/en) in Floating Controls |
+| `show-reset-button` | Reset-Button (Eingabe + Floating Controls) |
+| `show-content-type` | Content-Type-Button in Floating Controls |
+| `show-page-mode` | Seitenmodus-Umschalter (Plugin: „Webseite laden“) |
 | `show-content-type-only` | Nur Content-Type-Selector in Controls |
+| `show-preview` | Vorschaubild anzeigen (Standard: `true`) |
 | `controls` | Alias für `show-floating-controls` (OEH-Kompatibilität) |
 
 #### Verhalten
@@ -1065,7 +1076,7 @@ Alle Attribute können auch per JavaScript gesetzt werden: `canvas.layout = 'det
 | `highlight-ai` | KI-generierte Felder farblich hervorheben (Standard: `true`) |
 | `flat-groups` | Feldgruppen pro Schema zusammenfassen (Standard: `false`) |
 | `auto-extract` | Automatisch extrahieren nach Laden |
-| `show-preview` | Vorschaubild anzeigen (Standard: `true`) |
+| `force-reset` | Programmatischer Reset ohne Bestätigungsdialog |
 | `enable-screenshot` | Screenshot bei URL-Extraktion (Standard: `true`) |
 | `screenshot-method` | Screenshot-Methode: `pageshot` (Standard) oder `playwright` |
 
@@ -1075,9 +1086,9 @@ Alle Attribute können auch per JavaScript gesetzt werden: `canvas.layout = 'det
 |----------|-------------|
 | `text` | Text direkt als Eingabe |
 | `url` | URL als Eingabe (löst URL-Modus aus) |
-| `node-id` | edu-sharing Node-ID für automatische Extraktion |
 | `metadata-input` | JSON-Objekt mit vorausgefüllten Metadaten (per JavaScript) |
 | `content-type` | Inhaltstyp setzen (Schema-Dateiname, z.B. `event.json`) |
+| `preview-image` | Vorschaubild als Base64 Data-URL oder URL (per JavaScript) |
 
 ### Events
 
@@ -1133,17 +1144,53 @@ Unter `/widget/examples/` sind interaktive Beispiele verfügbar:
 
 ### Docker (empfohlen)
 
+Das Docker-Image enthält **Playwright + Chromium** für datenschutzfreundliche Screenshots (`screenshot_method=playwright`).
+
 ```bash
-# Mit docker-compose
+# 1. .env-Datei erstellen
+cp .env.template .env
+# Mindestens B_API_KEY eintragen
+
+# 2. Starten
 docker-compose up -d
 
-# Manuell
+# Oder manuell:
 docker build -t metadata-agent-api .
-docker run -d -p 8000:8000 \
-  -e B_API_KEY=dein-key \
-  -e METADATA_AGENT_LLM_PROVIDER=b-api-openai \
-  metadata-agent-api
+docker run -d -p 8000:8000 --env-file .env metadata-agent-api
 ```
+
+#### Erforderliche Umgebungsvariablen (Docker)
+
+| Variable | Erforderlich | Beschreibung |
+|----------|:---:|-------------|
+| `B_API_KEY` | ✅ | B-API Key für LLM-Zugriff (oder `OPENAI_API_KEY`) |
+| `METADATA_AGENT_LLM_PROVIDER` | — | `b-api-openai` (Standard), `b-api-academiccloud`, `openai` |
+| `WLO_GUEST_USERNAME` | für `/upload` | WLO Repository Upload-Benutzername |
+| `WLO_GUEST_PASSWORD` | für `/upload` | WLO Repository Upload-Passwort |
+
+> Alle weiteren Variablen siehe [Umgebungsvariablen](#umgebungsvariablen) und `.env.template`.
+
+#### Docker vs. Vercel
+
+| Feature | Docker | Vercel |
+|---------|--------|--------|
+| Screenshot `pageshot` | ✅ Extern (PageShot API) | ✅ Extern (PageShot API) |
+| Screenshot `playwright` | ✅ Intern (Chromium im Container) | ❌ Nicht verfügbar |
+| `/upload` Endpoint | ✅ Mit `WLO_GUEST_*` Env-Vars | ✅ Mit Vercel Env-Vars |
+| Widget/Webkomponente | ✅ Unter `/widget/dist/` | ✅ Unter `/widget/dist/` |
+| Health Check | ✅ Integriert (`/health`) | — |
+
+### Vercel
+
+Das Projekt ist für Vercel vorkonfiguriert (`vercel.json`). Playwright ist auf Vercel **nicht** verfügbar — nur `pageshot` funktioniert.
+
+```bash
+# Vercel CLI
+npm i -g vercel
+vercel --prod
+```
+
+> **Hinweis:** Widget-Dateien müssen in `src/static/widget/dist/` committet sein (siehe `scripts/deploy-widget.ps1`).
 
 ### Railway
 
@@ -1190,6 +1237,16 @@ spec:
             secretKeyRef:
               name: api-secrets
               key: b-api-key
+        - name: WLO_GUEST_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: api-secrets
+              key: wlo-guest-username
+        - name: WLO_GUEST_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: api-secrets
+              key: wlo-guest-password
         livenessProbe:
           httpGet:
             path: /health

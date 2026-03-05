@@ -560,6 +560,15 @@ class UploadRequest(BaseModel):
         default=ScreenshotMethod.PAGESHOT,
         description="Screenshot method: 'pageshot' (default) or 'playwright' (privacy-safe)"
     )
+    
+    @field_validator('screenshot_method', mode='before')
+    @classmethod
+    def sanitize_screenshot_method(cls, v: Any) -> str:
+        """Convert empty string to default 'pageshot'."""
+        if not v or (isinstance(v, str) and not v.strip()):
+            return "pageshot"
+        return v
+    
     # Extended Data options
     write_extended_data: bool = Field(
         default=True,
