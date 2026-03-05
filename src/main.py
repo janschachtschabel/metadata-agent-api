@@ -614,12 +614,17 @@ async def detect_content_type(req: DetectContentTypeRequest):
             if req.input_source == InputSource.URL:
                 if not req.source_url:
                     raise HTTPException(status_code=400, detail="source_url required for input_source='url'")
-                text = await input_service.fetch_from_url(req.source_url, req.extraction_method.value, lang=req.language, output_format=req.output_format.value)
+                extracted_text = await input_service.fetch_from_url(req.source_url, req.extraction_method.value, lang=req.language, output_format=req.output_format.value)
+                # Prepend source URL so LLM can use URL path signals for classification
+                text = f"Quell-URL / Source URL: {req.source_url}\n\n{extracted_text}"
             elif req.input_source == InputSource.NODE_ID:
                 if not req.node_id:
                     raise HTTPException(status_code=400, detail="node_id required for input_source='node_id'")
                 input_data = await input_service.fetch_from_node_id(req.node_id, req.repository.value)
-                text = input_data.text
+                if input_data.source_url:
+                    text = f"Quell-URL / Source URL: {input_data.source_url}\n\n{input_data.text}"
+                else:
+                    text = input_data.text
             elif req.input_source == InputSource.NODE_URL:
                 if not req.node_id:
                     raise HTTPException(status_code=400, detail="node_id required for input_source='node_url'")
@@ -627,7 +632,11 @@ async def detect_content_type(req: DetectContentTypeRequest):
                     req.node_id, req.repository.value, req.source_url or None, req.extraction_method.value,
                     lang=req.language, output_format=req.output_format.value
                 )
-                text = input_data.text
+                source_url_info = input_data.source_url or req.source_url
+                if source_url_info:
+                    text = f"Quell-URL / Source URL: {source_url_info}\n\n{input_data.text}"
+                else:
+                    text = input_data.text
         except HTTPException:
             raise
         except Exception as e:
