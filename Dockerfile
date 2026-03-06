@@ -51,14 +51,19 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
 COPY --from=builder /usr/local/bin /usr/local/bin
 
-# Install Playwright Chromium browser
-RUN playwright install chromium
+# Install Playwright Chromium browser into shared location
+# (must be accessible by non-root appuser at runtime)
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/playwright-browsers
+RUN mkdir -p $PLAYWRIGHT_BROWSERS_PATH \
+    && playwright install chromium
 
 # Copy application code (includes src/static/widget/ if present)
 COPY src/ ./src/
 
-# Create non-root user
-RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+# Create non-root user and grant access to Playwright browsers
+RUN useradd -m -u 1000 appuser \
+    && chown -R appuser:appuser /app \
+    && chmod -R o+rx $PLAYWRIGHT_BROWSERS_PATH
 USER appuser
 
 # Environment variables
