@@ -1005,21 +1005,27 @@ Die API liefert eine einbettbare Angular-Webkomponente (`<metadata-agent-canvas>
 <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500&display=swap" rel="stylesheet">
 <link href="https://fonts.googleapis.com/icon?family=Material+Icons|Material+Icons+Outlined" rel="stylesheet">
 
-<!-- Widget -->
+<!-- Widget-Styles -->
 <link rel="stylesheet" href="https://DEINE-API-URL/widget/dist/styles.css">
+
+<!-- API-URL setzen BEVOR Angular bootet (verhindert i18n/Schema 404-Fehler auf localhost) -->
+<script>window.__ENV = { agentUrl: 'https://DEINE-API-URL' };</script>
+
+<!-- Widget-Scripts (Reihenfolge wichtig) -->
 <script src="https://DEINE-API-URL/widget/dist/runtime.js" defer></script>
 <script src="https://DEINE-API-URL/widget/dist/polyfills.js" defer></script>
 <script src="https://DEINE-API-URL/widget/dist/main.js" defer></script>
 
 <!-- Nutzung -->
 <metadata-agent-canvas
-  api-url="https://DEINE-API-URL"
   layout="default"
   show-input-area="true"
   show-status-bar="true"
   show-floating-controls="true">
 </metadata-agent-canvas>
 ```
+
+> **Wichtig:** Die API-URL wird über `window.__ENV.agentUrl` gesetzt — **nicht** über das `api-url` HTML-Attribut. So kennt der i18n-Loader die richtige URL bereits beim Boot, bevor Angular initialisiert. Das verhindert 404-Fehler auf localhost und externen Domains.
 
 ### Layouts
 
@@ -1047,7 +1053,7 @@ Alle Attribute können auch per JavaScript gesetzt werden: `canvas.layout = 'det
 
 | Attribut | Werte | Beschreibung |
 |----------|-------|-------------|
-| `api-url` | URL | URL der Metadata Agent API **(Pflicht)** |
+| `api-url` | URL | URL der Metadata Agent API (alternativ: `window.__ENV.agentUrl` vor dem Boot setzen) |
 | `layout` | siehe oben | Layout-Variante |
 | `context-name` | `default`, `mds_oeh` | Schema-Kontext |
 | `schema-version` | `1.8.1`, `latest` | Schema-Version |
@@ -1061,13 +1067,16 @@ Alle Attribute können auch per JavaScript gesetzt werden: `canvas.layout = 'det
 Mehrere `<metadata-agent-canvas>` Elemente auf einer Seite können isoliert oder synchron arbeiten:
 
 ```html
+<!-- API-URL einmalig setzen -->
+<script>window.__ENV = { agentUrl: 'https://DEINE-API-URL' };</script>
+
 <!-- Isoliert: verschiedene IDs → eigener State + eigene Events -->
-<metadata-agent-canvas api-url="..." instance-id="editor-a" layout="default"></metadata-agent-canvas>
-<metadata-agent-canvas api-url="..." instance-id="editor-b" layout="plugin"></metadata-agent-canvas>
+<metadata-agent-canvas instance-id="editor-a" layout="default"></metadata-agent-canvas>
+<metadata-agent-canvas instance-id="editor-b" layout="plugin"></metadata-agent-canvas>
 
 <!-- Synchron: gleiche ID → geteilter State, Events feuern nur 1× -->
-<metadata-agent-canvas api-url="..." instance-id="shared" layout="default"></metadata-agent-canvas>
-<metadata-agent-canvas api-url="..." instance-id="shared" layout="plugin"></metadata-agent-canvas>
+<metadata-agent-canvas instance-id="shared" layout="default"></metadata-agent-canvas>
+<metadata-agent-canvas instance-id="shared" layout="plugin"></metadata-agent-canvas>
 ```
 
 Runtime-Wechsel per JavaScript: `element.instanceId = 'new-id';`
@@ -1210,9 +1219,9 @@ Wenn die Webkomponente auf einer **HTTPS-Seite** eingebettet wird (CMS, LMS, Por
 
 | Szenario | Ergebnis |
 |---|---|
-| HTTPS-Seite → `api-url="https://api.example.com"` | ✅ Funktioniert |
-| HTTPS-Seite → `api-url="http://192.168.1.100:8000"` | ❌ Blockiert (Mixed Content) |
-| HTTPS-Seite → `api-url="http://localhost:8000"` | ✅ Ausnahme (nur lokal) |
+| HTTPS-Seite → `agentUrl: 'https://api.example.com'` | ✅ Funktioniert |
+| HTTPS-Seite → `agentUrl: 'http://192.168.1.100:8000'` | ❌ Blockiert (Mixed Content) |
+| HTTPS-Seite → `agentUrl: 'http://localhost:8000'` | ✅ Ausnahme (nur lokal) |
 
 **Empfehlung:** Einen Reverse-Proxy (nginx, Caddy, Traefik) mit HTTPS/TLS vor den Docker-Container stellen. Caddy generiert automatisch Let's Encrypt-Zertifikate — allerdings nur für **Domainnamen**, nicht für bare IPs.
 
