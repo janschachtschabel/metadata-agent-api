@@ -1,0 +1,119 @@
+stages:
+  - .pre
+  - build
+  - test
+  - deploy
+
+default:
+  image: python:3.13-slim
+  #  see: https://hub.docker.com/_/python
+
+variables:
+  UV_VERSION: 0.5
+  PYTHON_VERSION: 3.13
+  BASE_LAYER: bookworm-slim
+  # GitLab CI creates a separate mountpoint for the build directory,
+  # so we need to copy instead of using hard links.
+  UV_LINK_MODE: copy
+
+# see: https://docs.astral.sh/uv/guides/integration/gitlab/#using-uv-in-gitlab-cicd
+
+uv-install:
+  image: ghcr.io/astral-sh/uv:$UV_VERSION-python$PYTHON_VERSION-$BASE_LAYER
+  stage: .pre
+  variables:
+    UV_CACHE_DIR: .uv-cache
+  cache:
+    - key:
+        files:
+          - uv.lock
+      paths:
+        - $UV_CACHE_DIR
+  script:
+    - uv venv  # create .venv
+    - uv sync  # install dependencies from uv.lock / pyproject.toml
+    - uv cache prune --ci
+
+.base_ruff:
+  stage: build
+  interruptible: true
+  image:
+    name: ghcr.io/astral-sh/ruff:0.9.5-alpine
+  before_script:
+    - cd $CI_PROJECT_DIR
+    - ruff --version
+
+Ruff Check:
+  extends: .base_ruff
+  script:
+    - ruff check --output-format=gitlab > code-quality-report.json
+  artifacts:
+    reports:
+      codequality: $CI_PROJECT_DIR/code-quality-report.json
+
+Ruff Format:
+  extends: .base_ruff
+  script:
+    - ruff format --diff
+
+run tests:
+  stage: test
+  image: python:$VERSION
+  before_script:
+    - python3 --version
+  script:
+    - echo "This is a reminder to implement tests with pytest!"
+  parallel:
+    matrix:
+      - VERSION: [ "3.13" ]
+
+build and push docker image from main and develop branches:
+  stage: deploy
+  image: $DIND_IMAGE
+  #  see: https://hub.docker.com/_/docker
+  variables:
+    DOCKER_HOST: "$DIND_HOST"
+    DOCKER_DRIVER: "$DIND_DRIVER"
+    DOCKER_TLS_CERTDIR: "$DIND_TLS_CERTDIR"
+  services:
+    - name: "$DIND_IMAGE"
+      alias: docker
+      entrypoint: [ "env", "-u", "DOCKER_HOST" ]
+      command: [ "dockerd-entrypoint.sh" ]
+  before_script:
+    - docker --version
+  script:
+    # login to (self-hosted) docker registry
+    - docker login $DOCKER_REGISTRY -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+    # build docker image
+    - docker buildx build --tag $DOCKER_REGISTRY/projects/wlo/meta-services/metadata-agent-api:$CI_COMMIT_REF_SLUG .
+    # push docker image to (self-hosted) docker registry
+    - docker image push $DOCKER_REGISTRY/projects/wlo/meta-services/metadata-agent-api:$CI_COMMIT_REF_SLUG
+  rules:
+    - if: "$CI_COMMIT_BRANCH == 'main'"
+    - if: "$CI_COMMIT_BRANCH == 'develop'"
+
+build and push docker image on tag creation:
+  stage: deploy
+  image: $DIND_IMAGE
+  #  see: https://hub.docker.com/_/docker
+  variables:
+    DOCKER_HOST: "$DIND_HOST"
+    DOCKER_DRIVER: "$DIND_DRIVER"
+    DOCKER_TLS_CERTDIR: "$DIND_TLS_CERTDIR"
+  services:
+    - name: "$DIND_IMAGE"
+      alias: docker
+      entrypoint: [ "env", "-u", "DOCKER_HOST" ]
+      command: [ "dockerd-entrypoint.sh" ]
+  before_script:
+    - docker --version
+  script:
+    # login to (self-hosted) docker registry
+    - docker login $DOCKER_REGISTRY -u $DOCKER_USERNAME -p $DOCKER_PASSWORD
+    # build docker image
+    - docker buildx build --tag $DOCKER_REGISTRY/projects/wlo/meta-services/metadata-agent-api:$CI_COMMIT_REF_NAME .
+    # push docker image to (self-hosted) docker registry
+    - docker image push $DOCKER_REGISTRY/projects/wlo/meta-services/metadata-agent-api:$CI_COMMIT_REF_NAME
+  rules:
+    - if: "$CI_COMMIT_TAG"
