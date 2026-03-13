@@ -229,11 +229,6 @@ app.add_middleware(GZipMiddleware, minimum_size=500)
 _widget_dir = Path(__file__).parent / "static" / "widget"
 if _widget_dir.exists():
     app.mount(
-        "/widget/assets",
-        StaticFiles(directory=str(_widget_dir / "assets")),
-        name="widget-assets",
-    ) if (_widget_dir / "assets").exists() else None
-    app.mount(
         "/widget/examples",
         StaticFiles(directory=str(_widget_dir / "examples"), html=True),
         name="widget-examples",
