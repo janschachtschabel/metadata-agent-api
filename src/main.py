@@ -122,9 +122,13 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     llm_config = settings.get_llm_config()
     print(f"Starting {settings.app_name} v{settings.app_version}")
+    print(f"Environment: {settings.environment}")
     print(f"LLM Provider: {settings.llm_provider}")
     print(f"LLM Model: {llm_config['model']}")
     print(f"LLM API Base: {llm_config['api_base']}")
+    print(f"B-API Base URL: {settings.b_api_base_url}")
+    print(f"Text Extraction URL: {settings.text_extraction_api_url}")
+    print(f"Repository Default: {settings.repository_default}")
     print(f"Default Workers: {settings.default_max_workers}")
 
     yield

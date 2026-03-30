@@ -13,22 +13,33 @@ logger = logging.getLogger(__name__)
 
 
 def _get_repository_configs() -> dict:
-    """Build repository configs using settings for inbox IDs."""
+    """Build repository configs using settings for inbox IDs and base URLs."""
     from ..config import get_settings
 
     settings = get_settings()
+
+    # Derive upload base URLs from settings (strip '/rest' suffix if present,
+    # because the upload endpoints append '/rest/...' themselves)
+    staging_base = settings.repository_staging_url.rstrip("/")
+    if staging_base.endswith("/rest"):
+        staging_base = staging_base[: -len("/rest")]
+
+    prod_base = settings.repository_prod_url.rstrip("/")
+    if prod_base.endswith("/rest"):
+        prod_base = prod_base[: -len("/rest")]
+
     return {
         "staging": {
-            "base_url": "https://repository.staging.openeduhub.net/edu-sharing",
+            "base_url": staging_base,
             "inbox_id": settings.wlo_inbox_id_staging,
         },
         "prod": {
-            "base_url": "https://redaktion.openeduhub.net/edu-sharing",
+            "base_url": prod_base,
             "inbox_id": settings.wlo_inbox_id_prod,
         },
         # Alias for backwards compatibility
         "production": {
-            "base_url": "https://redaktion.openeduhub.net/edu-sharing",
+            "base_url": prod_base,
             "inbox_id": settings.wlo_inbox_id_prod,
         },
     }

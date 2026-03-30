@@ -150,6 +150,10 @@ Minimale Konfiguration — nur B-API Key eintragen:
 B_API_KEY=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 METADATA_AGENT_LLM_PROVIDER=b-api-openai
 
+# Umgebung: 'staging' (Default) oder 'prod'
+# Steuert alle Service-URLs (B-API, Text-Extraction, Repository)
+# METADATA_AGENT_ENVIRONMENT=staging
+
 # Optional: Repository-Upload
 # WLO_GUEST_USERNAME=upload-user
 # WLO_GUEST_PASSWORD=upload-password
@@ -295,6 +299,10 @@ services:
     ports:
       - "8000:8000"
     environment:
+      # Umgebung: 'staging' (Default) oder 'prod'
+      # Steuert alle Service-URLs (B-API, Text-Extraction, Repository)
+      - METADATA_AGENT_ENVIRONMENT=${METADATA_AGENT_ENVIRONMENT:-staging}
+
       # LLM Provider
       - METADATA_AGENT_LLM_PROVIDER=b-api-openai
       - B_API_KEY=${B_API_KEY:-}
@@ -604,16 +612,54 @@ Alle Variablen können in `.env`, als System-Umgebungsvariablen oder als Docker-
 | `METADATA_AGENT_LLM_MAX_RETRIES` | `3` | Wiederholungsversuche bei Fehler |
 | `METADATA_AGENT_LLM_RETRY_DELAY` | `1.0` | Wartezeit zwischen Retries (Sek.) |
 
+### Umgebung (Environment) — Zentraler Schalter
+
+Die API nutzt mehrere externe Dienste (B-API, Text-Extraction, Repository), die je nach Umgebung unterschiedliche URLs haben. Über **eine einzige Variable** wird gesteuert, gegen welche Instanz alle Dienste arbeiten:
+
+| Variable | Default | Optionen | Beschreibung |
+|---|---|---|---|
+| `METADATA_AGENT_ENVIRONMENT` | `staging` | `staging`, `prod` | Wählt das Umgebungsprofil. Setzt automatisch alle Service-URLs. |
+
+**Automatisch gesetzte URLs je nach Profil:**
+
+| Dienst | Staging | Prod |
+|---|---|---|
+| **B-API** (LLM) | `https://b-api.staging.openeduhub.net` | `https://b-api.prod.openeduhub.net` |
+| **Text-Extraction** | `https://text-extraction.staging.openeduhub.net` | `https://text-extraction.prod.openeduhub.net` |
+| **Repository** | `https://repository.staging.openeduhub.net/edu-sharing/rest` | `https://redaktion.openeduhub.net/edu-sharing/rest` |
+
+**Beispiel — Umschalten auf Produktion:**
+
+```env
+# Eine Variable reicht — alle Service-URLs werden automatisch auf Prod gesetzt
+METADATA_AGENT_ENVIRONMENT=prod
+```
+
+**Docker:**
+
+```bash
+docker run -d \
+  --name metadata-agent-api \
+  -p 8000:8000 \
+  -e B_API_KEY=your-api-key \
+  -e METADATA_AGENT_ENVIRONMENT=prod \
+  metadata-agent-api
+```
+
+> **Hinweis:** Einzelne URLs können weiterhin per eigener Umgebungsvariable überschrieben werden (z.B. `METADATA_AGENT_B_API_BASE_URL`). Diese haben Vorrang vor dem Profil.
+>
+> **Per-Request-Override:** Die Endpoints `/generate` und `/upload` akzeptieren weiterhin den Parameter `repository` (`staging` / `prod`), der die Standard-Umgebung für diesen einzelnen Aufruf überschreibt.
+
 ### Provider-spezifische Einstellungen
 
-| Variable | Default |
-|---|---|
-| `METADATA_AGENT_B_API_OPENAI_BASE` | `https://b-api.staging.openeduhub.net/api/v1/llm/openai` |
-| `METADATA_AGENT_B_API_OPENAI_MODEL` | `gpt-4.1-mini` |
-| `METADATA_AGENT_B_API_ACADEMICCLOUD_BASE` | `https://b-api.staging.openeduhub.net/api/v1/llm/academiccloud` |
-| `METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL` | `deepseek-r1` |
-| `METADATA_AGENT_OPENAI_API_BASE` | `https://api.openai.com/v1` |
-| `METADATA_AGENT_OPENAI_MODEL` | `gpt-4o-mini` |
+| Variable | Default | Beschreibung |
+|---|---|---|
+| `METADATA_AGENT_B_API_OPENAI_BASE` | *(abgeleitet aus `B_API_BASE_URL`)* | Überschreibt den abgeleiteten OpenAI-Endpoint |
+| `METADATA_AGENT_B_API_OPENAI_MODEL` | `gpt-4.1-mini` | Modell für B-API OpenAI |
+| `METADATA_AGENT_B_API_ACADEMICCLOUD_BASE` | *(abgeleitet aus `B_API_BASE_URL`)* | Überschreibt den abgeleiteten AcademicCloud-Endpoint |
+| `METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL` | `deepseek-r1` | Modell für B-API AcademicCloud |
+| `METADATA_AGENT_OPENAI_API_BASE` | `https://api.openai.com/v1` | Natives OpenAI API |
+| `METADATA_AGENT_OPENAI_MODEL` | `gpt-4o-mini` | Modell für natives OpenAI |
 
 ### Worker & Performance
 
@@ -629,14 +675,21 @@ Alle Variablen können in `.env`, als System-Umgebungsvariablen oder als Docker-
 | `METADATA_AGENT_DEFAULT_CONTEXT` | `default` | Standard-Kontext (`default`, `mds_oeh`) |
 | `METADATA_AGENT_DEFAULT_VERSION` | `1.8.1` | Standard-Version (`latest` oder z.B. `1.8.1`) |
 
-### Repository & Crawler
+### Repository (Metadaten-Abruf & Upload)
+
+Diese URLs werden sowohl für den **NodeID-Metadaten-Abruf** (`/generate` mit `node_id`) als auch für den **Upload** (`/upload`) verwendet. Alle Werte werden automatisch aus `METADATA_AGENT_ENVIRONMENT` befüllt und können einzeln überschrieben werden.
 
 | Variable | Default | Beschreibung |
 |---|---|---|
-| `METADATA_AGENT_REPOSITORY_PROD_URL` | `https://redaktion.openeduhub.net/edu-sharing/rest` | Prod-Repository |
-| `METADATA_AGENT_REPOSITORY_STAGING_URL` | `https://repository.staging.openeduhub.net/edu-sharing/rest` | Staging-Repository |
-| `METADATA_AGENT_REPOSITORY_DEFAULT` | `staging` | Standard-Repository: `staging` oder `prod` |
-| `METADATA_AGENT_TEXT_EXTRACTION_API_URL` | `https://text-extraction.staging.openeduhub.net` | Text-Extraction API |
+| `METADATA_AGENT_REPOSITORY_STAGING_URL` | *(aus Profil)* | Staging-Repository URL (Metadaten-Abruf & Upload) |
+| `METADATA_AGENT_REPOSITORY_PROD_URL` | *(aus Profil)* | Prod-Repository URL (Metadaten-Abruf & Upload) |
+| `METADATA_AGENT_REPOSITORY_DEFAULT` | *(= `ENVIRONMENT`)* | Standard-Repository für Endpoints: `staging` oder `prod` |
+
+### Crawler & Text-Extraction
+
+| Variable | Default | Beschreibung |
+|---|---|---|
+| `METADATA_AGENT_TEXT_EXTRACTION_API_URL` | *(aus Profil)* | Text-Extraction API (siehe [Umgebung](#umgebung-environment--zentraler-schalter)) |
 | `METADATA_AGENT_TEXT_EXTRACTION_DEFAULT_METHOD` | `simple` | `simple` oder `browser` |
 
 ### Screenshot
@@ -734,6 +787,8 @@ spec:
                 secretKeyRef:
                   name: metadata-agent-secrets
                   key: wlo-password
+            - name: METADATA_AGENT_ENVIRONMENT
+              value: "prod"
             - name: METADATA_AGENT_LLM_PROVIDER
               value: "b-api-openai"
             - name: METADATA_AGENT_DEFAULT_MAX_WORKERS
