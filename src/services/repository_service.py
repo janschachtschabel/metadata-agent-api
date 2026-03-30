@@ -12,36 +12,21 @@ from ..utils.schema_loader import get_repo_fields, get_content_type_uri
 logger = logging.getLogger(__name__)
 
 
-def _get_repository_configs() -> dict:
-    """Build repository configs using settings for inbox IDs and base URLs."""
+def _get_repository_config() -> dict:
+    """Build repository config from settings (single configured URL)."""
     from ..config import get_settings
 
     settings = get_settings()
 
-    # Derive upload base URLs from settings (strip '/rest' suffix if present,
+    # Derive upload base URL from settings (strip '/rest' suffix if present,
     # because the upload endpoints append '/rest/...' themselves)
-    staging_base = settings.repository_staging_url.rstrip("/")
-    if staging_base.endswith("/rest"):
-        staging_base = staging_base[: -len("/rest")]
-
-    prod_base = settings.repository_prod_url.rstrip("/")
-    if prod_base.endswith("/rest"):
-        prod_base = prod_base[: -len("/rest")]
+    base = settings.repository_url.rstrip("/")
+    if base.endswith("/rest"):
+        base = base[: -len("/rest")]
 
     return {
-        "staging": {
-            "base_url": staging_base,
-            "inbox_id": settings.wlo_inbox_id_staging,
-        },
-        "prod": {
-            "base_url": prod_base,
-            "inbox_id": settings.wlo_inbox_id_prod,
-        },
-        # Alias for backwards compatibility
-        "production": {
-            "base_url": prod_base,
-            "inbox_id": settings.wlo_inbox_id_prod,
-        },
+        "base_url": base,
+        "inbox_id": settings.wlo_inbox_id,
     }
 
 
@@ -103,7 +88,7 @@ class RepositoryService:
 
         Args:
             metadata: Metadata dict from /generate endpoint
-            repository: "staging" or "production"
+            repository: Ignored (kept for backward compatibility)
             check_duplicates: Check for duplicates by ccm:wwwurl
             start_workflow: Start review workflow after upload
             write_extended_data: Write ccm:oeh_extendedType/Data/Text fields
@@ -112,12 +97,7 @@ class RepositoryService:
         Returns:
             Upload result with nodeId, success status, etc.
         """
-        config = _get_repository_configs().get(repository)
-        if not config:
-            return {
-                "success": False,
-                "error": f"Unknown repository: {repository}. Use 'staging' or 'production'.",
-            }
+        config = _get_repository_config()
 
         base_url = config["base_url"]
         inbox_id = config["inbox_id"]
@@ -148,7 +128,6 @@ class RepositoryService:
                             return {
                                 "success": False,
                                 "duplicate": True,
-                                "repository": repository,
                                 "node": {
                                     "nodeId": node_id,
                                     "title": duplicate.get("title"),
@@ -219,7 +198,6 @@ class RepositoryService:
 
                 result = {
                     "success": True,
-                    "repository": repository,
                     "node": {
                         "nodeId": node_id,
                         "title": title,
@@ -993,9 +971,7 @@ class RepositoryService:
         Returns:
             Dict with actual_metadata, optional diff and summary
         """
-        config = _get_repository_configs().get(repository)
-        if not config:
-            return {"success": False, "error": f"Unknown repository: {repository}"}
+        config = _get_repository_config()
 
         base_url = config["base_url"]
 
@@ -1027,7 +1003,6 @@ class RepositoryService:
                 result = {
                     "success": True,
                     "node_id": node_id,
-                    "repository": repository,
                     "actual_metadata": actual,
                 }
 

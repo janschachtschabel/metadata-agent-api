@@ -18,7 +18,7 @@ class InputSource(str, Enum):
 
 
 class Repository(str, Enum):
-    """Repository selection for NodeID lookups."""
+    """Repository selection (deprecated — ignored, kept for backward compatibility)."""
 
     PROD = "prod"
     STAGING = "staging"
@@ -108,7 +108,7 @@ class GenerateRequest(BaseModel):
     )
     repository: Repository = Field(
         default=Repository.STAGING,
-        description="Repository to use for NodeID lookup: 'prod' (redaktion.openeduhub.net) or 'staging' (repository.staging.openeduhub.net)",
+        description="Deprecated — ignored. Repository URL is configured via METADATA_AGENT_REPOSITORY_URL. Kept for backward compatibility.",
     )
 
     # Common options
@@ -520,7 +520,7 @@ class ScreenshotRequest(BaseModel):
     )
     repository: str = Field(
         default="staging",
-        description="Repository for preview upload: 'staging' or 'prod'",
+        description="Deprecated — ignored. Repository URL is configured via METADATA_AGENT_REPOSITORY_URL. Kept for backward compatibility.",
     )
 
     model_config = {
@@ -575,7 +575,7 @@ class UploadRequest(BaseModel):
         description="Metadata dict from /generate endpoint (with contextName, schemaVersion, etc.)",
     )
     repository: str = Field(
-        default="staging", description="Target repository: 'staging' or 'production'"
+        default="staging", description="Deprecated — ignored. Repository URL is configured via METADATA_AGENT_REPOSITORY_URL. Kept for backward compatibility.",
     )
     check_duplicates: bool = Field(
         default=True, description="Check for duplicates by ccm:wwwurl before uploading"
@@ -627,7 +627,6 @@ class UploadRequest(BaseModel):
                         "cclom:general_description": "Description...",
                         "ccm:wwwurl": "https://example.com/event",
                     },
-                    "repository": "staging",
                     "check_duplicates": True,
                     "start_workflow": True,
                     "source": "Klexikon",
@@ -664,7 +663,6 @@ class UploadResponse(BaseModel):
 
     success: bool
     duplicate: Optional[bool] = None
-    repository: Optional[str] = None
     node: Optional[UploadedNodeInfo] = None
     error: Optional[str] = None
     step: Optional[str] = None
@@ -696,7 +694,7 @@ class VerifyRequest(BaseModel):
         description="Expected metadata (e.g. output from /generate). If provided, a SOLL/IST diff is computed.",
     )
     repository: str = Field(
-        default="staging", description="Repository: 'staging' or 'prod'"
+        default="staging", description="Deprecated — ignored. Repository URL is configured via METADATA_AGENT_REPOSITORY_URL. Kept for backward compatibility.",
     )
 
     model_config = {
@@ -709,7 +707,6 @@ class VerifyRequest(BaseModel):
                         "ccm:wwwurl": "https://example.com/event",
                         "ccm:taxonid": "http://w3id.org/openeduhub/vocabs/discipline/12002",
                     },
-                    "repository": "staging",
                 }
             ]
         }
@@ -721,7 +718,6 @@ class VerifyResponse(BaseModel):
 
     success: bool
     node_id: str
-    repository: str
     actual_metadata: dict[str, Any] = Field(
         description="Flat metadata as read from the repository"
     )
@@ -772,7 +768,7 @@ class DetectContentTypeRequest(BaseModel):
     )
     repository: Repository = Field(
         default=Repository.STAGING,
-        description="Repository to use for NodeID lookup: 'prod' (redaktion.openeduhub.net) or 'staging' (repository.staging.openeduhub.net)",
+        description="Deprecated — ignored. Repository URL is configured via METADATA_AGENT_REPOSITORY_URL. Kept for backward compatibility.",
     )
 
     # Detection options
@@ -809,7 +805,6 @@ class DetectContentTypeRequest(BaseModel):
                     "source_url": "",
                     "extraction_method": "browser",
                     "node_id": "",
-                    "repository": "staging",
                     "context": "default",
                     "version": "latest",
                     "language": "de",
@@ -886,7 +881,7 @@ class ExtractFieldRequest(BaseModel):
     )
     repository: Repository = Field(
         default=Repository.STAGING,
-        description="Repository to use for NodeID lookup: 'prod' (redaktion.openeduhub.net) or 'staging' (repository.staging.openeduhub.net)",
+        description="Deprecated — ignored. Repository URL is configured via METADATA_AGENT_REPOSITORY_URL. Kept for backward compatibility.",
     )
 
     # Field-specific options

@@ -150,9 +150,9 @@ Minimale Konfiguration — nur B-API Key eintragen:
 B_API_KEY=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 METADATA_AGENT_LLM_PROVIDER=b-api-openai
 
-# Umgebung: 'staging' (Default) oder 'prod'
-# Steuert alle Service-URLs (B-API, Text-Extraction, Repository)
-# METADATA_AGENT_ENVIRONMENT=staging
+# Externe Dienste (Default: Staging — für Prod URLs anpassen)
+# METADATA_AGENT_B_API_BASE_URL=https://b-api.staging.openeduhub.net
+# METADATA_AGENT_TEXT_EXTRACTION_API_URL=https://text-extraction.staging.openeduhub.net
 
 # Optional: Repository-Upload
 # WLO_GUEST_USERNAME=upload-user
@@ -299,14 +299,14 @@ services:
     ports:
       - "8000:8000"
     environment:
-      # Umgebung: 'staging' (Default) oder 'prod'
-      # Steuert alle Service-URLs (B-API, Text-Extraction, Repository)
-      - METADATA_AGENT_ENVIRONMENT=${METADATA_AGENT_ENVIRONMENT:-staging}
-
       # LLM Provider
       - METADATA_AGENT_LLM_PROVIDER=b-api-openai
       - B_API_KEY=${B_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+
+      # Externe Dienste (Default: Staging — für Prod URLs anpassen)
+      - METADATA_AGENT_B_API_BASE_URL=${METADATA_AGENT_B_API_BASE_URL:-https://b-api.staging.openeduhub.net}
+      - METADATA_AGENT_TEXT_EXTRACTION_API_URL=${METADATA_AGENT_TEXT_EXTRACTION_API_URL:-https://text-extraction.staging.openeduhub.net}
 
       # Repository Upload (optional)
       - WLO_GUEST_USERNAME=${WLO_GUEST_USERNAME:-}
@@ -612,27 +612,23 @@ Alle Variablen können in `.env`, als System-Umgebungsvariablen oder als Docker-
 | `METADATA_AGENT_LLM_MAX_RETRIES` | `3` | Wiederholungsversuche bei Fehler |
 | `METADATA_AGENT_LLM_RETRY_DELAY` | `1.0` | Wartezeit zwischen Retries (Sek.) |
 
-### Umgebung (Environment) — Zentraler Schalter
+### Externe Dienste (B-API, Text-Extraction, Repository)
 
-Die API nutzt mehrere externe Dienste (B-API, Text-Extraction, Repository), die je nach Umgebung unterschiedliche URLs haben. Über **eine einzige Variable** wird gesteuert, gegen welche Instanz alle Dienste arbeiten:
+Die API nutzt mehrere externe Dienste, die je nach Umgebung (Staging / Prod) unterschiedliche URLs haben. Jede URL ist einzeln konfigurierbar. Defaults sind Staging-URLs.
 
-| Variable | Default | Optionen | Beschreibung |
+| Variable | Default (Staging) | Prod-Wert | Beschreibung |
 |---|---|---|---|
-| `METADATA_AGENT_ENVIRONMENT` | `staging` | `staging`, `prod` | Wählt das Umgebungsprofil. Setzt automatisch alle Service-URLs. |
-
-**Automatisch gesetzte URLs je nach Profil:**
-
-| Dienst | Staging | Prod |
-|---|---|---|
-| **B-API** (LLM) | `https://b-api.staging.openeduhub.net` | `https://b-api.prod.openeduhub.net` |
-| **Text-Extraction** | `https://text-extraction.staging.openeduhub.net` | `https://text-extraction.prod.openeduhub.net` |
-| **Repository** | `https://repository.staging.openeduhub.net/edu-sharing/rest` | `https://redaktion.openeduhub.net/edu-sharing/rest` |
+| `METADATA_AGENT_B_API_BASE_URL` | `https://b-api.staging.openeduhub.net` | `https://b-api.prod.openeduhub.net` | B-API Basis-URL (LLM-Zugriff). Endpoint-Pfade (`/api/v1/llm/openai`, `/api/v1/llm/academiccloud`) werden automatisch abgeleitet. |
+| `METADATA_AGENT_TEXT_EXTRACTION_API_URL` | `https://text-extraction.staging.openeduhub.net` | `https://text-extraction.prod.openeduhub.net` | Text-Extraction API (Volltext aus URLs extrahieren). |
+| `METADATA_AGENT_REPOSITORY_URL` | `https://repository.staging.openeduhub.net/edu-sharing/rest` | `https://redaktion.openeduhub.net/edu-sharing/rest` | Repository-URL (Metadaten-Abruf & Upload). |
+| `METADATA_AGENT_WLO_INBOX_ID` | `21144164-30c0-4c01-ae16-264452197063` | — | Inbox-ID für Uploads. |
 
 **Beispiel — Umschalten auf Produktion:**
 
 ```env
-# Eine Variable reicht — alle Service-URLs werden automatisch auf Prod gesetzt
-METADATA_AGENT_ENVIRONMENT=prod
+METADATA_AGENT_B_API_BASE_URL=https://b-api.prod.openeduhub.net
+METADATA_AGENT_TEXT_EXTRACTION_API_URL=https://text-extraction.prod.openeduhub.net
+METADATA_AGENT_REPOSITORY_URL=https://redaktion.openeduhub.net/edu-sharing/rest
 ```
 
 **Docker:**
@@ -642,13 +638,15 @@ docker run -d \
   --name metadata-agent-api \
   -p 8000:8000 \
   -e B_API_KEY=your-api-key \
-  -e METADATA_AGENT_ENVIRONMENT=prod \
+  -e METADATA_AGENT_B_API_BASE_URL=https://b-api.prod.openeduhub.net \
+  -e METADATA_AGENT_TEXT_EXTRACTION_API_URL=https://text-extraction.prod.openeduhub.net \
+  -e METADATA_AGENT_REPOSITORY_URL=https://redaktion.openeduhub.net/edu-sharing/rest \
   metadata-agent-api
 ```
 
-> **Hinweis:** Einzelne URLs können weiterhin per eigener Umgebungsvariable überschrieben werden (z.B. `METADATA_AGENT_B_API_BASE_URL`). Diese haben Vorrang vor dem Profil.
+> **Hinweis:** Werden diese Variablen nicht gesetzt, verwenden alle Dienste die **Staging-URLs** als Default.
 >
-> **Per-Request-Override:** Die Endpoints `/generate` und `/upload` akzeptieren weiterhin den Parameter `repository` (`staging` / `prod`), der die Standard-Umgebung für diesen einzelnen Aufruf überschreibt.
+> Der Request-Parameter `repository` in `/generate` und `/upload` ist **deprecated** und wird ignoriert. Die Repository-URL wird ausschließlich über die Umgebungsvariable gesetzt.
 
 ### Provider-spezifische Einstellungen
 
@@ -675,21 +673,10 @@ docker run -d \
 | `METADATA_AGENT_DEFAULT_CONTEXT` | `default` | Standard-Kontext (`default`, `mds_oeh`) |
 | `METADATA_AGENT_DEFAULT_VERSION` | `1.8.1` | Standard-Version (`latest` oder z.B. `1.8.1`) |
 
-### Repository (Metadaten-Abruf & Upload)
-
-Diese URLs werden sowohl für den **NodeID-Metadaten-Abruf** (`/generate` mit `node_id`) als auch für den **Upload** (`/upload`) verwendet. Alle Werte werden automatisch aus `METADATA_AGENT_ENVIRONMENT` befüllt und können einzeln überschrieben werden.
-
-| Variable | Default | Beschreibung |
-|---|---|---|
-| `METADATA_AGENT_REPOSITORY_STAGING_URL` | *(aus Profil)* | Staging-Repository URL (Metadaten-Abruf & Upload) |
-| `METADATA_AGENT_REPOSITORY_PROD_URL` | *(aus Profil)* | Prod-Repository URL (Metadaten-Abruf & Upload) |
-| `METADATA_AGENT_REPOSITORY_DEFAULT` | *(= `ENVIRONMENT`)* | Standard-Repository für Endpoints: `staging` oder `prod` |
-
 ### Crawler & Text-Extraction
 
 | Variable | Default | Beschreibung |
 |---|---|---|
-| `METADATA_AGENT_TEXT_EXTRACTION_API_URL` | *(aus Profil)* | Text-Extraction API (siehe [Umgebung](#umgebung-environment--zentraler-schalter)) |
 | `METADATA_AGENT_TEXT_EXTRACTION_DEFAULT_METHOD` | `simple` | `simple` oder `browser` |
 
 ### Screenshot
@@ -787,8 +774,12 @@ spec:
                 secretKeyRef:
                   name: metadata-agent-secrets
                   key: wlo-password
-            - name: METADATA_AGENT_ENVIRONMENT
-              value: "prod"
+            - name: METADATA_AGENT_B_API_BASE_URL
+              value: "https://b-api.prod.openeduhub.net"
+            - name: METADATA_AGENT_TEXT_EXTRACTION_API_URL
+              value: "https://text-extraction.prod.openeduhub.net"
+            - name: METADATA_AGENT_REPOSITORY_URL
+              value: "https://redaktion.openeduhub.net/edu-sharing/rest"
             - name: METADATA_AGENT_LLM_PROVIDER
               value: "b-api-openai"
             - name: METADATA_AGENT_DEFAULT_MAX_WORKERS

@@ -263,16 +263,9 @@ class ScreenshotService:
             result = await self.capture(url, method=method, width=width, height=height)
 
             # 2. Upload to edu-sharing
-            from .repository_service import _get_repository_configs
+            from .repository_service import _get_repository_config
 
-            config = _get_repository_configs().get(repository)
-            if not config:
-                return {
-                    "success": False,
-                    "error": f"Unknown repository: {repository}",
-                    "screenshot": result.to_dict(),
-                }
-
+            config = _get_repository_config()
             base_url = config["base_url"]
             upload_url = (
                 f"{base_url}/rest/node/v1/nodes/-home-/{node_id}/preview"

@@ -122,13 +122,12 @@ async def lifespan(app: FastAPI):
     settings = get_settings()
     llm_config = settings.get_llm_config()
     print(f"Starting {settings.app_name} v{settings.app_version}")
-    print(f"Environment: {settings.environment}")
     print(f"LLM Provider: {settings.llm_provider}")
     print(f"LLM Model: {llm_config['model']}")
     print(f"LLM API Base: {llm_config['api_base']}")
     print(f"B-API Base URL: {settings.b_api_base_url}")
     print(f"Text Extraction URL: {settings.text_extraction_api_url}")
-    print(f"Repository Default: {settings.repository_default}")
+    print(f"Repository URL: {settings.repository_url}")
     print(f"Default Workers: {settings.default_max_workers}")
 
     yield
@@ -547,12 +546,9 @@ async def get_schema_definition(context: str, version: str, schema_file: str):
 | `txt` | Reiner Text |
 | `html` | Rohes HTML |
 
-## Repository (repository)
+## Repository
 
-| Wert | URL |
-|------|-----|
-| `staging` | repository.staging.openeduhub.net (Standard) |
-| `prod` | redaktion.openeduhub.net |
+> **Deprecated:** Der Parameter `repository` wird ignoriert. Die Repository-URL wird über `METADATA_AGENT_REPOSITORY_URL` konfiguriert. Der Parameter wird aus Abwärtskompatibilität akzeptiert.
 
 ## LLM-Optionen
 
@@ -575,7 +571,6 @@ async def get_schema_definition(context: str, version: str, schema_file: str):
                                 "extraction_method": "browser",
                                 "output_format": "markdown",
                                 "node_id": "",
-                                "repository": "staging",
                                 "context": "default",
                                 "version": "latest",
                                 "language": "de",
@@ -593,7 +588,6 @@ async def get_schema_definition(context: str, version: str, schema_file: str):
                                 "extraction_method": "browser",
                                 "output_format": "markdown",
                                 "node_id": "",
-                                "repository": "staging",
                                 "context": "default",
                                 "version": "latest",
                                 "language": "de",
@@ -611,7 +605,6 @@ async def get_schema_definition(context: str, version: str, schema_file: str):
                                 "extraction_method": "browser",
                                 "output_format": "markdown",
                                 "node_id": "cbf66543-fb90-4e69-a392-03f305139e3f",
-                                "repository": "staging",
                                 "context": "default",
                                 "version": "latest",
                                 "language": "de",
@@ -818,12 +811,9 @@ async def detect_content_type(req: DetectContentTypeRequest):
 | `txt` | Reiner Text |
 | `html` | Rohes HTML |
 
-## Repository (repository)
+## Repository
 
-| Wert | URL |
-|------|-----|
-| `staging` | repository.staging.openeduhub.net (Standard) |
-| `prod` | redaktion.openeduhub.net |
+> **Deprecated:** Der Parameter `repository` wird ignoriert. Die Repository-URL wird über `METADATA_AGENT_REPOSITORY_URL` konfiguriert.
 
 ## Feld-Optionen
 
@@ -853,7 +843,6 @@ async def detect_content_type(req: DetectContentTypeRequest):
                                 "extraction_method": "browser",
                                 "output_format": "markdown",
                                 "node_id": "",
-                                "repository": "staging",
                                 "context": "default",
                                 "version": "latest",
                                 "schema_file": "event.json",
@@ -875,7 +864,6 @@ async def detect_content_type(req: DetectContentTypeRequest):
                                 "extraction_method": "browser",
                                 "output_format": "markdown",
                                 "node_id": "",
-                                "repository": "staging",
                                 "context": "default",
                                 "version": "latest",
                                 "schema_file": "event.json",
@@ -897,7 +885,6 @@ async def detect_content_type(req: DetectContentTypeRequest):
                                 "extraction_method": "browser",
                                 "output_format": "markdown",
                                 "node_id": "cbf66543-fb90-4e69-a392-03f305139e3f",
-                                "repository": "staging",
                                 "context": "default",
                                 "version": "latest",
                                 "schema_file": "event.json",
@@ -919,7 +906,6 @@ async def detect_content_type(req: DetectContentTypeRequest):
                                 "extraction_method": "browser",
                                 "output_format": "markdown",
                                 "node_id": "",
-                                "repository": "staging",
                                 "context": "default",
                                 "version": "latest",
                                 "schema_file": "event.json",
@@ -1179,12 +1165,9 @@ async def extract_field(req: ExtractFieldRequest):
 | `txt` | Reiner Text |
 | `html` | Rohes HTML |
 
-## Repository (repository)
+## Repository
 
-| Wert | URL |
-|------|-----|
-| `staging` | repository.staging.openeduhub.net (Standard) |
-| `prod` | redaktion.openeduhub.net |
+> **Deprecated:** Der Parameter `repository` wird ignoriert. Die Repository-URL wird über `METADATA_AGENT_REPOSITORY_URL` konfiguriert.
 
 ## Schema-Optionen
 
@@ -1233,7 +1216,6 @@ async def extract_field(req: ExtractFieldRequest):
                                 "extraction_method": "browser",
                                 "output_format": "markdown",
                                 "node_id": "",
-                                "repository": "staging",
                                 "existing_metadata": {},
                                 "context": "default",
                                 "version": "latest",
@@ -1261,7 +1243,6 @@ async def extract_field(req: ExtractFieldRequest):
                                 "extraction_method": "browser",
                                 "output_format": "markdown",
                                 "node_id": "",
-                                "repository": "staging",
                                 "existing_metadata": {},
                                 "context": "default",
                                 "version": "latest",
@@ -1281,7 +1262,7 @@ async def extract_field(req: ExtractFieldRequest):
                         },
                         "node_id_input": {
                             "summary": "3. NodeID-Eingabe (Repository)",
-                            "description": "Metadaten + hinterlegte Volltexte von Repository-Node abrufen. repository: 'staging' oder 'prod'.",
+                            "description": "Metadaten + hinterlegte Volltexte von Repository-Node abrufen.",
                             "value": {
                                 "input_source": "node_id",
                                 "text": "",
@@ -1289,7 +1270,6 @@ async def extract_field(req: ExtractFieldRequest):
                                 "extraction_method": "browser",
                                 "output_format": "markdown",
                                 "node_id": "cbf66543-fb90-4e69-a392-03f305139e3f",
-                                "repository": "staging",
                                 "existing_metadata": {},
                                 "context": "default",
                                 "version": "latest",
@@ -1317,7 +1297,6 @@ async def extract_field(req: ExtractFieldRequest):
                                 "extraction_method": "browser",
                                 "output_format": "markdown",
                                 "node_id": "cbf66543-fb90-4e69-a392-03f305139e3f",
-                                "repository": "staging",
                                 "existing_metadata": {},
                                 "context": "default",
                                 "version": "latest",
@@ -1345,7 +1324,6 @@ async def extract_field(req: ExtractFieldRequest):
                                 "extraction_method": "browser",
                                 "output_format": "markdown",
                                 "node_id": "",
-                                "repository": "staging",
                                 "existing_metadata": {
                                     "cclom:title": "Mein Workshop",
                                     "cclom:general_keyword": ["KI", "Bildung"],
@@ -1933,7 +1911,7 @@ Kopiere einfach den kompletten Output von `/generate` direkt hier rein.
 
 | Parameter | Werte | Beschreibung |
 |-----------|-------|-------------|
-| `repository` | `staging` (Standard), `prod` | Ziel-Repository (staging = repository.staging.openeduhub.net, prod = redaktion.openeduhub.net) |
+| `repository` | *(deprecated — ignoriert)* | Repository-URL wird über `METADATA_AGENT_REPOSITORY_URL` konfiguriert. Parameter wird aus Abwärtskompatibilität akzeptiert. |
 | `check_duplicates` | `true` (Standard), `false` | Duplikat-Prüfung via ccm:wwwurl |
 | `start_workflow` | `true` (Standard), `false` | Review-Workflow starten |
 | `preview_url` | URL (leer = auto) | URL für Vorschaubild-Screenshot. Wenn leer, wird `ccm:wwwurl` aus den Metadaten verwendet. |
@@ -1964,14 +1942,13 @@ Kopiere einfach den kompletten Output von `/generate` direkt hier rein.
                     "examples": {
                         "direkt": {
                             "summary": "Direkter Output von /generate",
-                            "description": "Kopiere den Output von /generate hier rein. Optional: repository, check_duplicates, start_workflow, preview_url, screenshot_method",
+                            "description": "Kopiere den Output von /generate hier rein. Optional: check_duplicates, start_workflow, preview_url, screenshot_method",
                             "value": {
                                 "contextName": "default",
                                 "schemaVersion": "1.8.1",
                                 "metadataset": "event.json",
                                 "cclom:title": "Workshop KI in der Bildung",
                                 "ccm:wwwurl": "https://example.com/workshop",
-                                "repository": "staging",
                                 "check_duplicates": True,
                                 "start_workflow": True,
                                 "preview_url": "",
@@ -1993,7 +1970,6 @@ async def upload_to_repository(request: Request):
     **Einfache Nutzung:** Kopiere einfach den kompletten Output von `/generate` direkt hier rein.
 
     Optional kannst du Optionen mit übergeben:
-    - `repository`: "staging" (default) oder "production"
     - `check_duplicates`: true (default) oder false
     - `start_workflow`: true (default) oder false
 
@@ -2050,12 +2026,6 @@ async def upload_to_repository(request: Request):
         raise HTTPException(
             status_code=503,
             detail="Repository service not configured. Set WLO_GUEST_USERNAME and WLO_GUEST_PASSWORD environment variables.",
-        )
-
-    if req.repository not in ("staging", "prod", "production"):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid repository: {req.repository}. Use 'staging' or 'prod'.",
         )
 
     # Extract context/version from metadata (before potential unwrapping)
@@ -2130,11 +2100,11 @@ async def upload_to_repository(request: Request):
             )
 
             # Upload as preview
-            from .services.repository_service import _get_repository_configs
+            from .services.repository_service import _get_repository_config
 
-            config = _get_repository_configs().get(req.repository)
-            if config:
-                base_url = config["base_url"]
+            config = _get_repository_config()
+            base_url = config["base_url"]
+            if base_url:
                 upload_url = (
                     f"{base_url}/rest/node/v1/nodes/-home-/{node_id}/preview"
                     f"?mimetype={screenshot_result.mimetype}&createVersion=true"
@@ -2190,7 +2160,6 @@ async def upload_to_repository(request: Request):
     return UploadResponse(
         success=result.get("success", False),
         duplicate=result.get("duplicate"),
-        repository=result.get("repository"),
         node=node_info,
         error=result.get("error"),
         step=result.get("step"),
@@ -2326,7 +2295,7 @@ Zählt die Anzahl der Felder pro Status-Kategorie.
                         "nur_lesen": {
                             "summary": "1. Nur Metadaten lesen",
                             "description": "Gibt die aktuellen Repository-Metadaten zurück (kein Vergleich).",
-                            "value": {"repository": "staging"},
+                            "value": {},
                         },
                         "mit_vergleich": {
                             "summary": "2. SOLL/IST-Vergleich",
@@ -2340,7 +2309,6 @@ Zählt die Anzahl der Felder pro Status-Kategorie.
                                     "ccm:wwwurl": "https://example.com/workshop",
                                     "ccm:taxonid": "http://w3id.org/openeduhub/vocabs/discipline/12002",
                                 },
-                                "repository": "staging",
                             },
                         },
                     },
@@ -2415,7 +2383,6 @@ async def verify_upload(node_id: str, request: Request):
     return VerifyResponse(
         success=True,
         node_id=node_id,
-        repository=repository,
         actual_metadata=result["actual_metadata"],
         diff=diff_list,
         summary=result.get("summary"),

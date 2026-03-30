@@ -34,11 +34,9 @@ class InputSourceService:
         if self.http_client:
             await self.http_client.aclose()
 
-    def _get_repository_base_url(self, repository: str) -> str:
-        """Get the base URL for the specified repository."""
-        if repository == "prod":
-            return self.settings.repository_prod_url
-        return self.settings.repository_staging_url
+    def _get_repository_base_url(self, repository: str = "") -> str:
+        """Get the configured repository base URL (repository param is ignored)."""
+        return self.settings.repository_url
 
     async def fetch_from_url(
         self,
