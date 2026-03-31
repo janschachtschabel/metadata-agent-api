@@ -6,7 +6,6 @@ from functools import lru_cache
 from typing import Optional
 
 
-
 class Settings(BaseSettings):
     """Application settings loaded from environment."""
 
@@ -64,9 +63,7 @@ class Settings(BaseSettings):
     # Repository URL (for NodeID input source and upload)
     # Staging: https://repository.staging.openeduhub.net/edu-sharing/rest
     # Prod:    https://redaktion.openeduhub.net/edu-sharing/rest
-    repository_url: str = (
-        "https://repository.staging.openeduhub.net/edu-sharing/rest"
-    )
+    repository_url: str = "https://repository.staging.openeduhub.net/edu-sharing/rest"
 
     # Text Extraction API Settings (for URL input source)
     # Staging: https://text-extraction.staging.openeduhub.net
@@ -98,13 +95,22 @@ class Settings(BaseSettings):
     cors_origins: str = "*"  # Comma-separated origins, or '*' for all
 
     @model_validator(mode="after")
-    def derive_b_api_endpoints(self) -> "Settings":
-        """Derive B-API endpoint URLs from b_api_base_url if not explicitly set."""
-        base = self.b_api_base_url.rstrip("/")
+    def normalize_and_derive(self) -> "Settings":
+        """Strip trailing slashes from URLs and derive B-API endpoints."""
+        # Strip trailing slashes from all URL settings
+        self.b_api_base_url = self.b_api_base_url.rstrip("/")
+        self.text_extraction_api_url = self.text_extraction_api_url.rstrip("/")
+        self.repository_url = self.repository_url.rstrip("/")
+        self.openai_api_base = self.openai_api_base.rstrip("/")
+        self.pageshot_api_url = self.pageshot_api_url.rstrip("/")
+
+        # Derive B-API endpoint paths from base URL
         if not self.b_api_openai_base:
-            self.b_api_openai_base = f"{base}/api/v1/llm/openai"
+            self.b_api_openai_base = f"{self.b_api_base_url}/api/v1/llm/openai"
         if not self.b_api_academiccloud_base:
-            self.b_api_academiccloud_base = f"{base}/api/v1/llm/academiccloud"
+            self.b_api_academiccloud_base = (
+                f"{self.b_api_base_url}/api/v1/llm/academiccloud"
+            )
         return self
 
     model_config = {

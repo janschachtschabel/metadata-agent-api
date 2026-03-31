@@ -575,7 +575,8 @@ class UploadRequest(BaseModel):
         description="Metadata dict from /generate endpoint (with contextName, schemaVersion, etc.)",
     )
     repository: str = Field(
-        default="staging", description="Deprecated — ignored. Repository URL is configured via METADATA_AGENT_REPOSITORY_URL. Kept for backward compatibility.",
+        default="staging",
+        description="Deprecated — ignored. Repository URL is configured via METADATA_AGENT_REPOSITORY_URL. Kept for backward compatibility.",
     )
     check_duplicates: bool = Field(
         default=True, description="Check for duplicates by ccm:wwwurl before uploading"
@@ -694,7 +695,8 @@ class VerifyRequest(BaseModel):
         description="Expected metadata (e.g. output from /generate). If provided, a SOLL/IST diff is computed.",
     )
     repository: str = Field(
-        default="staging", description="Deprecated — ignored. Repository URL is configured via METADATA_AGENT_REPOSITORY_URL. Kept for backward compatibility.",
+        default="staging",
+        description="Deprecated — ignored. Repository URL is configured via METADATA_AGENT_REPOSITORY_URL. Kept for backward compatibility.",
     )
 
     model_config = {
