@@ -20,12 +20,6 @@ services:
       # OpenAI Key (only needed if using provider=openai)
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       
-      # External Service URLs (Default: Staging)
-      # For Prod, change to the respective prod URLs (see .env.template)
-      - METADATA_AGENT_B_API_BASE_URL=${METADATA_AGENT_B_API_BASE_URL:-https://b-api.staging.openeduhub.net}
-      - METADATA_AGENT_TEXT_EXTRACTION_API_URL=${METADATA_AGENT_TEXT_EXTRACTION_API_URL:-https://text-extraction.staging.openeduhub.net}
-      - METADATA_AGENT_REPOSITORY_URL=${METADATA_AGENT_REPOSITORY_URL:-https://repository.staging.openeduhub.net/edu-sharing/rest}
-      
       # Repository Upload (optional, for /upload endpoint)
       - WLO_GUEST_USERNAME=${WLO_GUEST_USERNAME:-}
       - WLO_GUEST_PASSWORD=${WLO_GUEST_PASSWORD:-}

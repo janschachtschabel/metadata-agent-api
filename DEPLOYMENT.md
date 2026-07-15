@@ -66,7 +66,7 @@ Alle Konfigurationsvariablen haben das Prefix `METADATA_AGENT_`:
 | `METADATA_AGENT_NORMALIZATION_ENABLED` | `true` | Normalisierung aktivieren |
 | `METADATA_AGENT_SCREENSHOT_METHOD` | `pageshot` | `pageshot` (extern) oder `playwright` (intern, im Container verfügbar) |
 | `METADATA_AGENT_CORS_ORIGINS` | `*` | CORS Origins (komma-getrennt oder `*`) |
-| `METADATA_AGENT_REPOSITORY_URL` | `https://repository.staging.openeduhub.net/edu-sharing/rest` | Repository-URL (Metadaten-Abruf & Upload) |
+| `METADATA_AGENT_REPOSITORY_DEFAULT` | `staging` | Standard-Repository: `staging` oder `prod` |
 
 ### LLM-Provider-spezifisch
 

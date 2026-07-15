@@ -533,6 +533,7 @@ Nach Node-Erstellung werden automatisch Aspects hinzugefügt, die für bestimmte
 ```json
 {
   "success": true,
+  "repository": "staging",
   "fields_written": 12,
   "node": {
     "nodeId": "abc123-def456-...",
@@ -551,6 +552,7 @@ Nach Node-Erstellung werden automatisch Aspects hinzugefügt, die für bestimmte
 {
   "success": false,
   "duplicate": true,
+  "repository": "staging",
   "node": { "nodeId": "existing-id", "title": "Existierender Workshop" },
   "error": "URL existiert bereits: \"Existierender Workshop\""
 }
@@ -561,6 +563,7 @@ Nach Node-Erstellung werden automatisch Aspects hinzugefügt, die für bestimmte
 ```json
 {
   "success": true,
+  "repository": "staging",
   "fields_written": 10,
   "node": { "nodeId": "abc123-..." },
   "field_errors": [
@@ -581,6 +584,7 @@ Prüft hochgeladene Metadaten gegen die tatsächlichen Werte im Repository (SOLL
 |-----------|-----|---------|--------------|
 | `node_id` | string (URL-Pfad) | **erforderlich** | Node-ID des hochgeladenen Objekts |
 | `expected_metadata` | object | — | Erwartete Metadaten (z.B. Output von `/generate`). Für SOLL/IST-Diff |
+| `repository` | string | `staging` | `staging` oder `prod` |
 
 #### Response
 
@@ -588,6 +592,7 @@ Prüft hochgeladene Metadaten gegen die tatsächlichen Werte im Repository (SOLL
 {
   "success": true,
   "node_id": "abc123-def456-...",
+  "repository": "staging",
   "actual_metadata": { "cclom:title": ["Workshop KI"], ... },
   "diff": [
     { "field_id": "cclom:title", "status": "match", "expected": "Workshop KI", "actual": ["Workshop KI"] },
@@ -666,7 +671,8 @@ curl -X POST http://localhost:8000/screenshot \
   -d '{
     "url": "https://example.com/event",
     "method": "pageshot",
-    "node_id": "abc123-def456-..."
+    "node_id": "abc123-def456-...",
+    "repository": "staging"
   }'
 ```
 
@@ -781,6 +787,7 @@ curl -X POST http://localhost:8000/generate \
   -d '{
     "input_source": "node_url",
     "node_id": "cbf66543-fb90-4e69-a392-03f305139e3f",
+    "repository": "staging",
     "extraction_method": "browser",
     "schema_file": "auto"
   }'
@@ -842,7 +849,7 @@ print(md["markdown"])
 
 # 4. Hochladen (ganzer Output + Optionen)
 if validation["valid"]:
-    upload_body = {**result, "check_duplicates": True}
+    upload_body = {**result, "repository": "staging", "check_duplicates": True}
     upload = httpx.post(f"{API}/upload", json=upload_body).json()
     if upload["success"]:
         print(f"Hochgeladen: {upload['node']['repositoryUrl']}")
@@ -908,14 +915,14 @@ Prefix `METADATA_AGENT_` wird automatisch vorangestellt (außer API-Keys).
 
 | Variable | Default |
 |----------|---------|
-| `METADATA_AGENT_B_API_OPENAI_BASE` | *(abgeleitet aus `B_API_BASE_URL`)* |
+| `METADATA_AGENT_B_API_OPENAI_BASE` | `https://b-api.staging.openeduhub.net/api/v1/llm/openai` |
 | `METADATA_AGENT_B_API_OPENAI_MODEL` | `gpt-4.1-mini` |
 
 **B-API AcademicCloud:**
 
 | Variable | Default |
 |----------|---------|
-| `METADATA_AGENT_B_API_ACADEMICCLOUD_BASE` | *(abgeleitet aus `B_API_BASE_URL`)* |
+| `METADATA_AGENT_B_API_ACADEMICCLOUD_BASE` | `https://b-api.staging.openeduhub.net/api/v1/llm/academiccloud` |
 | `METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL` | `deepseek-r1` |
 
 **OpenAI (nativ):**
@@ -939,25 +946,20 @@ Prefix `METADATA_AGENT_` wird automatisch vorangestellt (außer API-Keys).
 | `METADATA_AGENT_DEFAULT_CONTEXT` | `default` | Standard-Kontext |
 | `METADATA_AGENT_DEFAULT_VERSION` | `latest` | Standard-Version (`latest` = automatische Erkennung, oder z.B. `1.8.0`) |
 
-### Externe Dienste (B-API, Text-Extraction, Repository)
+### Repository & Crawler
 
-Jede URL ist einzeln konfigurierbar. Defaults sind Staging-URLs.
-
-| Variable | Default (Staging) | Prod-Wert | Beschreibung |
-|----------|---|---|---|
-| `METADATA_AGENT_B_API_BASE_URL` | `https://b-api.staging.openeduhub.net` | `https://b-api.prod.openeduhub.net` | B-API Basis-URL (LLM-Zugriff). Endpoint-Pfade werden automatisch abgeleitet. |
-| `METADATA_AGENT_TEXT_EXTRACTION_API_URL` | `https://text-extraction.staging.openeduhub.net` | `https://text-extraction.prod.openeduhub.net` | Text-Extraction API |
-| `METADATA_AGENT_REPOSITORY_URL` | `https://repository.staging.openeduhub.net/edu-sharing/rest` | `https://redaktion.openeduhub.net/edu-sharing/rest` | Repository-URL (Metadaten-Abruf & Upload) |
-| `METADATA_AGENT_TEXT_EXTRACTION_DEFAULT_METHOD` | `simple` | — | `simple` oder `browser` |
-| `METADATA_AGENT_WLO_INBOX_ID` | `21144164-30c0-4c01-ae16-264452197063` | — | Inbox-ID für Uploads |
-
-> **Hinweis:** Der Request-Parameter `repository` in `/generate` und `/upload` ist deprecated und wird ignoriert. Die Repository-URL wird ausschließlich über die Umgebungsvariable gesetzt.
+| Variable | Default | Beschreibung |
+|----------|---------|--------------|
+| `METADATA_AGENT_REPOSITORY_PROD_URL` | `https://redaktion.openeduhub.net/edu-sharing/rest` | Prod-Repository |
+| `METADATA_AGENT_REPOSITORY_STAGING_URL` | `https://repository.staging.openeduhub.net/edu-sharing/rest` | Staging-Repository |
+| `METADATA_AGENT_TEXT_EXTRACTION_API_URL` | `https://text-extraction.staging.openeduhub.net` | Text-Extraction API |
+| `METADATA_AGENT_TEXT_EXTRACTION_DEFAULT_METHOD` | `browser` | `browser` (Standard) oder `simple` |
 
 ### Sonstige
 
 | Variable | Default | Beschreibung |
 |----------|---------|--------------|
-| `METADATA_AGENT_CORS_ORIGINS` | `*` | CORS-Origins (komma-separiert oder `*`) |
+| `METADATA_AGENT_CORS_ORIGINS` | `*` | CORS-Origins (komma-separiert oder `*`). `allow_credentials` ist auf `False` gesetzt, da keine Client Credentials an die API sendet (Auth via `Authorization`-Header). `True` + `allow_origins=["*"]` verstößt gegen die CORS-Spec und wird von Safari blockiert. |
 | `METADATA_AGENT_DEBUG` | `false` | Debug-Modus |
 
 ### `.env` Beispiel
@@ -967,9 +969,9 @@ Jede URL ist einzeln konfigurierbar. Defaults sind Staging-URLs.
 B_API_KEY=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 METADATA_AGENT_LLM_PROVIDER=b-api-openai
 
-# Externe Dienste (Default: Staging — für Prod URLs anpassen)
-# METADATA_AGENT_B_API_BASE_URL=https://b-api.prod.openeduhub.net
-# METADATA_AGENT_TEXT_EXTRACTION_API_URL=https://text-extraction.prod.openeduhub.net
+# Optional: OpenAI direkt
+# OPENAI_API_KEY=sk-proj-...
+# METADATA_AGENT_LLM_PROVIDER=openai
 
 # Optional: Repository Upload
 # WLO_GUEST_USERNAME=upload-user
@@ -1309,12 +1311,6 @@ spec:
         ports:
         - containerPort: 8000
         env:
-        - name: METADATA_AGENT_B_API_BASE_URL
-          value: "https://b-api.prod.openeduhub.net"
-        - name: METADATA_AGENT_TEXT_EXTRACTION_API_URL
-          value: "https://text-extraction.prod.openeduhub.net"
-        - name: METADATA_AGENT_REPOSITORY_URL
-          value: "https://redaktion.openeduhub.net/edu-sharing/rest"
         - name: B_API_KEY
           valueFrom:
             secretKeyRef:

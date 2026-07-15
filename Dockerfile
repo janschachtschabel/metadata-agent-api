@@ -8,19 +8,17 @@
 # Run:    docker run -d -p 8000:8000 -e B_API_KEY=... metadata-agent-api
 # =============================================================================
 
-# Build stage — install Python dependencies via uv
-FROM python:3.13-slim AS builder
+# Build stage — install Python dependencies
+FROM python:3.12-slim AS builder
 
 WORKDIR /app
+RUN pip install --no-cache-dir --upgrade pip
 
-COPY --from=ghcr.io/astral-sh/uv:latest /uv /usr/local/bin/uv
-ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
-
-COPY pyproject.toml uv.lock ./
-RUN uv sync --locked --no-install-project --no-dev
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Production stage
-FROM python:3.13-slim
+FROM python:3.12-slim
 
 WORKDIR /app
 
@@ -49,9 +47,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     fonts-noto-color-emoji \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy virtual environment from builder
-COPY --from=builder /app/.venv /app/.venv
-ENV PATH="/app/.venv/bin:$PATH"
+# Copy installed Python packages from builder
+COPY --from=builder /usr/local/lib/python3.12/site-packages /usr/local/lib/python3.12/site-packages
+COPY --from=builder /usr/local/bin /usr/local/bin
 
 # Install Playwright Chromium browser into shared location
 # (must be accessible by non-root appuser at runtime)
