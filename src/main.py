@@ -10,6 +10,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.openapi.utils import get_openapi
+from pydantic import ValidationError
 from contextlib import asynccontextmanager
 
 from .config import get_settings
@@ -125,6 +126,9 @@ async def lifespan(app: FastAPI):
     print(f"LLM Provider: {settings.llm_provider}")
     print(f"LLM Model: {llm_config['model']}")
     print(f"LLM API Base: {llm_config['api_base']}")
+    print(f"B-API Base URL: {settings.b_api_base_url}")
+    print(f"Text Extraction URL: {settings.text_extraction_api_url}")
+    print(f"Repository URL: {settings.repository_url}")
     print(f"Default Workers: {settings.default_max_workers}")
 
     yield
@@ -213,6 +217,8 @@ _cors_origins = (
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins,
+    # Must stay False while allow_origins can be "*" — browsers reject the
+    # wildcard origin in combination with credentials.
     allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -259,6 +265,119 @@ async def widget_i18n(lang: str):
         content=json.loads(file_path.read_text(encoding="utf-8")),
         headers={"Cache-Control": "public, max-age=3600"},
     )
+
+
+# Layouts, attributes and events below mirror the shipped widget bundle.
+# tests/test_widget_info.py verifies them against src/static/widget/dist/main.js —
+# keep both in sync when the widget is rebuilt.
+_WIDGET_LAYOUTS = {
+    "default": "Vollständige Bearbeitung — Eingabe, Statusbar, Floating Controls, Footer.",
+    "plugin": "Kompakte Sidebar für Browser-Extensions — Eingabe, Fortschritt, randlos.",
+    "dialog": "Review-Dialog für Modals — kein Eingabebereich, Speichern-Button.",
+    "detail": "Mehrspaltige Nur-Lese-Vorschau (4 Spalten), randlos.",
+    "clean": "Minimale randlose Ansicht zum Prüfen — editierbar, kompakt.",
+    "prueftisch": "Prüftabelle mit gruppierten Karten, 1-spaltig.",
+    "prueftisch-org": "Organisatorischer Prüftisch — randlos, nur lesend.",
+}
+
+# Aliases resolve to a layout; they do NOT change any other attribute.
+_WIDGET_LAYOUT_ALIASES = {
+    "default": [
+        "standalone",
+        "local",
+        "normal",
+        "edit",
+        "bookmarklet",
+        "webcomponent",
+        "embed",
+        "embedded",
+        "viewer",
+        "view",
+        "readonly",
+    ],
+    "plugin": ["browser-extension", "extension", "sidebar"],
+    "dialog": ["modal", "review", "redaktion"],
+    "detail": ["preview", "print"],
+    "clean": ["metadatenpruefdialog", "pruefung", "validation", "check"],
+    "prueftisch": [
+        "reviewtable",
+        "table",
+        "qa",
+        "prueftisch-gross",
+        "prueftisch-large",
+        "reviewtable-large",
+        "qa-large",
+    ],
+    "prueftisch-org": [
+        "reviewtable-org",
+        "qa-org",
+        "prueftisch-org-large",
+        "reviewtable-org-large",
+        "qa-org-large",
+    ],
+}
+
+_WIDGET_ATTRIBUTES = {
+    # Configuration
+    "api-url": "URL der Metadata Agent API (Pflicht, alternativ window.__ENV.agentUrl).",
+    "layout": "Layout-Variante, siehe 'layouts'. Aliase siehe 'layout_aliases'.",
+    "context-name": "Schema-Kontext: 'default' oder 'mds_oeh'.",
+    "schema-version": "Schema-Version, z.B. '1.8.1' oder 'latest'.",
+    "columns": "Spaltenanzahl 1–4. Werte außerhalb werden ignoriert.",
+    "background-color": "CSS-Hintergrundfarbe.",
+    "input-mode": "Eingabemodus: 'text', 'url' oder 'nodeId'.",
+    "instance-id": "Instanz-Kennung. Gleiche ID = geteilter State, Events feuern einmal.",
+    "debug": "Konsolen-Logging aktivieren.",
+    # Visibility — opt-in: only true/"true" enables, layout default otherwise
+    "show-input-area": "Eingabebereich anzeigen (opt-in).",
+    "show-status-bar": "Statusleiste mit Fortschritt anzeigen (opt-in).",
+    "show-footer": "Fußzeile anzeigen (opt-in).",
+    "show-floating-controls": "Floating Controls anzeigen (opt-in).",
+    "controls": "Alias für show-floating-controls (OEH-Kompatibilität).",
+    "show-upload-button": "Upload-Button anzeigen (opt-in).",
+    "show-save-button": "JSON-Download-Button anzeigen (opt-in).",
+    "show-json-loader": "JSON-Import-Button anzeigen (opt-in).",
+    "show-language-switcher": "Sprachumschalter de/en anzeigen (opt-in).",
+    "show-content-type": "Content-Type-Selector anzeigen (opt-in).",
+    "show-reset-button": "Reset-Button anzeigen (opt-in).",
+    "show-page-mode": "Seitenmodus-Umschalter anzeigen (opt-in).",
+    "show-content-type-only": "Nur den Content-Type-Selector anzeigen (opt-in).",
+    # Visibility — opt-out: only false/"false" disables
+    "show-core-fields": "Kernfelder anzeigen (opt-out).",
+    "show-special-fields": "Spezialfelder anzeigen (opt-out).",
+    "show-field-actions": "Feld-Aktionsbuttons anzeigen (opt-out).",
+    "show-preview": "Vorschaubild anzeigen (opt-out, Standard true).",
+    # Behaviour
+    "readonly": "Nur-Lese-Modus.",
+    "viewer-mode": "Alias für readonly (Rückwärtskompatibilität).",
+    "borderless": "Rahmenloser Modus.",
+    "flat-groups": "Feldgruppen pro Schema zusammenfassen.",
+    "highlight-ai": "KI-generierte Felder farblich hervorheben.",
+    "enable-screenshot": "Screenshot bei URL-Extraktion (opt-out).",
+    "screenshot-method": "'pageshot' oder 'playwright'. Andere Werte werden ignoriert.",
+    "auto-extract": "Nach dem Laden sofort extrahieren.",
+    "force-reset": "Reset ohne Bestätigungsdialog.",
+    # Data
+    "text": "Text als Eingabe setzen.",
+    "url": "URL als Eingabe setzen.",
+    "content-type": "Inhaltstyp per Schema-Datei ('event.json') oder Vokabular-URI.",
+    "metadata-input": "Vorbefüllte Metadaten. Nur per JS: canvas.metadataInput = {...}",
+    "preview-image": "Vorschaubild als Data-URL oder URL. Nur per JS.",
+}
+
+_WIDGET_EVENTS = {
+    "metadataChange": "Nach jeder Feldänderung (50 ms entprellt). event.detail enthält die vollständigen Metadaten.",
+    "metadataSubmit": "Beim Absenden/Speichern. event.detail enthält die vollständigen Metadaten.",
+    "uploadResult": "Nach dem Repository-Upload. event.detail = {success, nodeId, error, duplicate, repositoryUrl}.",
+    "reloadFromPage": "Nutzer hat 'Seite neu laden' geklickt (Plugin-Modus). Ohne Payload.",
+}
+
+# Dispatched *into* the component, not emitted by it.
+_WIDGET_INCOMING_EVENTS = {
+    "plugin-extract": "Extraktion von außen anstoßen: "
+    "canvas.dispatchEvent(new CustomEvent('plugin-extract', "
+    "{detail: {text, url, inputMode, reset}})).",
+}
 
 
 @app.get(
@@ -309,28 +428,12 @@ async def widget_info(request: Request):
                     "<metadata-agent-canvas\n"
                     '  api-url="' + base + '"\n'
                     '  layout="default"\n'
-                    '  show-input="true"\n'
+                    '  show-input-area="true"\n'
                     '  show-status-bar="true"\n'
-                    '  show-controls="true">\n'
+                    '  show-floating-controls="true">\n'
                     "</metadata-agent-canvas>"
                 ),
-                "attributes": {
-                    "api-url": "URL der Metadata Agent API",
-                    "layout": "Layout-Variante: default, compact, minimal, detail",
-                    "context-name": "Schema-Kontext, z.B. 'default' oder 'mds_oeh'",
-                    "show-input": "Eingabebereich anzeigen (true/false)",
-                    "show-status-bar": "Statusleiste anzeigen (true/false)",
-                    "show-controls": "Floating Controls anzeigen (true/false)",
-                    "show-core-fields": "Kernfelder anzeigen (true/false)",
-                    "show-special-fields": "Spezialfelder anzeigen (true/false)",
-                    "borderless": "Rahmenloser Modus (true/false)",
-                    "readonly": "Nur-Lese-Modus (true/false)",
-                    "highlight-ai": "KI-generierte Felder hervorheben (true/false)",
-                    "node-id": "edu-sharing Node-ID für automatische Extraktion",
-                    "source-url": "URL für automatische Text-Extraktion",
-                    "content-type": "Inhaltstyp setzen (Schema-Dateiname, z.B. 'event.json'). Per JS: canvas.contentType = 'event.json'",
-                    "metadata-input": "Vorab-Metadaten als JSON-Objekt. Per JS: canvas.metadataInput = {...}",
-                },
+                "attributes": _WIDGET_ATTRIBUTES,
             },
             "detail": {
                 "description": "Nur-Lese Detailansicht. Mehrspaltig, ohne Eingabe. "
@@ -344,13 +447,18 @@ async def widget_info(request: Request):
                     "<metadata-agent-canvas\n"
                     '  api-url="' + base + '"\n'
                     '  layout="detail"\n'
-                    '  node-id="DEINE-NODE-ID"\n'
+                    '  columns="4"\n'
                     '  readonly="true">\n'
-                    "</metadata-agent-canvas>"
+                    "</metadata-agent-canvas>\n\n"
+                    "<script>\n"
+                    "  // Es gibt kein node-id-Attribut. Daten werden per JS gesetzt:\n"
+                    "  document.querySelector('metadata-agent-canvas')\n"
+                    "    .metadataInput = { /* Output von /generate */ };\n"
+                    "</script>"
                 ),
             },
             "minimal": {
-                "description": "Kompakte Variante ohne Statusbar und Controls. "
+                "description": "Kompakte, randlose Variante ohne Statusbar. "
                 "Für Einbettung in bestehende Formulare oder Sidebars.",
                 "example_url": f"{examples_base}/minimal.html",
                 "snippet": (
@@ -360,30 +468,34 @@ async def widget_info(request: Request):
                     '<script src="' + dist_base + '/main.js" defer></script>\n\n'
                     "<metadata-agent-canvas\n"
                     '  api-url="' + base + '"\n'
-                    '  layout="compact"\n'
-                    '  show-input="true"\n'
+                    '  layout="clean"\n'
+                    '  show-input-area="true"\n'
                     '  show-status-bar="false"\n'
-                    '  show-controls="false"\n'
-                    '  borderless="true">\n'
+                    '  show-floating-controls="false">\n'
                     "</metadata-agent-canvas>"
                 ),
             },
         },
-        "events": {
-            "metadataChange": "Wird ausgelöst wenn sich Metadaten ändern. event.detail enthält die aktualisierten Felder.",
-            "metadataSubmit": "Wird ausgelöst wenn der Nutzer die Metadaten absendet. event.detail enthält alle Metadaten.",
-            "extractionComplete": "Wird nach Abschluss der KI-Extraktion ausgelöst.",
-            "contentTypeDetected": "Wird ausgelöst wenn der Inhaltstyp erkannt wurde.",
-        },
+        "layouts": _WIDGET_LAYOUTS,
+        "layout_aliases": _WIDGET_LAYOUT_ALIASES,
+        "attributes": _WIDGET_ATTRIBUTES,
+        "events": _WIDGET_EVENTS,
+        "incoming_events": _WIDGET_INCOMING_EVENTS,
         "examples": {
             "full": f"{examples_base}/full.html",
             "detail": f"{examples_base}/detail.html",
             "minimal": f"{examples_base}/minimal.html",
+            "boilerplate": f"{examples_base}/boilerplate.html",
             "json_import": f"{examples_base}/json-import.html",
             "prueftisch": f"{examples_base}/prueftisch.html",
             "prueftisch_gross": f"{examples_base}/prueftisch-gross.html",
             "clean": f"{examples_base}/clean.html",
             "default": f"{examples_base}/default.html",
+            "review_demo": f"{examples_base}/review-demo.html",
+            "canvas_parameter_demo": f"{examples_base}/canvas-parameter-demo.html",
+            "floating_controls_demo": f"{examples_base}/floating-controls-demo.html",
+            "dual_instance_test": f"{examples_base}/dual-instance-test.html",
+            "uri_test": f"{examples_base}/uri-test.html",
             "interactive_test": f"{examples_base}/test.html",
         },
         "example_data": {
@@ -543,12 +655,9 @@ async def get_schema_definition(context: str, version: str, schema_file: str):
 | `txt` | Reiner Text |
 | `html` | Rohes HTML |
 
-## Repository (repository)
+## Repository
 
-| Wert | URL |
-|------|-----|
-| `staging` | repository.staging.openeduhub.net (Standard) |
-| `prod` | redaktion.openeduhub.net |
+> **Deprecated:** Der Parameter `repository` wird ignoriert. Die Repository-URL wird über `METADATA_AGENT_REPOSITORY_URL` konfiguriert. Der Parameter wird aus Abwärtskompatibilität akzeptiert.
 
 ## LLM-Optionen
 
@@ -571,7 +680,6 @@ async def get_schema_definition(context: str, version: str, schema_file: str):
                                 "extraction_method": "browser",
                                 "output_format": "markdown",
                                 "node_id": "",
-                                "repository": "staging",
                                 "context": "default",
                                 "version": "latest",
                                 "language": "de",
@@ -589,7 +697,6 @@ async def get_schema_definition(context: str, version: str, schema_file: str):
                                 "extraction_method": "browser",
                                 "output_format": "markdown",
                                 "node_id": "",
-                                "repository": "staging",
                                 "context": "default",
                                 "version": "latest",
                                 "language": "de",
@@ -607,7 +714,6 @@ async def get_schema_definition(context: str, version: str, schema_file: str):
                                 "extraction_method": "browser",
                                 "output_format": "markdown",
                                 "node_id": "cbf66543-fb90-4e69-a392-03f305139e3f",
-                                "repository": "staging",
                                 "context": "default",
                                 "version": "latest",
                                 "language": "de",
@@ -655,9 +761,7 @@ async def detect_content_type(req: DetectContentTypeRequest):
                         status_code=400,
                         detail="node_id required for input_source='node_id'",
                     )
-                input_data = await input_service.fetch_from_node_id(
-                    req.node_id, req.repository.value
-                )
+                input_data = await input_service.fetch_from_node_id(req.node_id)
                 if input_data.source_url:
                     text = f"Quell-URL / Source URL: {input_data.source_url}\n\n{input_data.text}"
                 else:
@@ -670,9 +774,8 @@ async def detect_content_type(req: DetectContentTypeRequest):
                     )
                 input_data = await input_service.fetch_from_node_url(
                     req.node_id,
-                    req.repository.value,
-                    req.source_url or None,
-                    req.extraction_method.value,
+                    source_url=req.source_url or None,
+                    extraction_method=req.extraction_method.value,
                     lang=req.language,
                     output_format=req.output_format.value,
                 )
@@ -814,12 +917,9 @@ async def detect_content_type(req: DetectContentTypeRequest):
 | `txt` | Reiner Text |
 | `html` | Rohes HTML |
 
-## Repository (repository)
+## Repository
 
-| Wert | URL |
-|------|-----|
-| `staging` | repository.staging.openeduhub.net (Standard) |
-| `prod` | redaktion.openeduhub.net |
+> **Deprecated:** Der Parameter `repository` wird ignoriert. Die Repository-URL wird über `METADATA_AGENT_REPOSITORY_URL` konfiguriert.
 
 ## Feld-Optionen
 
@@ -849,7 +949,6 @@ async def detect_content_type(req: DetectContentTypeRequest):
                                 "extraction_method": "browser",
                                 "output_format": "markdown",
                                 "node_id": "",
-                                "repository": "staging",
                                 "context": "default",
                                 "version": "latest",
                                 "schema_file": "event.json",
@@ -871,7 +970,6 @@ async def detect_content_type(req: DetectContentTypeRequest):
                                 "extraction_method": "browser",
                                 "output_format": "markdown",
                                 "node_id": "",
-                                "repository": "staging",
                                 "context": "default",
                                 "version": "latest",
                                 "schema_file": "event.json",
@@ -893,7 +991,6 @@ async def detect_content_type(req: DetectContentTypeRequest):
                                 "extraction_method": "browser",
                                 "output_format": "markdown",
                                 "node_id": "cbf66543-fb90-4e69-a392-03f305139e3f",
-                                "repository": "staging",
                                 "context": "default",
                                 "version": "latest",
                                 "schema_file": "event.json",
@@ -915,7 +1012,6 @@ async def detect_content_type(req: DetectContentTypeRequest):
                                 "extraction_method": "browser",
                                 "output_format": "markdown",
                                 "node_id": "",
-                                "repository": "staging",
                                 "context": "default",
                                 "version": "latest",
                                 "schema_file": "event.json",
@@ -975,9 +1071,7 @@ async def extract_field(req: ExtractFieldRequest):
                         status_code=400,
                         detail="node_id required for input_source='node_id'",
                     )
-                input_data = await input_service.fetch_from_node_id(
-                    req.node_id, req.repository.value
-                )
+                input_data = await input_service.fetch_from_node_id(req.node_id)
                 # Prepend source URL if available (from ccm:wwwurl) so LLM can use it
                 if input_data.source_url:
                     text = f"Quell-URL / Source URL: {input_data.source_url}\n\n{input_data.text}"
@@ -996,9 +1090,8 @@ async def extract_field(req: ExtractFieldRequest):
                     )
                 input_data = await input_service.fetch_from_node_url(
                     req.node_id,
-                    req.repository.value,
-                    req.source_url or None,
-                    req.extraction_method.value,
+                    source_url=req.source_url or None,
+                    extraction_method=req.extraction_method.value,
                     lang=req.language,
                     output_format=req.output_format.value,
                 )
@@ -1175,12 +1268,9 @@ async def extract_field(req: ExtractFieldRequest):
 | `txt` | Reiner Text |
 | `html` | Rohes HTML |
 
-## Repository (repository)
+## Repository
 
-| Wert | URL |
-|------|-----|
-| `staging` | repository.staging.openeduhub.net (Standard) |
-| `prod` | redaktion.openeduhub.net |
+> **Deprecated:** Der Parameter `repository` wird ignoriert. Die Repository-URL wird über `METADATA_AGENT_REPOSITORY_URL` konfiguriert.
 
 ## Schema-Optionen
 
@@ -1229,7 +1319,6 @@ async def extract_field(req: ExtractFieldRequest):
                                 "extraction_method": "browser",
                                 "output_format": "markdown",
                                 "node_id": "",
-                                "repository": "staging",
                                 "existing_metadata": {},
                                 "context": "default",
                                 "version": "latest",
@@ -1257,7 +1346,6 @@ async def extract_field(req: ExtractFieldRequest):
                                 "extraction_method": "browser",
                                 "output_format": "markdown",
                                 "node_id": "",
-                                "repository": "staging",
                                 "existing_metadata": {},
                                 "context": "default",
                                 "version": "latest",
@@ -1277,7 +1365,7 @@ async def extract_field(req: ExtractFieldRequest):
                         },
                         "node_id_input": {
                             "summary": "3. NodeID-Eingabe (Repository)",
-                            "description": "Metadaten + hinterlegte Volltexte von Repository-Node abrufen. repository: 'staging' oder 'prod'.",
+                            "description": "Metadaten + hinterlegte Volltexte von Repository-Node abrufen.",
                             "value": {
                                 "input_source": "node_id",
                                 "text": "",
@@ -1285,7 +1373,6 @@ async def extract_field(req: ExtractFieldRequest):
                                 "extraction_method": "browser",
                                 "output_format": "markdown",
                                 "node_id": "cbf66543-fb90-4e69-a392-03f305139e3f",
-                                "repository": "staging",
                                 "existing_metadata": {},
                                 "context": "default",
                                 "version": "latest",
@@ -1313,7 +1400,6 @@ async def extract_field(req: ExtractFieldRequest):
                                 "extraction_method": "browser",
                                 "output_format": "markdown",
                                 "node_id": "cbf66543-fb90-4e69-a392-03f305139e3f",
-                                "repository": "staging",
                                 "existing_metadata": {},
                                 "context": "default",
                                 "version": "latest",
@@ -1341,7 +1427,6 @@ async def extract_field(req: ExtractFieldRequest):
                                 "extraction_method": "browser",
                                 "output_format": "markdown",
                                 "node_id": "",
-                                "repository": "staging",
                                 "existing_metadata": {
                                     "cclom:title": "Mein Workshop",
                                     "cclom:general_keyword": ["KI", "Bildung"],
@@ -1508,9 +1593,7 @@ async def generate_metadata(request: Request):
             )
         try:
             input_service = get_input_source_service()
-            input_data = await input_service.fetch_from_node_id(
-                node_id=req.node_id, repository=req.repository.value
-            )
+            input_data = await input_service.fetch_from_node_id(node_id=req.node_id)
             # Prepend source URL if available (from ccm:wwwurl) so LLM can use it
             if input_data.source_url:
                 text = f"Quell-URL / Source URL: {input_data.source_url}\n\n{input_data.text}"
@@ -1538,7 +1621,6 @@ async def generate_metadata(request: Request):
             input_service = get_input_source_service()
             input_data = await input_service.fetch_from_node_url(
                 node_id=req.node_id,
-                repository=req.repository.value,
                 source_url=req.source_url or None,
                 extraction_method=req.extraction_method.value,
                 lang=req.language,
@@ -1929,13 +2011,14 @@ Kopiere einfach den kompletten Output von `/generate` direkt hier rein.
 
 | Parameter | Werte | Beschreibung |
 |-----------|-------|-------------|
-| `repository` | `staging` (Standard), `prod` | Ziel-Repository (staging = repository.staging.openeduhub.net, prod = redaktion.openeduhub.net) |
+| `repository` | *(deprecated — ignoriert)* | Repository-URL wird über `METADATA_AGENT_REPOSITORY_URL` konfiguriert. Parameter wird aus Abwärtskompatibilität akzeptiert. |
 | `check_duplicates` | `true` (Standard), `false` | Duplikat-Prüfung via ccm:wwwurl |
 | `start_workflow` | `true` (Standard), `false` | Review-Workflow starten |
 | `preview_url` | URL (leer = auto) | URL für Vorschaubild-Screenshot. Wenn leer, wird `ccm:wwwurl` aus den Metadaten verwendet. |
 | `screenshot_method` | `pageshot` (Standard), `playwright` | Methode für Screenshot-Erfassung. `pageshot` = externe API, `playwright` = intern/privacy-safe. |
 | `write_extended_data` | `true` (Standard), `false` | Extended-Felder schreiben (`ccm:oeh_extendedType`, `ccm:oeh_extendedData`, `ccm:oeh_extendedText`). |
 | `extended_text` | String (leer = auto) | Rohtext vor der Extraktion. Wird in `ccm:oeh_extendedText` geschrieben. |
+| `return_full_node` | `false` (Standard), `true` | Node nach dem Schreiben zurücklesen und als `node_full` mitliefern. |
 
 ## Workflow
 
@@ -1945,12 +2028,32 @@ Kopiere einfach den kompletten Output von `/generate` direkt hier rein.
 4. **Collections**: Fügt Node zu Collections hinzu (falls angegeben)
 5. **Extended Fields** (optional): Schreibt `ccm:oeh_extendedType` (Inhaltstyp-URI), `ccm:oeh_extendedData` (Metadaten-JSON), `ccm:oeh_extendedText` (Rohtext)
 6. **Workflow starten** (optional): Startet Review-Prozess
+7. **Node zurücklesen** (optional, `return_full_node`): Liest den fertigen Node erneut aus
 
 ## Response
 
 - **success**: `true` bei erfolgreichem Upload
 - **duplicate**: `true` wenn URL bereits existiert
 - **node**: Node-Info mit ID und URL
+- **node_full**: Vollständiger edu-sharing Node — nur bei `return_full_node: true`
+
+### `node_full`
+
+Enthält den Node exakt so, wie ihn das Repository liefert — gleiche Struktur wie das
+`node`-Objekt von `GET /node/v1/nodes/-home-/{id}/metadata` bzw. der Antwort von
+`createChild`. Gedacht für Clients, die den Node nicht selbst nachlesen können, weil
+sie als Gast keinen Repository-Zugriff haben.
+
+Die Felder liegen dort in edu-sharing-Notation, nicht in der verkürzten Form von `node`:
+
+| `node` | `node_full` |
+|--------|-------------|
+| `nodeId` | `ref.id` |
+| `title` | `properties["cclom:title"][0]` |
+| `wwwurl` | `properties["ccm:wwwurl"][0]` |
+
+Kostet einen zusätzlichen Repository-Aufruf. Schlägt der Lesevorgang fehl, bleibt
+`node_full` leer — der Upload selbst gilt weiterhin als erfolgreich.
 """,
     openapi_extra={
         "requestBody": {
@@ -1960,14 +2063,13 @@ Kopiere einfach den kompletten Output von `/generate` direkt hier rein.
                     "examples": {
                         "direkt": {
                             "summary": "Direkter Output von /generate",
-                            "description": "Kopiere den Output von /generate hier rein. Optional: repository, check_duplicates, start_workflow, preview_url, screenshot_method",
+                            "description": "Kopiere den Output von /generate hier rein. Optional: check_duplicates, start_workflow, preview_url, screenshot_method",
                             "value": {
                                 "contextName": "default",
                                 "schemaVersion": "1.8.1",
                                 "metadataset": "event.json",
                                 "cclom:title": "Workshop KI in der Bildung",
                                 "ccm:wwwurl": "https://example.com/workshop",
-                                "repository": "staging",
                                 "check_duplicates": True,
                                 "start_workflow": True,
                                 "preview_url": "",
@@ -1989,7 +2091,6 @@ async def upload_to_repository(request: Request):
     **Einfache Nutzung:** Kopiere einfach den kompletten Output von `/generate` direkt hier rein.
 
     Optional kannst du Optionen mit übergeben:
-    - `repository`: "staging" (default) oder "production"
     - `check_duplicates`: true (default) oder false
     - `start_workflow`: true (default) oder false
 
@@ -2048,12 +2149,6 @@ async def upload_to_repository(request: Request):
             detail="Repository service not configured. Set WLO_GUEST_USERNAME and WLO_GUEST_PASSWORD environment variables.",
         )
 
-    if req.repository not in ("staging", "prod", "production"):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid repository: {req.repository}. Use 'staging' or 'prod'.",
-        )
-
     # Extract context/version from metadata (before potential unwrapping)
     context = req.metadata.get("contextName", "default")
     version = req.metadata.get("schemaVersion", "latest")
@@ -2102,13 +2197,13 @@ async def upload_to_repository(request: Request):
     # ── Upload metadata (runs in parallel with screenshot) ──
     result = await repo_service.upload_metadata(
         metadata=req.metadata,
-        repository=req.repository,
         check_duplicates=req.check_duplicates,
         start_workflow=req.start_workflow,
         context=context,
         version=version,
         write_extended_data=req.write_extended_data,
         extended_text=req.extended_text,
+        return_full_node=req.return_full_node,
     )
 
     # ── Upload screenshot as preview (if screenshot was started and node was created) ──
@@ -2126,11 +2221,11 @@ async def upload_to_repository(request: Request):
             )
 
             # Upload as preview
-            from .services.repository_service import _get_repository_configs
+            from .services.repository_service import _get_repository_config
 
-            config = _get_repository_configs().get(req.repository)
-            if config:
-                base_url = config["base_url"]
+            config = _get_repository_config()
+            base_url = config["base_url"]
+            if base_url:
                 upload_url = (
                     f"{base_url}/rest/node/v1/nodes/-home-/{node_id}/preview"
                     f"?mimetype={screenshot_result.mimetype}&createVersion=true"
@@ -2186,8 +2281,8 @@ async def upload_to_repository(request: Request):
     return UploadResponse(
         success=result.get("success", False),
         duplicate=result.get("duplicate"),
-        repository=result.get("repository"),
         node=node_info,
+        node_full=result.get("node_full"),
         error=result.get("error"),
         step=result.get("step"),
         fields_written=result.get("fields_written"),
@@ -2267,7 +2362,6 @@ async def take_screenshot(req: ScreenshotRequest):
             upload_result = await screenshot_service.capture_and_upload_preview(
                 url=req.url,
                 node_id=req.node_id,
-                repository=req.repository,
                 auth_header=repo_service._auth_header,
                 method=req.method.value,
                 width=req.width,
@@ -2322,7 +2416,7 @@ Zählt die Anzahl der Felder pro Status-Kategorie.
                         "nur_lesen": {
                             "summary": "1. Nur Metadaten lesen",
                             "description": "Gibt die aktuellen Repository-Metadaten zurück (kein Vergleich).",
-                            "value": {"repository": "staging"},
+                            "value": {},
                         },
                         "mit_vergleich": {
                             "summary": "2. SOLL/IST-Vergleich",
@@ -2336,7 +2430,6 @@ Zählt die Anzahl der Felder pro Status-Kategorie.
                                     "ccm:wwwurl": "https://example.com/workshop",
                                     "ccm:taxonid": "http://w3id.org/openeduhub/vocabs/discipline/12002",
                                 },
-                                "repository": "staging",
                             },
                         },
                     },
@@ -2365,30 +2458,37 @@ async def verify_upload(node_id: str, request: Request):
     context = "default"
     version = "latest"
 
-    try:
-        raw_body = await request.body()
-        if raw_body and raw_body.strip():
-            body_str = raw_body.decode("utf-8")
-            data = json.loads(sanitize_json_string(body_str))
+    raw_body = await request.body()
+    if raw_body and raw_body.strip():
+        # A body means the caller asked for a SOLL/IST comparison. A broken body
+        # must not degrade into a plain read that answers 200 — that would report
+        # a comparison as done which never happened.
+        try:
+            data = json.loads(sanitize_json_string(raw_body.decode("utf-8")))
+        except (UnicodeDecodeError, json.JSONDecodeError) as e:
+            raise HTTPException(
+                status_code=400, detail=f"Ungültiger JSON-Body: {e}"
+            ) from e
 
+        if not isinstance(data, dict):
+            raise HTTPException(
+                status_code=400,
+                detail='Body muss ein JSON-Objekt sein (z.B. {"expected_metadata": {...}}).',
+            )
+
+        try:
             req = VerifyRequest(**data)
-            expected_metadata = req.expected_metadata
-            repository = req.repository
+        except ValidationError as e:
+            raise HTTPException(
+                status_code=400, detail=f"Ungültiger Request-Body: {e.errors()}"
+            ) from e
 
-            # Extract context/version from expected metadata if available
-            if expected_metadata:
-                context = expected_metadata.get("contextName", "default")
-                version = expected_metadata.get("schemaVersion", "latest")
-    except json.JSONDecodeError:
-        pass  # No body or invalid JSON → just read
-    except Exception:
-        pass
+        expected_metadata = req.expected_metadata
 
-    if repository not in ("staging", "prod", "production"):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid repository: {repository}. Use 'staging' or 'prod'.",
-        )
+        # Extract context/version from expected metadata if available
+        if expected_metadata:
+            context = expected_metadata.get("contextName", "default")
+            version = expected_metadata.get("schemaVersion", "latest")
 
     result = await repo_service.verify_node(
         node_id=node_id,
@@ -2411,7 +2511,6 @@ async def verify_upload(node_id: str, request: Request):
     return VerifyResponse(
         success=True,
         node_id=node_id,
-        repository=repository,
         actual_metadata=result["actual_metadata"],
         diff=diff_list,
         summary=result.get("summary"),

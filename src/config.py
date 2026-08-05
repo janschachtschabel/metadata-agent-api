@@ -1,7 +1,7 @@
 """Application configuration."""
 
 from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic import Field, model_validator
 from functools import lru_cache
 from typing import Optional
 
@@ -27,14 +27,19 @@ class Settings(BaseSettings):
     # B-API Configuration (shared key for both b-api providers)
     b_api_key: str = Field(default="", alias="B_API_KEY")
 
+    # B-API Base URL (Staging/Prod — endpoint paths are derived automatically)
+    # Staging: https://b-api.staging.openeduhub.net
+    # Prod:    https://b-api.prod.openeduhub.net
+    b_api_base_url: str = "https://b-api.staging.openeduhub.net"
+
     # B-API OpenAI (OpenAI-compatible endpoint via B-API)
-    b_api_openai_base: str = "https://b-api.staging.openeduhub.net/api/v1/llm/openai"
+    # Derived from b_api_base_url if left empty
+    b_api_openai_base: str = ""
     b_api_openai_model: str = "gpt-4.1-mini"
 
     # B-API AcademicCloud (AcademicCloud endpoint via B-API)
-    b_api_academiccloud_base: str = (
-        "https://b-api.staging.openeduhub.net/api/v1/llm/academiccloud"
-    )
+    # Derived from b_api_base_url if left empty
+    b_api_academiccloud_base: str = ""
     b_api_academiccloud_model: str = "deepseek-r1"
 
     # General LLM Settings
@@ -55,14 +60,14 @@ class Settings(BaseSettings):
     normalization_enabled: bool = True
     normalization_temperature: float = 0.1
 
-    # Repository Settings (for NodeID input source)
-    repository_prod_url: str = "https://redaktion.openeduhub.net/edu-sharing/rest"
-    repository_staging_url: str = (
-        "https://repository.staging.openeduhub.net/edu-sharing/rest"
-    )
-    repository_default: str = "staging"  # 'prod' or 'staging'
+    # Repository URL (for NodeID input source and upload)
+    # Staging: https://repository.staging.openeduhub.net/edu-sharing/rest
+    # Prod:    https://redaktion.openeduhub.net/edu-sharing/rest
+    repository_url: str = "https://repository.staging.openeduhub.net/edu-sharing/rest"
 
     # Text Extraction API Settings (for URL input source)
+    # Staging: https://text-extraction.staging.openeduhub.net
+    # Prod:    https://text-extraction.prod.openeduhub.net
     text_extraction_api_url: str = "https://text-extraction.staging.openeduhub.net"
     text_extraction_default_method: str = "simple"  # 'simple' or 'browser'
 
@@ -71,9 +76,8 @@ class Settings(BaseSettings):
     wlo_guest_password: str = Field(default="", alias="WLO_GUEST_PASSWORD")
     wlo_repository_base_url: str = Field(default="", alias="WLO_REPOSITORY_BASE_URL")
 
-    # WLO Repository Inbox IDs (where new nodes are created)
-    wlo_inbox_id_staging: str = "21144164-30c0-4c01-ae16-264452197063"
-    wlo_inbox_id_prod: str = "21144164-30c0-4c01-ae16-264452197063"
+    # WLO Repository Inbox ID (where new upload nodes are created)
+    wlo_inbox_id: str = "21144164-30c0-4c01-ae16-264452197063"
 
     # Screenshot Settings
     screenshot_method: str = (
@@ -89,6 +93,25 @@ class Settings(BaseSettings):
 
     # CORS Settings
     cors_origins: str = "*"  # Comma-separated origins, or '*' for all
+
+    @model_validator(mode="after")
+    def normalize_and_derive(self) -> "Settings":
+        """Strip trailing slashes from URLs and derive B-API endpoints."""
+        # Strip trailing slashes from all URL settings
+        self.b_api_base_url = self.b_api_base_url.rstrip("/")
+        self.text_extraction_api_url = self.text_extraction_api_url.rstrip("/")
+        self.repository_url = self.repository_url.rstrip("/")
+        self.openai_api_base = self.openai_api_base.rstrip("/")
+        self.pageshot_api_url = self.pageshot_api_url.rstrip("/")
+
+        # Derive B-API endpoint paths from base URL
+        if not self.b_api_openai_base:
+            self.b_api_openai_base = f"{self.b_api_base_url}/api/v1/llm/openai"
+        if not self.b_api_academiccloud_base:
+            self.b_api_academiccloud_base = (
+                f"{self.b_api_base_url}/api/v1/llm/academiccloud"
+            )
+        return self
 
     model_config = {
         "env_prefix": "METADATA_AGENT_",

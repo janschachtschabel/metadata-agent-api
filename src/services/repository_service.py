@@ -12,25 +12,34 @@ from ..utils.schema_loader import get_repo_fields, get_content_type_uri
 logger = logging.getLogger(__name__)
 
 
-def _get_repository_configs() -> dict:
-    """Build repository configs using settings for inbox IDs."""
+def build_auth_header(username: str, password: str) -> Optional[str]:
+    """
+    Build a Basic Auth header for the WLO service account.
+
+    Returns None when either credential is missing, so callers can fall back to
+    anonymous access instead of sending a header for empty credentials.
+    """
+    if not username or not password:
+        return None
+    encoded = base64.b64encode(f"{username}:{password}".encode()).decode()
+    return f"Basic {encoded}"
+
+
+def _get_repository_config() -> dict:
+    """Build repository config from settings (single configured URL)."""
     from ..config import get_settings
 
     settings = get_settings()
+
+    # Derive upload base URL from settings (strip '/rest' suffix if present,
+    # because the upload endpoints append '/rest/...' themselves)
+    base = settings.repository_url.rstrip("/")
+    if base.endswith("/rest"):
+        base = base[: -len("/rest")]
+
     return {
-        "staging": {
-            "base_url": "https://repository.staging.openeduhub.net/edu-sharing",
-            "inbox_id": settings.wlo_inbox_id_staging,
-        },
-        "prod": {
-            "base_url": "https://redaktion.openeduhub.net/edu-sharing",
-            "inbox_id": settings.wlo_inbox_id_prod,
-        },
-        # Alias for backwards compatibility
-        "production": {
-            "base_url": "https://redaktion.openeduhub.net/edu-sharing",
-            "inbox_id": settings.wlo_inbox_id_prod,
-        },
+        "base_url": base,
+        "inbox_id": settings.wlo_inbox_id,
     }
 
 
@@ -71,10 +80,8 @@ class RepositoryService:
         self._auth_header = self._create_auth_header()
 
     def _create_auth_header(self) -> str:
-        """Create Basic Auth header."""
-        credentials = f"{self.username}:{self.password}"
-        encoded = base64.b64encode(credentials.encode()).decode()
-        return f"Basic {encoded}"
+        """Create Basic Auth header (credentials are guaranteed by the factory)."""
+        return build_auth_header(self.username, self.password) or ""
 
     async def upload_metadata(
         self,
@@ -86,27 +93,24 @@ class RepositoryService:
         version: str = "latest",
         write_extended_data: bool = True,
         extended_text: Optional[str] = None,
+        return_full_node: bool = False,
     ) -> dict[str, Any]:
         """
         Upload metadata to WLO repository.
 
         Args:
             metadata: Metadata dict from /generate endpoint
-            repository: "staging" or "production"
+            repository: Ignored (kept for backward compatibility)
             check_duplicates: Check for duplicates by ccm:wwwurl
             start_workflow: Start review workflow after upload
             write_extended_data: Write ccm:oeh_extendedType/Data/Text fields
             extended_text: Raw source text before extraction
+            return_full_node: Read the node back and include it as 'node_full'
 
         Returns:
             Upload result with nodeId, success status, etc.
         """
-        config = _get_repository_configs().get(repository)
-        if not config:
-            return {
-                "success": False,
-                "error": f"Unknown repository: {repository}. Use 'staging' or 'production'.",
-            }
+        config = _get_repository_config()
 
         base_url = config["base_url"]
         inbox_id = config["inbox_id"]
@@ -134,10 +138,9 @@ class RepositoryService:
                         duplicate = await self._check_duplicate(client, base_url, url)
                         if duplicate.get("exists"):
                             node_id = duplicate.get("nodeId")
-                            return {
+                            dup_result = {
                                 "success": False,
                                 "duplicate": True,
-                                "repository": repository,
                                 "node": {
                                     "nodeId": node_id,
                                     "title": duplicate.get("title"),
@@ -147,6 +150,11 @@ class RepositoryService:
                                 },
                                 "error": f'URL existiert bereits: "{duplicate.get("title")}"',
                             }
+                            if return_full_node and node_id:
+                                dup_result["node_full"] = await self._fetch_full_node(
+                                    client, base_url, node_id
+                                )
+                            return dup_result
 
                 # 2. Create node with minimal data
                 node_result = await self._create_node(
@@ -208,7 +216,6 @@ class RepositoryService:
 
                 result = {
                     "success": True,
-                    "repository": repository,
                     "node": {
                         "nodeId": node_id,
                         "title": title,
@@ -236,6 +243,13 @@ class RepositoryService:
                 ) == 0 and not metadata_result.get("success", True):
                     result["success"] = False
                     result["step"] = "setMetadata"
+
+                # 7. Read the finished node back for callers that cannot fetch it
+                # themselves (e.g. guest clients without repository access)
+                if return_full_node:
+                    result["node_full"] = await self._fetch_full_node(
+                        client, base_url, node_id
+                    )
 
                 return result
 
@@ -405,6 +419,37 @@ class RepositoryService:
 
         data = response.json()
         return {"success": True, "nodeId": data["node"]["ref"]["id"]}
+
+    async def _fetch_full_node(
+        self, client: httpx.AsyncClient, base_url: str, node_id: str
+    ) -> Optional[dict[str, Any]]:
+        """
+        Read the complete node from the repository.
+
+        Returns the raw edu-sharing node object (same shape as the 'node' entry of
+        GET /node/v1/nodes/-home-/{id}/metadata), or None if the read fails.
+
+        Never raises: the upload itself already succeeded at this point, so a
+        failed read-back must not turn a successful upload into an error.
+        """
+        url = f"{base_url}/rest/node/v1/nodes/-home-/{node_id}/metadata?propertyFilter=-all-"
+        try:
+            response = await client.get(
+                url,
+                headers={
+                    "Authorization": self._auth_header,
+                    "Accept": "application/json",
+                },
+            )
+            if response.status_code != 200:
+                print(
+                    f"⚠️ Read-back of node {node_id} failed: HTTP {response.status_code}"
+                )
+                return None
+            return response.json().get("node")
+        except Exception as e:
+            print(f"⚠️ Read-back of node {node_id} failed: {type(e).__name__}: {e}")
+            return None
 
     async def _set_metadata(
         self,
@@ -982,9 +1027,7 @@ class RepositoryService:
         Returns:
             Dict with actual_metadata, optional diff and summary
         """
-        config = _get_repository_configs().get(repository)
-        if not config:
-            return {"success": False, "error": f"Unknown repository: {repository}"}
+        config = _get_repository_config()
 
         base_url = config["base_url"]
 
@@ -1016,7 +1059,6 @@ class RepositoryService:
                 result = {
                     "success": True,
                     "node_id": node_id,
-                    "repository": repository,
                     "actual_metadata": actual,
                 }
 

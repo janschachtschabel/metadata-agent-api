@@ -150,6 +150,10 @@ Minimale Konfiguration — nur B-API Key eintragen:
 B_API_KEY=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 METADATA_AGENT_LLM_PROVIDER=b-api-openai
 
+# Externe Dienste (Default: Staging — für Prod URLs anpassen)
+# METADATA_AGENT_B_API_BASE_URL=https://b-api.staging.openeduhub.net
+# METADATA_AGENT_TEXT_EXTRACTION_API_URL=https://text-extraction.staging.openeduhub.net
+
 # Optional: Repository-Upload
 # WLO_GUEST_USERNAME=upload-user
 # WLO_GUEST_PASSWORD=upload-password
@@ -299,6 +303,10 @@ services:
       - METADATA_AGENT_LLM_PROVIDER=b-api-openai
       - B_API_KEY=${B_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+
+      # Externe Dienste (Default: Staging — für Prod URLs anpassen)
+      - METADATA_AGENT_B_API_BASE_URL=${METADATA_AGENT_B_API_BASE_URL:-https://b-api.staging.openeduhub.net}
+      - METADATA_AGENT_TEXT_EXTRACTION_API_URL=${METADATA_AGENT_TEXT_EXTRACTION_API_URL:-https://text-extraction.staging.openeduhub.net}
 
       # Repository Upload (optional)
       - WLO_GUEST_USERNAME=${WLO_GUEST_USERNAME:-}
@@ -604,16 +612,52 @@ Alle Variablen können in `.env`, als System-Umgebungsvariablen oder als Docker-
 | `METADATA_AGENT_LLM_MAX_RETRIES` | `3` | Wiederholungsversuche bei Fehler |
 | `METADATA_AGENT_LLM_RETRY_DELAY` | `1.0` | Wartezeit zwischen Retries (Sek.) |
 
+### Externe Dienste (B-API, Text-Extraction, Repository)
+
+Die API nutzt mehrere externe Dienste, die je nach Umgebung (Staging / Prod) unterschiedliche URLs haben. Jede URL ist einzeln konfigurierbar. Defaults sind Staging-URLs.
+
+| Variable | Default (Staging) | Prod-Wert | Beschreibung |
+|---|---|---|---|
+| `METADATA_AGENT_B_API_BASE_URL` | `https://b-api.staging.openeduhub.net` | `https://b-api.prod.openeduhub.net` | B-API Basis-URL (LLM-Zugriff). Endpoint-Pfade (`/api/v1/llm/openai`, `/api/v1/llm/academiccloud`) werden automatisch abgeleitet. |
+| `METADATA_AGENT_TEXT_EXTRACTION_API_URL` | `https://text-extraction.staging.openeduhub.net` | `https://text-extraction.prod.openeduhub.net` | Text-Extraction API (Volltext aus URLs extrahieren). |
+| `METADATA_AGENT_REPOSITORY_URL` | `https://repository.staging.openeduhub.net/edu-sharing/rest` | `https://redaktion.openeduhub.net/edu-sharing/rest` | Repository-URL (Metadaten-Abruf & Upload). |
+| `METADATA_AGENT_WLO_INBOX_ID` | `21144164-30c0-4c01-ae16-264452197063` | — | Inbox-ID für Uploads. |
+
+**Beispiel — Umschalten auf Produktion:**
+
+```env
+METADATA_AGENT_B_API_BASE_URL=https://b-api.prod.openeduhub.net
+METADATA_AGENT_TEXT_EXTRACTION_API_URL=https://text-extraction.prod.openeduhub.net
+METADATA_AGENT_REPOSITORY_URL=https://redaktion.openeduhub.net/edu-sharing/rest
+```
+
+**Docker:**
+
+```bash
+docker run -d \
+  --name metadata-agent-api \
+  -p 8000:8000 \
+  -e B_API_KEY=your-api-key \
+  -e METADATA_AGENT_B_API_BASE_URL=https://b-api.prod.openeduhub.net \
+  -e METADATA_AGENT_TEXT_EXTRACTION_API_URL=https://text-extraction.prod.openeduhub.net \
+  -e METADATA_AGENT_REPOSITORY_URL=https://redaktion.openeduhub.net/edu-sharing/rest \
+  metadata-agent-api
+```
+
+> **Hinweis:** Werden diese Variablen nicht gesetzt, verwenden alle Dienste die **Staging-URLs** als Default.
+>
+> Der Request-Parameter `repository` in `/generate` und `/upload` ist **deprecated** und wird ignoriert. Die Repository-URL wird ausschließlich über die Umgebungsvariable gesetzt.
+
 ### Provider-spezifische Einstellungen
 
-| Variable | Default |
-|---|---|
-| `METADATA_AGENT_B_API_OPENAI_BASE` | `https://b-api.staging.openeduhub.net/api/v1/llm/openai` |
-| `METADATA_AGENT_B_API_OPENAI_MODEL` | `gpt-4.1-mini` |
-| `METADATA_AGENT_B_API_ACADEMICCLOUD_BASE` | `https://b-api.staging.openeduhub.net/api/v1/llm/academiccloud` |
-| `METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL` | `deepseek-r1` |
-| `METADATA_AGENT_OPENAI_API_BASE` | `https://api.openai.com/v1` |
-| `METADATA_AGENT_OPENAI_MODEL` | `gpt-4o-mini` |
+| Variable | Default | Beschreibung |
+|---|---|---|
+| `METADATA_AGENT_B_API_OPENAI_BASE` | *(abgeleitet aus `B_API_BASE_URL`)* | Überschreibt den abgeleiteten OpenAI-Endpoint |
+| `METADATA_AGENT_B_API_OPENAI_MODEL` | `gpt-4.1-mini` | Modell für B-API OpenAI |
+| `METADATA_AGENT_B_API_ACADEMICCLOUD_BASE` | *(abgeleitet aus `B_API_BASE_URL`)* | Überschreibt den abgeleiteten AcademicCloud-Endpoint |
+| `METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL` | `deepseek-r1` | Modell für B-API AcademicCloud |
+| `METADATA_AGENT_OPENAI_API_BASE` | `https://api.openai.com/v1` | Natives OpenAI API |
+| `METADATA_AGENT_OPENAI_MODEL` | `gpt-4o-mini` | Modell für natives OpenAI |
 
 ### Worker & Performance
 
@@ -629,14 +673,10 @@ Alle Variablen können in `.env`, als System-Umgebungsvariablen oder als Docker-
 | `METADATA_AGENT_DEFAULT_CONTEXT` | `default` | Standard-Kontext (`default`, `mds_oeh`) |
 | `METADATA_AGENT_DEFAULT_VERSION` | `1.8.1` | Standard-Version (`latest` oder z.B. `1.8.1`) |
 
-### Repository & Crawler
+### Crawler & Text-Extraction
 
 | Variable | Default | Beschreibung |
 |---|---|---|
-| `METADATA_AGENT_REPOSITORY_PROD_URL` | `https://redaktion.openeduhub.net/edu-sharing/rest` | Prod-Repository |
-| `METADATA_AGENT_REPOSITORY_STAGING_URL` | `https://repository.staging.openeduhub.net/edu-sharing/rest` | Staging-Repository |
-| `METADATA_AGENT_REPOSITORY_DEFAULT` | `staging` | Standard-Repository: `staging` oder `prod` |
-| `METADATA_AGENT_TEXT_EXTRACTION_API_URL` | `https://text-extraction.staging.openeduhub.net` | Text-Extraction API |
 | `METADATA_AGENT_TEXT_EXTRACTION_DEFAULT_METHOD` | `simple` | `simple` oder `browser` |
 
 ### Screenshot
@@ -734,6 +774,12 @@ spec:
                 secretKeyRef:
                   name: metadata-agent-secrets
                   key: wlo-password
+            - name: METADATA_AGENT_B_API_BASE_URL
+              value: "https://b-api.prod.openeduhub.net"
+            - name: METADATA_AGENT_TEXT_EXTRACTION_API_URL
+              value: "https://text-extraction.prod.openeduhub.net"
+            - name: METADATA_AGENT_REPOSITORY_URL
+              value: "https://redaktion.openeduhub.net/edu-sharing/rest"
             - name: METADATA_AGENT_LLM_PROVIDER
               value: "b-api-openai"
             - name: METADATA_AGENT_DEFAULT_MAX_WORKERS

@@ -23,6 +23,10 @@ Generiert strukturierte Metadaten nach dem [WLO/OEH-Schema](https://wirlernenonl
 - [Widget / Webkomponente](#widget--webkomponente)
 - [Deployment](#deployment)
 
+**Weitere Dokumente:** [WIDGET-REFERENZ.md](WIDGET-REFERENZ.md) — vollständige Referenz
+der Webkomponente (Layouts, alle Attribute, Events) · [UPLOAD-RESPONSE.md](UPLOAD-RESPONSE.md)
+— Antwortformat von `/upload`
+
 ---
 
 ## Quickstart
@@ -131,7 +135,7 @@ Generiert vollständige Metadaten aus Text, URL oder Repository-Node.
 | `text` | string | — | Direkter Text (bei `input_source=text`) |
 | `source_url` | string | — | URL (bei `input_source=url` oder `node_url`) |
 | `node_id` | string | — | Repository Node-ID (bei `node_id` oder `node_url`) |
-| `repository` | enum | `staging` | `staging` oder `prod` |
+| `repository` | string | `staging` | *Deprecated — wird ignoriert, siehe [Umgebungsvariablen](#umgebungsvariablen)* |
 | `extraction_method` | enum | `browser` | `browser` (JS-Rendering, Standard) oder `simple` (schnell) |
 | `output_format` | enum | `markdown` | `markdown` (Standard), `txt` (Klartext), `html` (rohes HTML) |
 | **Schema** ||||
@@ -163,6 +167,11 @@ Generiert vollständige Metadaten aus Text, URL oder Repository-Node.
 | `url` | Text von URL via Crawler | `source_url` |
 | `node_id` | Volltext + Metadaten aus Repository | `node_id` |
 | `node_url` | Repository-Daten, Crawler-Fallback via `ccm:wwwurl` | `node_id` |
+
+> **Repository-Zugriff:** `node_id` und `node_url` lesen den Node mit dem Service-Account
+> aus `WLO_GUEST_USERNAME` / `WLO_GUEST_PASSWORD`. Ohne konfigurierte Credentials wird
+> anonym gelesen — dann sind nur öffentlich lesbare Nodes erreichbar, alle anderen
+> antworten mit `403`.
 
 #### Response (flaches Format)
 
@@ -262,7 +271,7 @@ Extrahiert oder regeneriert ein einzelnes Feld. Nützlich um einzelne Felder zu 
 | `text` | string | — | Text zur Analyse |
 | `source_url` | string | — | URL (bei `url`/`node_url`) |
 | `node_id` | string | — | Node-ID (bei `node_id`/`node_url`) |
-| `repository` | enum | `staging` | `staging` oder `prod` |
+| `repository` | string | `staging` | *Deprecated — wird ignoriert, siehe [Umgebungsvariablen](#umgebungsvariablen)* |
 | `extraction_method` | enum | `browser` | `browser` (Standard) oder `simple` |
 | `output_format` | enum | `markdown` | `markdown`, `txt`, `html` |
 | `schema_file` | string | **erforderlich** | Schema-Datei (z.B. `event.json`, `core.json`) |
@@ -319,7 +328,7 @@ Erkennt den Inhaltstyp (Schema) eines Textes via LLM.
 | `text` | string | — | Text zur Analyse |
 | `source_url` | string | — | URL |
 | `node_id` | string | — | Node-ID |
-| `repository` | enum | `staging` | Repository |
+| `repository` | string | `staging` | *Deprecated — wird ignoriert, siehe [Umgebungsvariablen](#umgebungsvariablen)* |
 | `extraction_method` | enum | `browser` | `browser` (Standard) oder `simple` |
 | `output_format` | enum | `markdown` | `markdown`, `txt`, `html` |
 | `context` | string | `default` | Schema-Kontext |
@@ -469,7 +478,7 @@ Lädt Metadaten ins WLO edu-sharing Repository hoch.
 | Parameter | Typ | Default | Beschreibung |
 |-----------|-----|---------|--------------|
 | `metadata` | object | **erforderlich** | Metadaten — flaches Format (direkt `/generate`-Output) oder verschachteltes Format (`{ metadata: {...}, _origins: {...} }`) |
-| `repository` | string | `staging` | `staging` oder `prod` |
+| `repository` | string | `staging` | *Deprecated — wird ignoriert, siehe [Umgebungsvariablen](#umgebungsvariablen)* |
 | `check_duplicates` | bool | `true` | Dublettenprüfung via `ccm:wwwurl` |
 | `start_workflow` | bool | `true` | Review-Workflow starten |
 | `source` | string | — | Bezugsquelle / Publisher-Override. Überschreibt `ccm:oeh_publisher_combined` |
@@ -477,6 +486,27 @@ Lädt Metadaten ins WLO edu-sharing Repository hoch.
 | `screenshot_method` | string | `pageshot` | Screenshot-Methode: `pageshot` (extern) oder `playwright` (intern, datenschutzfreundlich) |
 | `write_extended_data` | bool | `true` | Extended-Felder schreiben (`ccm:oeh_extendedType`, `ccm:oeh_extendedData`, `ccm:oeh_extendedText`) |
 | `extended_text` | string | — | Rohtext vor der KI-Extraktion. Wird in `ccm:oeh_extendedText` geschrieben |
+| `return_full_node` | bool | `false` | Node nach dem Schreiben zurücklesen und als `node_full` mitliefern |
+
+#### `node_full` — vollständiger Node in der Antwort
+
+Mit `return_full_node: true` liefert die Antwort zusätzlich zum bisherigen `node`-Objekt
+ein Feld `node_full` mit dem kompletten edu-sharing Node — gleiche Struktur wie das
+`node`-Objekt von `GET /node/v1/nodes/-home-/{id}/metadata` bzw. der Antwort von
+`createChild`.
+
+Gedacht für Clients, die den Node nicht selbst nachlesen können, weil sie als Gast
+keinen Repository-Zugriff haben. Die Felder liegen dort in edu-sharing-Notation:
+
+| `node` | `node_full` |
+|--------|-------------|
+| `nodeId` | `ref.id` |
+| `title` | `properties["cclom:title"][0]` |
+| `wwwurl` | `properties["ccm:wwwurl"][0]` |
+
+`node` bleibt unverändert erhalten — bestehende Clients sind nicht betroffen. Der
+Read-Back kostet einen zusätzlichen Repository-Aufruf; schlägt er fehl, bleibt
+`node_full` leer und der Upload gilt weiterhin als erfolgreich.
 
 #### Repositories
 
@@ -533,7 +563,6 @@ Nach Node-Erstellung werden automatisch Aspects hinzugefügt, die für bestimmte
 ```json
 {
   "success": true,
-  "repository": "staging",
   "fields_written": 12,
   "node": {
     "nodeId": "abc123-def456-...",
@@ -552,7 +581,6 @@ Nach Node-Erstellung werden automatisch Aspects hinzugefügt, die für bestimmte
 {
   "success": false,
   "duplicate": true,
-  "repository": "staging",
   "node": { "nodeId": "existing-id", "title": "Existierender Workshop" },
   "error": "URL existiert bereits: \"Existierender Workshop\""
 }
@@ -563,7 +591,6 @@ Nach Node-Erstellung werden automatisch Aspects hinzugefügt, die für bestimmte
 ```json
 {
   "success": true,
-  "repository": "staging",
   "fields_written": 10,
   "node": { "nodeId": "abc123-..." },
   "field_errors": [
@@ -584,7 +611,13 @@ Prüft hochgeladene Metadaten gegen die tatsächlichen Werte im Repository (SOLL
 |-----------|-----|---------|--------------|
 | `node_id` | string (URL-Pfad) | **erforderlich** | Node-ID des hochgeladenen Objekts |
 | `expected_metadata` | object | — | Erwartete Metadaten (z.B. Output von `/generate`). Für SOLL/IST-Diff |
-| `repository` | string | `staging` | `staging` oder `prod` |
+
+**Ohne Body** werden nur die aktuellen Repository-Metadaten gelesen (kein Diff).
+
+**Fehlerhafter Body** wird mit `400` abgelehnt — ungültiges JSON, kein JSON-Objekt oder
+ein Verstoß gegen das Schema. Wer einen Vergleich anfordert, bekommt entweder einen
+Vergleich oder einen Fehler; ein stillschweigender Rückfall auf „nur lesen" würde eine
+Prüfung als erfolgt melden, die nie stattgefunden hat.
 
 #### Response
 
@@ -592,7 +625,6 @@ Prüft hochgeladene Metadaten gegen die tatsächlichen Werte im Repository (SOLL
 {
   "success": true,
   "node_id": "abc123-def456-...",
-  "repository": "staging",
   "actual_metadata": { "cclom:title": ["Workshop KI"], ... },
   "diff": [
     { "field_id": "cclom:title", "status": "match", "expected": "Workshop KI", "actual": ["Workshop KI"] },
@@ -635,7 +667,7 @@ Erstellt einen Screenshot einer Webseite. Optional kann der Screenshot direkt al
 | `full_page` | bool | `false` | Gesamte scrollbare Seite erfassen |
 | `delay` | int | `2000` | Wartezeit vor Aufnahme in ms (0–10000) |
 | `node_id` | string | — | Optional: Screenshot als Vorschaubild auf diesen Node hochladen |
-| `repository` | string | `staging` | Repository für Preview-Upload: `staging` oder `prod` |
+| `repository` | string | `staging` | *Deprecated — wird ignoriert, siehe [Umgebungsvariablen](#umgebungsvariablen)* |
 
 #### Methoden
 
@@ -671,8 +703,7 @@ curl -X POST http://localhost:8000/screenshot \
   -d '{
     "url": "https://example.com/event",
     "method": "pageshot",
-    "node_id": "abc123-def456-...",
-    "repository": "staging"
+    "node_id": "abc123-def456-..."
   }'
 ```
 
@@ -787,7 +818,6 @@ curl -X POST http://localhost:8000/generate \
   -d '{
     "input_source": "node_url",
     "node_id": "cbf66543-fb90-4e69-a392-03f305139e3f",
-    "repository": "staging",
     "extraction_method": "browser",
     "schema_file": "auto"
   }'
@@ -849,7 +879,7 @@ print(md["markdown"])
 
 # 4. Hochladen (ganzer Output + Optionen)
 if validation["valid"]:
-    upload_body = {**result, "repository": "staging", "check_duplicates": True}
+    upload_body = {**result, "check_duplicates": True}
     upload = httpx.post(f"{API}/upload", json=upload_body).json()
     if upload["success"]:
         print(f"Hochgeladen: {upload['node']['repositoryUrl']}")
@@ -915,14 +945,14 @@ Prefix `METADATA_AGENT_` wird automatisch vorangestellt (außer API-Keys).
 
 | Variable | Default |
 |----------|---------|
-| `METADATA_AGENT_B_API_OPENAI_BASE` | `https://b-api.staging.openeduhub.net/api/v1/llm/openai` |
+| `METADATA_AGENT_B_API_OPENAI_BASE` | *(abgeleitet aus `B_API_BASE_URL`)* |
 | `METADATA_AGENT_B_API_OPENAI_MODEL` | `gpt-4.1-mini` |
 
 **B-API AcademicCloud:**
 
 | Variable | Default |
 |----------|---------|
-| `METADATA_AGENT_B_API_ACADEMICCLOUD_BASE` | `https://b-api.staging.openeduhub.net/api/v1/llm/academiccloud` |
+| `METADATA_AGENT_B_API_ACADEMICCLOUD_BASE` | *(abgeleitet aus `B_API_BASE_URL`)* |
 | `METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL` | `deepseek-r1` |
 
 **OpenAI (nativ):**
@@ -946,20 +976,28 @@ Prefix `METADATA_AGENT_` wird automatisch vorangestellt (außer API-Keys).
 | `METADATA_AGENT_DEFAULT_CONTEXT` | `default` | Standard-Kontext |
 | `METADATA_AGENT_DEFAULT_VERSION` | `latest` | Standard-Version (`latest` = automatische Erkennung, oder z.B. `1.8.0`) |
 
-### Repository & Crawler
+### Externe Dienste (B-API, Text-Extraction, Repository)
 
-| Variable | Default | Beschreibung |
-|----------|---------|--------------|
-| `METADATA_AGENT_REPOSITORY_PROD_URL` | `https://redaktion.openeduhub.net/edu-sharing/rest` | Prod-Repository |
-| `METADATA_AGENT_REPOSITORY_STAGING_URL` | `https://repository.staging.openeduhub.net/edu-sharing/rest` | Staging-Repository |
-| `METADATA_AGENT_TEXT_EXTRACTION_API_URL` | `https://text-extraction.staging.openeduhub.net` | Text-Extraction API |
-| `METADATA_AGENT_TEXT_EXTRACTION_DEFAULT_METHOD` | `browser` | `browser` (Standard) oder `simple` |
+Jede URL ist einzeln konfigurierbar. Defaults sind Staging-URLs.
+
+| Variable | Default (Staging) | Prod-Wert | Beschreibung |
+|----------|---|---|---|
+| `METADATA_AGENT_B_API_BASE_URL` | `https://b-api.staging.openeduhub.net` | `https://b-api.prod.openeduhub.net` | B-API Basis-URL (LLM-Zugriff). Endpoint-Pfade werden automatisch abgeleitet. |
+| `METADATA_AGENT_TEXT_EXTRACTION_API_URL` | `https://text-extraction.staging.openeduhub.net` | `https://text-extraction.prod.openeduhub.net` | Text-Extraction API |
+| `METADATA_AGENT_REPOSITORY_URL` | `https://repository.staging.openeduhub.net/edu-sharing/rest` | `https://redaktion.openeduhub.net/edu-sharing/rest` | Repository-URL (Metadaten-Abruf & Upload) |
+| `METADATA_AGENT_TEXT_EXTRACTION_DEFAULT_METHOD` | `simple` | — | `simple` oder `browser` |
+| `METADATA_AGENT_WLO_INBOX_ID` | `21144164-30c0-4c01-ae16-264452197063` | — | Inbox-ID für Uploads |
+
+> **Hinweis:** Der Request-Parameter `repository` ist in **allen** Endpunkten deprecated
+> und wird ignoriert — die Repository-URL kommt ausschließlich aus der Umgebungsvariable.
+> Er wird weiterhin akzeptiert (beliebiger Wert, keine Validierung) und ist im OpenAPI-Schema
+> als `deprecated` markiert. Bei einer künftigen Breaking-Change-Version entfällt er.
 
 ### Sonstige
 
 | Variable | Default | Beschreibung |
 |----------|---------|--------------|
-| `METADATA_AGENT_CORS_ORIGINS` | `*` | CORS-Origins (komma-separiert oder `*`). `allow_credentials` ist auf `False` gesetzt, da keine Client Credentials an die API sendet (Auth via `Authorization`-Header). `True` + `allow_origins=["*"]` verstößt gegen die CORS-Spec und wird von Safari blockiert. |
+| `METADATA_AGENT_CORS_ORIGINS` | `*` | CORS-Origins (komma-separiert oder `*`) |
 | `METADATA_AGENT_DEBUG` | `false` | Debug-Modus |
 
 ### `.env` Beispiel
@@ -969,9 +1007,9 @@ Prefix `METADATA_AGENT_` wird automatisch vorangestellt (außer API-Keys).
 B_API_KEY=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
 METADATA_AGENT_LLM_PROVIDER=b-api-openai
 
-# Optional: OpenAI direkt
-# OPENAI_API_KEY=sk-proj-...
-# METADATA_AGENT_LLM_PROVIDER=openai
+# Externe Dienste (Default: Staging — für Prod URLs anpassen)
+# METADATA_AGENT_B_API_BASE_URL=https://b-api.prod.openeduhub.net
+# METADATA_AGENT_TEXT_EXTRACTION_API_URL=https://text-extraction.prod.openeduhub.net
 
 # Optional: Repository Upload
 # WLO_GUEST_USERNAME=upload-user
@@ -983,6 +1021,10 @@ METADATA_AGENT_LLM_PROVIDER=b-api-openai
 ## Widget / Webkomponente
 
 Die API liefert eine einbettbare Angular-Webkomponente (`<metadata-agent-canvas>`) als statische Dateien mit aus. Damit können andere Anwendungen die Metadaten-Erfassung oder -Anzeige ohne eigenen Build einbinden.
+
+> **Vollständige Referenz:** [WIDGET-REFERENZ.md](WIDGET-REFERENZ.md) — alle 7 Layouts mit
+> ihren Defaults, sämtliche Attribute inklusive ihrer Boolean-Semantik, die vier Events
+> mit Payload-Struktur und die Grenzen beim Lesen/Schreiben von Bestandsinhalten.
 
 ### Widget bereitstellen
 
@@ -1311,6 +1353,12 @@ spec:
         ports:
         - containerPort: 8000
         env:
+        - name: METADATA_AGENT_B_API_BASE_URL
+          value: "https://b-api.prod.openeduhub.net"
+        - name: METADATA_AGENT_TEXT_EXTRACTION_API_URL
+          value: "https://text-extraction.prod.openeduhub.net"
+        - name: METADATA_AGENT_REPOSITORY_URL
+          value: "https://redaktion.openeduhub.net/edu-sharing/rest"
         - name: B_API_KEY
           valueFrom:
             secretKeyRef:

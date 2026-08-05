@@ -6,6 +6,7 @@ from typing import Any, Optional
 from dataclasses import dataclass
 
 from ..config import get_settings
+from .repository_service import build_auth_header
 
 logger = logging.getLogger(__name__)
 
@@ -34,11 +35,25 @@ class InputSourceService:
         if self.http_client:
             await self.http_client.aclose()
 
-    def _get_repository_base_url(self, repository: str) -> str:
-        """Get the base URL for the specified repository."""
-        if repository == "prod":
-            return self.settings.repository_prod_url
-        return self.settings.repository_staging_url
+    def _get_repository_base_url(self, repository: str = "") -> str:
+        """Get the configured repository base URL (repository param is ignored)."""
+        return self.settings.repository_url
+
+    def _repository_headers(self) -> dict[str, str]:
+        """
+        Headers for repository reads, authenticated with the service account.
+
+        Anonymous reads return 403 for every node that is not publicly readable —
+        which includes freshly uploaded inbox nodes. Falls back to anonymous
+        access when no credentials are configured.
+        """
+        headers = {"accept": "application/json"}
+        auth_header = build_auth_header(
+            self.settings.wlo_guest_username, self.settings.wlo_guest_password
+        )
+        if auth_header:
+            headers["Authorization"] = auth_header
+        return headers
 
     async def fetch_from_url(
         self,
@@ -108,7 +123,7 @@ class InputSourceService:
         logger.info(f"Fetching node metadata: {node_id} from {repository}")
 
         response = await self.http_client.get(
-            api_url, headers={"accept": "application/json"}
+            api_url, headers=self._repository_headers()
         )
         response.raise_for_status()
 
@@ -134,7 +149,7 @@ class InputSourceService:
         logger.info(f"Fetching node text content: {node_id} from {repository}")
 
         response = await self.http_client.get(
-            api_url, headers={"accept": "application/json"}
+            api_url, headers=self._repository_headers()
         )
         response.raise_for_status()
 

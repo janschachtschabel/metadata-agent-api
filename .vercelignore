@@ -1,3 +1,10 @@
+# Git — .git/config can contain credentials in the remote URL and must never
+# be uploaded. Also keeps the deployment bundle small.
+.git/
+.gitignore
+.gitlab-ci.yml
+.github/
+
 # Python
 __pycache__/
 *.py[cod]
@@ -36,7 +43,9 @@ ENV/
 .env.*.local
 
 # Testing
+tests/
 .pytest_cache/
+.ruff_cache/
 .coverage
 htmlcov/
 
