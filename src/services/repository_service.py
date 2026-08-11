@@ -3,13 +3,53 @@
 import base64
 import json
 import logging
+import re
 from typing import Any, Optional
 
 import httpx
 
 from ..utils.schema_loader import get_repo_fields, get_content_type_uri
+from .repository_curation import (
+    DEFAULT_WORKFLOW_STATUS,
+    extract_collection_ids,
+    fetch_workflow_history,
+    run_workflow_steps,
+    set_collections,
+)
+from .repository_diff import compute_diff, properties_to_flat
+from .repository_licenses import transform_license
+from .repository_values import (
+    extract_geo_coordinates,
+    normalize_for_repo,
+    transform_author_to_vcard,
+)
 
 logger = logging.getLogger(__name__)
+
+
+# edu-sharing node ids are Alfresco UUIDs.
+_NODE_ID_PATTERN = re.compile(
+    r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}"
+)
+
+# Rolling back a half-finished upload runs *after* that upload has already spent
+# its budget — typically after its own 45s timeout, inside a serverless
+# invocation capped at 60s (vercel.json: maxDuration). A generous timeout here
+# gets killed exactly in the slow-repository case the rollback exists for, and
+# the orphaned node survives anyway. It is a single DELETE; keep it short.
+DISCARD_TIMEOUT_SECONDS = 5.0
+
+
+def is_valid_node_id(value: Any) -> bool:
+    """
+    Check whether a value is a usable edu-sharing node id.
+
+    Every node id the API accepts ends up interpolated into a repository URL
+    that is called with the service account's credentials. A value containing
+    '/' would steer that authenticated request at a different endpoint, so
+    callers must reject anything that is not the plain UUID shape.
+    """
+    return isinstance(value, str) and _NODE_ID_PATTERN.fullmatch(value) is not None
 
 
 def build_auth_header(username: str, password: str) -> Optional[str]:
@@ -64,7 +104,7 @@ class RepositoryService:
     2. Create node with minimal data
     3. Set full metadata
     4. Add to collections (optional)
-    5. Start review workflow
+    5. Run the review workflow steps
     """
 
     def __init__(self, username: str, password: str):
@@ -94,6 +134,10 @@ class RepositoryService:
         write_extended_data: bool = True,
         extended_text: Optional[str] = None,
         return_full_node: bool = False,
+        collection_ids: Optional[list[str]] = None,
+        workflow_steps: Optional[list[str]] = None,
+        workflow_comment: Optional[str] = None,
+        workflow_receiver: Optional[list[str]] = None,
     ) -> dict[str, Any]:
         """
         Upload metadata to WLO repository.
@@ -102,10 +146,16 @@ class RepositoryService:
             metadata: Metadata dict from /generate endpoint
             repository: Ignored (kept for backward compatibility)
             check_duplicates: Check for duplicates by ccm:wwwurl
-            start_workflow: Start review workflow after upload
+            start_workflow: Run the review workflow after upload
             write_extended_data: Write ccm:oeh_extendedType/Data/Text fields
             extended_text: Raw source text before extraction
             return_full_node: Read the node back and include it as 'node_full'
+            collection_ids: Collection IDs (or collection URLs) the new node is
+                referenced in, additionally to any collection found in metadata
+            workflow_steps: Workflow states to run in order. Defaults to the
+                single handover state DEFAULT_WORKFLOW_STATUS.
+            workflow_comment: Comment written with every workflow step
+            workflow_receiver: Authority names notified by every workflow step
 
         Returns:
             Upload result with nodeId, success status, etc.
@@ -126,6 +176,9 @@ class RepositoryService:
         print(f"📋 Repo fields from schema: {len(repo_field_ids)} fields")
         if schema_file:
             print(f"   Schemas: core.json + {schema_file}")
+
+        # Remembered so a failure after this point can undo the half-finished node
+        created_node_id: Optional[str] = None
 
         try:
             # Longer timeout for sequential edu-sharing calls (especially on Vercel)
@@ -164,6 +217,7 @@ class RepositoryService:
                     return node_result
 
                 node_id = node_result["nodeId"]
+                created_node_id = node_id
                 print(f"✅ Created node: {node_id}")
 
                 # 2b. Add required aspects for special fields
@@ -174,11 +228,18 @@ class RepositoryService:
                     client, base_url, node_id, clean_metadata, repo_field_ids
                 )
 
-                # 4. Set collections if present
-                collection_ids = self._extract_collection_ids(clean_metadata)
-                if collection_ids:
-                    await self._set_collections(
-                        client, base_url, node_id, collection_ids
+                # 4. Reference the node in collections (from metadata and/or request)
+                all_collection_ids = extract_collection_ids(
+                    clean_metadata, collection_ids
+                )
+                collection_result = None
+                if all_collection_ids:
+                    collection_result = await set_collections(
+                        client,
+                        self._auth_header,
+                        base_url,
+                        node_id,
+                        all_collection_ids,
                     )
 
                 # 5. Write extended data fields (bypasses repo_field filter)
@@ -193,9 +254,18 @@ class RepositoryService:
                         extended_text,
                     )
 
-                # 6. Start workflow
+                # 6. Run the review workflow steps
+                workflow_result = None
                 if start_workflow:
-                    await self._start_workflow(client, base_url, node_id)
+                    workflow_result = await run_workflow_steps(
+                        client,
+                        self._auth_header,
+                        base_url,
+                        node_id,
+                        workflow_steps or [DEFAULT_WORKFLOW_STATUS],
+                        workflow_comment,
+                        workflow_receiver,
+                    )
 
                 # Extract key metadata for response (with fallbacks for organization schema)
                 title = clean_metadata.get("cclom:title") or clean_metadata.get(
@@ -229,6 +299,11 @@ class RepositoryService:
                     "fields_skipped": metadata_result.get("fields_skipped", 0),
                 }
 
+                if collection_result is not None:
+                    result["collections"] = collection_result["results"]
+                if workflow_result is not None:
+                    result["workflow"] = workflow_result["steps"]
+
                 # Add field errors if any
                 field_errors = metadata_result.get("field_errors", [])
                 if field_errors:
@@ -255,19 +330,77 @@ class RepositoryService:
 
         except httpx.TimeoutException as e:
             print(f"❌ Repository upload timed out: {e}")
-            return {
-                "success": False,
-                "error": f"Timeout bei der Verbindung zum Repository: {e}",
-            }
+            return await self._failed(
+                base_url,
+                created_node_id,
+                f"Timeout bei der Verbindung zum Repository: {e}",
+            )
         except httpx.ConnectError as e:
             print(f"❌ Repository connection failed: {e}")
-            return {
-                "success": False,
-                "error": f"Verbindung zum Repository fehlgeschlagen: {e}",
-            }
+            return await self._failed(
+                base_url,
+                created_node_id,
+                f"Verbindung zum Repository fehlgeschlagen: {e}",
+            )
         except Exception as e:
             print(f"❌ Repository upload failed: {type(e).__name__}: {e}")
-            return {"success": False, "error": f"{type(e).__name__}: {e}"}
+            return await self._failed(
+                base_url, created_node_id, f"{type(e).__name__}: {e}"
+            )
+
+    async def _failed(
+        self, base_url: str, created_node_id: Optional[str], error: str
+    ) -> dict[str, Any]:
+        """
+        Build the error response and undo a half-finished upload.
+
+        The upload is create-then-populate. When the second half never runs, the
+        node stays in the inbox carrying only its title — invisible to the
+        caller, who sees success=false and retries, leaving one more behind
+        every time. Discarding it keeps a failed upload from becoming litter.
+        """
+        result: dict[str, Any] = {"success": False, "error": error}
+        if not created_node_id:
+            return result
+
+        if await self._discard_node(base_url, created_node_id):
+            result["discarded_node"] = created_node_id
+            result["error"] = f"{error} (unvollständiger Node wurde verworfen)"
+        else:
+            result["node"] = {"nodeId": created_node_id}
+            result["error"] = (
+                f"{error} — der unvollständige Node {created_node_id} konnte nicht "
+                "verworfen werden und liegt weiterhin im Eingangsordner"
+            )
+        return result
+
+    async def _discard_node(self, base_url: str, node_id: str) -> bool:
+        """
+        Move a node to the recycle bin. Never raises.
+
+        Called while handling another error, so its own failure must not replace
+        the original one — it is reported alongside instead.
+        """
+        url = f"{base_url}/rest/node/v1/nodes/-home-/{node_id}?recycle=true"
+        try:
+            async with httpx.AsyncClient(
+                timeout=httpx.Timeout(DISCARD_TIMEOUT_SECONDS)
+            ) as client:
+                response = await client.delete(
+                    url,
+                    headers={
+                        "Authorization": self._auth_header,
+                        "Accept": "application/json",
+                    },
+                )
+            if response.status_code in (200, 204):
+                print(f"🧹 Discarded incomplete node {node_id}")
+                return True
+            print(f"⚠️ Could not discard {node_id}: HTTP {response.status_code}")
+            return False
+        except Exception as e:
+            print(f"⚠️ Could not discard {node_id}: {type(e).__name__}: {e}")
+            return False
 
     def _extract_metadata_fields(self, metadata: dict) -> dict:
         """Extract only metadata fields, removing processing/system info.
@@ -299,29 +432,6 @@ class RepositoryService:
             if k not in excluded_keys and not k.startswith("_")
         }
 
-    def _extract_collection_ids(self, metadata: dict) -> list[str]:
-        """Extract collection IDs from metadata."""
-        ids = []
-
-        # Primary collection
-        primary = metadata.get("virtual:collection_id_primary")
-        if primary:
-            ids.append(self._extract_id_from_url(primary))
-
-        # Additional collections
-        additional = metadata.get("ccm:collection_id", [])
-        if isinstance(additional, list):
-            for coll in additional:
-                ids.append(self._extract_id_from_url(coll))
-
-        return [id for id in ids if id]
-
-    def _extract_id_from_url(self, value: Any) -> str:
-        """Extract ID from URL or return as-is."""
-        if isinstance(value, str) and "/" in value:
-            return value.split("/")[-1]
-        return str(value) if value else ""
-
     async def _check_duplicate(
         self, client: httpx.AsyncClient, base_url: str, url: str
     ) -> dict:
@@ -336,10 +446,10 @@ class RepositoryService:
                     "Content-Type": "application/json",
                     "Accept": "application/json",
                 },
-                json={
-                    "criteria": [{"property": "ccm:wwwurl", "values": [url]}],
-                    "facettes": [],
-                },
+                # Only 'criteria' — SearchParameters rejects unknown fields with
+                # 400 (a 'facettes' key used to be sent here), which silently
+                # turned every duplicate check into "no duplicate found".
+                json={"criteria": [{"property": "ccm:wwwurl", "values": [url]}]},
             )
 
             if response.status_code != 200:
@@ -471,21 +581,24 @@ class RepositoryService:
         metadata_url = f"{base_url}/rest/node/v1/nodes/-home-/{node_id}/metadata?versionComment=METADATA_UPDATE&obeyMds=false"
 
         # Normalize metadata values for repository API
-        normalized = self._normalize_for_repo(metadata, repo_field_ids)
+        normalized = normalize_for_repo(metadata, repo_field_ids)
 
         # Handle license transformation
-        self._transform_license(normalized, metadata)
+        transform_license(normalized, metadata)
 
-        # Default license: COPYRIGHT_FREE if no license was set
+        # No default license on purpose: the extraction returns null when it
+        # finds none, and filling that in would turn "we do not know" into a
+        # claim that the material is free of copyright — published to a public
+        # repository. An empty field is what hands the decision to the editorial
+        # workflow this upload already enters.
         if "ccm:commonlicense_key" not in normalized:
-            normalized["ccm:commonlicense_key"] = ["COPYRIGHT_FREE"]
-            print("📜 Default license: COPYRIGHT_FREE (no license detected)")
+            print("📜 No license detected — left empty for editorial review")
 
         # Extract geo coordinates from schema:location → cm:latitude / cm:longitude
-        self._extract_geo_coordinates(normalized, metadata)
+        extract_geo_coordinates(normalized, metadata)
 
         # Transform cm:author → ccm:lifecyclecontributer_author (VCARD format)
-        self._transform_author_to_vcard(normalized)
+        transform_author_to_vcard(normalized)
 
         if not normalized:
             return {
@@ -697,245 +810,6 @@ class RepositoryService:
             print(f"❌ Extended fields write failed: {e}")
             return {"success": False, "fields_written": 0, "error": str(e)}
 
-    def _normalize_for_repo(
-        self, metadata: dict, repo_field_ids: set[str] | None = None
-    ) -> dict:
-        """
-        Filter and normalize metadata for repository API.
-
-        Only includes fields that:
-        - Have repo_field=true in schema (if repo_field_ids provided)
-        - Don't start with 'virtual:' or 'schema:' (internal prefixes)
-        - Have non-empty values
-        """
-        normalized = {}
-
-        # If no repo fields could be loaded from schemas, refuse to write blindly
-        if not repo_field_ids:
-            print("⚠️ No repo_field_ids loaded from schemas — skipping metadata write")
-            return normalized
-
-        for key, value in metadata.items():
-            # Skip internal/virtual fields
-            if key.startswith("virtual:") or key.startswith("schema:"):
-                continue
-
-            # Only include fields with repo_field=true in schema
-            if key not in repo_field_ids:
-                continue
-
-            # Skip empty values
-            if value is None or value == "" or value == []:
-                continue
-
-            # Normalize to arrays and flatten complex objects
-            if isinstance(value, list):
-                flattened = []
-                for item in value:
-                    if item is None or item == "":
-                        continue
-                    flattened_item = self._flatten_value(item)
-                    if flattened_item is not None:
-                        flattened.append(flattened_item)
-                if flattened:
-                    normalized[key] = flattened
-            elif isinstance(value, dict):
-                flattened = self._flatten_value(value)
-                if flattened is not None:
-                    normalized[key] = [flattened]
-            else:
-                normalized[key] = [value]
-
-        return normalized
-
-    def _flatten_value(self, item: Any) -> Any:
-        """Flatten a complex object to a simple value for repository API."""
-        if item is None:
-            return None
-
-        # Already a simple type
-        if isinstance(item, (str, int, float, bool)):
-            return item
-
-        # Dictionary - extract the most relevant value
-        if isinstance(item, dict):
-            # Priority order for value extraction
-            if "uri" in item:
-                return item["uri"]
-            if "name" in item:
-                return item["name"]
-            if "label" in item:
-                return item["label"]
-            if "@value" in item:
-                return item["@value"]
-            if "value" in item:
-                return item["value"]
-            # For complex objects like address, serialize to JSON
-            return json.dumps(item, ensure_ascii=False)
-
-        return str(item)
-
-    # Valid edu-sharing license keys (used for validation)
-    VALID_LICENSE_KEYS = {
-        "NONE",
-        "CC_0",
-        "CC0",
-        "CC_BY",
-        "CC BY",
-        "CC_BY_SA",
-        "CC BY-SA",
-        "CC_BY_ND",
-        "CC BY-ND",
-        "CC_BY_NC",
-        "CC BY-NC",
-        "CC_BY_NC_SA",
-        "CC BY-NC-SA",
-        "CC_BY_NC_ND",
-        "CC BY-NC-ND",
-        "PDM",
-        "CUSTOM",
-        "SCHULFUNK",
-        "UNTERRICHTS_UND_LEHRMEDIEN",
-        "COPYRIGHT_FREE",
-        "COPYRIGHT_LICENSE",
-    }
-
-    def _transform_license(self, normalized: dict, original: dict):
-        """Transform license URLs to key + version format.
-
-        Only transforms ccm:custom_license if it looks like a vocabulary URI
-        (contains '/'). Plain text values are kept as custom license text.
-        Validates ccm:commonlicense_key against known edu-sharing keys.
-        """
-        license_val = original.get("ccm:custom_license")
-
-        if license_val:
-            if isinstance(license_val, list):
-                license_val = license_val[0] if license_val else None
-            if isinstance(license_val, dict):
-                license_val = license_val.get("uri") or license_val.get("label")
-
-            if license_val and isinstance(license_val, str):
-                # Only transform if it looks like a URI (contains '/')
-                if "/" in license_val:
-                    license_key = license_val.split("/")[-1]
-
-                    if license_key.endswith("_40"):
-                        normalized["ccm:commonlicense_key"] = [license_key[:-3]]
-                        normalized["ccm:commonlicense_cc_version"] = ["4.0"]
-                    elif license_key == "OTHER":
-                        normalized["ccm:commonlicense_key"] = ["CUSTOM"]
-                    elif license_key in self.VALID_LICENSE_KEYS:
-                        normalized["ccm:commonlicense_key"] = [license_key]
-
-                    # Remove the URI from ccm:custom_license (it was transformed)
-                    normalized.pop("ccm:custom_license", None)
-                else:
-                    # Plain text → keep as custom license, set key to CUSTOM
-                    if "ccm:commonlicense_key" not in normalized:
-                        normalized["ccm:commonlicense_key"] = ["CUSTOM"]
-
-        # Validate ccm:commonlicense_key against known keys
-        if "ccm:commonlicense_key" in normalized:
-            key_list = normalized["ccm:commonlicense_key"]
-            if isinstance(key_list, list) and key_list:
-                key = str(key_list[0]).strip()
-                if key not in self.VALID_LICENSE_KEYS:
-                    logger.warning(f"Invalid license key removed: {key[:80]}")
-                    del normalized["ccm:commonlicense_key"]
-                    normalized.pop("ccm:commonlicense_cc_version", None)
-
-        # Default CC version only for CC-type licenses
-        if (
-            "ccm:commonlicense_key" in normalized
-            and "ccm:commonlicense_cc_version" not in normalized
-        ):
-            key = (
-                normalized["ccm:commonlicense_key"][0]
-                if normalized["ccm:commonlicense_key"]
-                else ""
-            )
-            if str(key).startswith("CC"):
-                normalized["ccm:commonlicense_cc_version"] = ["4.0"]
-
-    def _transform_author_to_vcard(self, normalized: dict):
-        """
-        Transform cm:author plain names to VCARD format for ccm:lifecyclecontributer_author.
-
-        The WLO repo stores authors as VCARD strings in ccm:lifecyclecontributer_author,
-        not as plain strings in cm:author.
-
-        Example: "Philipp Lang" → "BEGIN:VCARD\nFN:Philipp Lang\nN:Lang;Philipp\nVERSION:3.0\nEND:VCARD"
-        """
-        authors = normalized.pop("cm:author", None)
-        if not authors:
-            return
-
-        vcards = []
-        for author in authors:
-            author = str(author).strip()
-            if not author:
-                continue
-
-            parts = author.rsplit(" ", 1)
-            if len(parts) == 2:
-                first, last = parts[0], parts[1]
-                vcard = f"BEGIN:VCARD\nFN:{author}\nN:{last};{first}\nVERSION:3.0\nEND:VCARD"
-            else:
-                # Single name or organization
-                vcard = f"BEGIN:VCARD\nFN:{author}\nN:{author}\nVERSION:3.0\nEND:VCARD"
-
-            vcards.append(vcard)
-
-        if vcards:
-            normalized["ccm:lifecyclecontributer_author"] = vcards
-            print(
-                f"👤 Author VCARD: {len(vcards)} entries → ccm:lifecyclecontributer_author"
-            )
-
-    def _extract_geo_coordinates(self, normalized: dict, original: dict):
-        """
-        Extract geo coordinates and map to cm:latitude / cm:longitude.
-
-        Sources (in priority order):
-        1. schema:location[].geo.latitude/longitude  (event, course, education_*, organization)
-        2. schema:geo.latitude/longitude              (organization top-level fallback)
-        """
-        # Source 1: schema:location[].geo
-        locations = original.get("schema:location")
-        if locations:
-            if not isinstance(locations, list):
-                locations = [locations]
-
-            for loc in locations:
-                if not isinstance(loc, dict):
-                    continue
-                geo = loc.get("geo")
-                if not isinstance(geo, dict):
-                    continue
-
-                lat = geo.get("latitude")
-                lon = geo.get("longitude")
-
-                if lat is not None and lon is not None:
-                    normalized["cm:latitude"] = [str(lat)]
-                    normalized["cm:longitude"] = [str(lon)]
-                    print(
-                        f"📍 Geo (location): {lat}, {lon} → cm:latitude, cm:longitude"
-                    )
-                    return
-
-        # Source 2: schema:geo (organization.json top-level)
-        geo = original.get("schema:geo")
-        if isinstance(geo, dict):
-            lat = geo.get("latitude")
-            lon = geo.get("longitude")
-            if lat is not None and lon is not None:
-                normalized["cm:latitude"] = [str(lat)]
-                normalized["cm:longitude"] = [str(lon)]
-                print(f"📍 Geo (top-level): {lat}, {lon} → cm:latitude, cm:longitude")
-                return
-
     async def _ensure_aspects(
         self, client: httpx.AsyncClient, base_url: str, node_id: str, metadata: dict
     ):
@@ -1054,7 +928,7 @@ class RepositoryService:
                 properties = data.get("node", {}).get("properties", {})
 
                 # Convert to flat metadata (same logic as input_source_service)
-                actual = self._properties_to_flat(properties)
+                actual = properties_to_flat(properties)
 
                 result = {
                     "success": True,
@@ -1064,7 +938,7 @@ class RepositoryService:
 
                 # If expected metadata provided, compute diff
                 if expected_metadata:
-                    diff, summary = self._compute_diff(
+                    diff, summary = compute_diff(
                         expected_metadata, actual, context, version
                     )
                     result["diff"] = diff
@@ -1077,318 +951,85 @@ class RepositoryService:
         except Exception as e:
             return {"success": False, "error": f"{type(e).__name__}: {e}"}
 
-    def _properties_to_flat(self, properties: dict) -> dict:
-        """Convert repository array-style properties to flat metadata."""
-        flat = {}
-        for key, value in properties.items():
-            # Skip internal/system properties
-            if key.startswith("sys:") or key.startswith("virtual:"):
-                continue
-            # Skip DISPLAYNAME variants
-            if key.endswith("_DISPLAYNAME"):
-                continue
-            # Skip VCARD sub-fields (keep only the main VCARD field)
-            if "VCARD_" in key:
-                continue
-            # Skip cm: system fields (keep only metadata-relevant ones)
-            cm_keep = {"cm:author", "cm:latitude", "cm:longitude"}
-            if key.startswith("cm:") and key not in cm_keep:
-                continue
-
-            if isinstance(value, list):
-                if len(value) == 1:
-                    flat[key] = value[0]
-                elif len(value) > 1:
-                    flat[key] = value
-                # Skip empty lists
-            elif value is not None:
-                flat[key] = value
-
-        return flat
-
-    def _compute_diff(
+    async def set_workflow(
         self,
-        expected: dict,
-        actual: dict,
-        context: str,
-        version: str,
-    ) -> tuple[list[dict], dict]:
-        """
-        Compute field-level SOLL/IST diff.
-
-        Returns:
-            Tuple of (diff_list, summary_counts)
-        """
-        # Clean expected metadata (remove processing/header keys)
-        excluded = {
-            "contextName",
-            "schemaVersion",
-            "metadataset",
-            "metadataset_uri",
-            "language",
-            "exportedAt",
-            "processing",
-            "_origins",
-            "_source_text",
-            "repository",
-            "check_duplicates",
-            "start_workflow",
-            "preview_url",
-            "preview:url",
-            "preview_image_url",
-        }
-        clean_expected = {k: v for k, v in expected.items() if k not in excluded}
-
-        # Load repo fields to know which fields were eligible for writing
-        schema_file = expected.get("metadataset")
-        repo_field_ids = get_repo_fields(context, version, schema_file)
-
-        diff = []
-        summary = {
-            "match": 0,
-            "mismatch": 0,
-            "missing_in_repo": 0,
-            "extra_in_repo": 0,
-            "not_written": 0,
-        }
-
-        # Check all expected fields
-        seen_keys = set()
-        for field_id, expected_val in clean_expected.items():
-            seen_keys.add(field_id)
-
-            # Skip empty expected values
-            if expected_val is None or expected_val == "" or expected_val == []:
-                continue
-
-            # Fields that were never eligible for repo write
-            if field_id.startswith("virtual:") or field_id.startswith("schema:"):
-                # These are internal fields that get transformed (e.g. schema:location → cm:latitude)
-                diff.append(
-                    {
-                        "field_id": field_id,
-                        "status": "not_written",
-                        "expected": expected_val,
-                        "actual": None,
-                    }
-                )
-                summary["not_written"] += 1
-                continue
-
-            if repo_field_ids and field_id not in repo_field_ids:
-                diff.append(
-                    {
-                        "field_id": field_id,
-                        "status": "not_written",
-                        "expected": expected_val,
-                        "actual": None,
-                    }
-                )
-                summary["not_written"] += 1
-                continue
-
-            actual_val = actual.get(field_id)
-
-            if actual_val is None:
-                # Special case: cm:author is transformed to ccm:lifecyclecontributer_author
-                if field_id == "cm:author":
-                    author_fn = actual.get("ccm:lifecyclecontributer_authorFN")
-                    if author_fn:
-                        diff.append(
-                            {
-                                "field_id": field_id,
-                                "status": "match",
-                                "expected": expected_val,
-                                "actual": f"(transformed → ccm:lifecyclecontributer_authorFN: {author_fn})",
-                            }
-                        )
-                        summary["match"] += 1
-                        continue
-
-                diff.append(
-                    {
-                        "field_id": field_id,
-                        "status": "missing_in_repo",
-                        "expected": expected_val,
-                        "actual": None,
-                    }
-                )
-                summary["missing_in_repo"] += 1
-            elif self._values_match(expected_val, actual_val):
-                diff.append(
-                    {
-                        "field_id": field_id,
-                        "status": "match",
-                        "expected": expected_val,
-                        "actual": actual_val,
-                    }
-                )
-                summary["match"] += 1
-            else:
-                diff.append(
-                    {
-                        "field_id": field_id,
-                        "status": "mismatch",
-                        "expected": expected_val,
-                        "actual": actual_val,
-                    }
-                )
-                summary["mismatch"] += 1
-
-        # Check for extra fields in repo that weren't in expected
-        for field_id, actual_val in actual.items():
-            if field_id in seen_keys:
-                continue
-            if actual_val is None or actual_val == "" or actual_val == []:
-                continue
-            diff.append(
-                {
-                    "field_id": field_id,
-                    "status": "extra_in_repo",
-                    "expected": None,
-                    "actual": actual_val,
-                }
-            )
-            summary["extra_in_repo"] += 1
-
-        # Sort: problems first, then matches
-        status_order = {
-            "missing_in_repo": 0,
-            "mismatch": 1,
-            "not_written": 2,
-            "extra_in_repo": 3,
-            "match": 4,
-        }
-        diff.sort(key=lambda d: status_order.get(d["status"], 5))
-
-        return diff, summary
-
-    def _values_match(self, expected: Any, actual: Any) -> bool:
-        """Compare expected and actual values, handling type differences."""
-        # Normalize both to comparable form
-        exp_norm = self._normalize_compare(expected)
-        act_norm = self._normalize_compare(actual)
-        if exp_norm == act_norm:
-            return True
-
-        # Special case: ISO date string vs epoch millis (repo auto-converts)
-        return self._dates_match(exp_norm, act_norm)
-
-    def _dates_match(self, a: Any, b: Any) -> bool:
-        """Check if two values represent the same datetime (ISO vs epoch millis)."""
-        try:
-            a_ts = self._to_epoch_ms(str(a))
-            b_ts = self._to_epoch_ms(str(b))
-            if a_ts is not None and b_ts is not None:
-                # Allow 60s tolerance (repo may round)
-                return abs(a_ts - b_ts) < 60_000
-            return False
-        except Exception:
-            return False
-
-    def _to_epoch_ms(self, value: str) -> int | None:
-        """Try to interpret a string as epoch milliseconds."""
-        from datetime import datetime, timezone
-
-        # Already epoch millis?
-        try:
-            num = int(value)
-            if num > 1_000_000_000_000:  # clearly epoch millis (> year 2001)
-                return num
-            if num > 1_000_000_000:  # epoch seconds
-                return num * 1000
-        except (ValueError, TypeError):
-            pass
-
-        # ISO date string?
-        for fmt in (
-            "%Y-%m-%dT%H:%M:%S.%fZ",
-            "%Y-%m-%dT%H:%M:%SZ",
-            "%Y-%m-%dT%H:%M:%S",
-            "%Y-%m-%dT%H:%M",
-        ):
-            try:
-                dt = datetime.strptime(value, fmt).replace(tzinfo=timezone.utc)
-                return int(dt.timestamp() * 1000)
-            except (ValueError, TypeError):
-                continue
-
-        return None
-
-    def _normalize_compare(self, value: Any) -> Any:
-        """Normalize a value for comparison."""
-        if isinstance(value, list):
-            if len(value) == 1:
-                return self._normalize_compare(value[0])
-            return sorted(str(v).strip().lower() for v in value)
-        if isinstance(value, dict):
-            # Extract URI or label for comparison
-            if "uri" in value:
-                return str(value["uri"]).strip().lower()
-            if "label" in value:
-                return str(value["label"]).strip().lower()
-            return json.dumps(value, sort_keys=True, ensure_ascii=False).lower()
-        return str(value).strip().lower()
-
-    async def _set_collections(
-        self,
-        client: httpx.AsyncClient,
-        base_url: str,
         node_id: str,
-        collection_ids: list[str],
-    ) -> dict:
-        """Add node to collections."""
-        results = []
+        steps: list[str],
+        comment: Optional[str] = None,
+        receiver: Optional[list[str]] = None,
+    ) -> dict[str, Any]:
+        """
+        Advance an existing node through the review workflow.
 
-        for collection_id in collection_ids:
-            try:
-                url = f"{base_url}/rest/collection/v1/collections/-home-/{collection_id}/references/{node_id}"
-                response = await client.put(
-                    url,
-                    headers={
-                        "Authorization": self._auth_header,
-                        "Accept": "application/json",
-                    },
+        Used after the upload has already handed the node over for human
+        checking, to walk the remaining editorial states step by step.
+
+        Returns the per-step result plus the node's resulting workflow state and
+        its full history (which records who set which state).
+        """
+        config = _get_repository_config()
+        base_url = config["base_url"]
+
+        try:
+            timeout = httpx.Timeout(45.0, connect=10.0)
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                run = await run_workflow_steps(
+                    client,
+                    self._auth_header,
+                    base_url,
+                    node_id,
+                    steps,
+                    comment,
+                    receiver,
                 )
-                results.append(
-                    {
-                        "collectionId": collection_id,
-                        "success": response.status_code in (200, 201),
-                    }
+
+                result: dict[str, Any] = {
+                    "success": run["success"],
+                    "nodeId": node_id,
+                    "steps": run["steps"],
+                    "repositoryUrl": f"{base_url}/components/render/{node_id}",
+                }
+
+                # Read back so callers see the state that actually stuck
+                node = await self._fetch_full_node(client, base_url, node_id)
+                if node:
+                    wf_status = (node.get("properties") or {}).get("ccm:wf_status")
+                    if isinstance(wf_status, list):
+                        wf_status = wf_status[0] if wf_status else None
+                    result["current_status"] = wf_status
+
+                history = await fetch_workflow_history(
+                    client, self._auth_header, base_url, node_id
                 )
-            except Exception as e:
-                results.append(
-                    {"collectionId": collection_id, "success": False, "error": str(e)}
-                )
+                if history is not None:
+                    result["history"] = history
 
-        return {"results": results}
+                if not run["success"]:
+                    failed = [s["status"] for s in run["steps"] if not s["success"]]
+                    result["error"] = (
+                        f"Workflow-Schritt(e) fehlgeschlagen: {', '.join(failed)}"
+                    )
 
-    async def _start_workflow(
-        self, client: httpx.AsyncClient, base_url: str, node_id: str
-    ) -> dict:
-        """Start review workflow."""
-        workflow_url = f"{base_url}/rest/node/v1/nodes/-home-/{node_id}/workflow"
+                return result
 
-        response = await client.put(
-            workflow_url,
-            headers={
-                "Authorization": self._auth_header,
-                "Content-Type": "application/json",
-                "Accept": "application/json",
-            },
-            json={
-                "receiver": [{"authorityName": "GROUP_ORG_WLO-Uploadmanager"}],
-                "comment": "Upload via Metadata Agent API",
-                "status": "200_tocheck",
-                "logLevel": "info",
-            },
-        )
-
-        if response.status_code not in (200, 201):
-            print(f"⚠️ Start workflow failed: {response.status_code}")
-            return {"success": False}
-
-        return {"success": True}
+        except httpx.TimeoutException as e:
+            return {
+                "success": False,
+                "nodeId": node_id,
+                "error": f"Timeout bei der Verbindung zum Repository: {e}",
+            }
+        except httpx.ConnectError as e:
+            return {
+                "success": False,
+                "nodeId": node_id,
+                "error": f"Verbindung zum Repository fehlgeschlagen: {e}",
+            }
+        except Exception as e:
+            return {
+                "success": False,
+                "nodeId": node_id,
+                "error": f"{type(e).__name__}: {e}",
+            }
 
 
 # Singleton instance

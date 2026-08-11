@@ -23,6 +23,14 @@
         "de": "Typisierung",
         "en": "Typification"
       }
+    },
+    {
+      "id": "quality",
+      "icon": "verified",
+      "label": {
+        "de": "Qualitätsbewertung (WLO-Repository)",
+        "en": "Quality assessment (WLO repository)"
+      }
     }
   ],
   "fields": [
@@ -2024,6 +2032,854 @@
           "trim": true,
           "deduplicate": true,
           "map_labels_to_uris": true
+        }
+      }
+    },
+    {
+      "id": "ccm:oeh_quality_relevancy_for_education",
+      "group": "quality",
+      "label": {
+        "de": "Geeignet für Bildung (WLO-Suche)",
+        "en": "Suitable for education (WLO search)"
+      },
+      "description": {
+        "de": "Binäre Einschätzung, ob die Ressource in der WLO-Suche als Bildungsinhalt angeboten werden kann. WLO-Repository-Feld, wird nicht im Canvas angezeigt.",
+        "en": "Binary assessment whether the resource can be offered as educational content in the WLO search. WLO repository field, not shown in the canvas."
+      },
+      "prompt": {
+        "de": "Entscheide binär, ob die Ressource für Bildungszwecke geeignet ist. Gib '1' (Ja – geeignet) zurück, wenn Lehrende oder Lernende sie sinnvoll für Unterricht, Lehre oder Selbstlernen nutzen können — auch Hintergrundinformationen, Fachartikel, Werkzeuge oder Veranstaltungen zählen dazu. Gib '0' (Nein – ungeeignet) zurück bei reiner Produktwerbung, Shop- und Preisseiten, Startseiten ohne inhaltliche Substanz, Login-/Paywall-Seiten ohne zugänglichen Inhalt, Spam, Fehlerseiten oder Inhalten ohne jeden Bildungsbezug. Bewerte die dargestellte Ressource, nicht die Plattform allgemein.",
+        "en": "Decide in binary form whether the resource is suitable for educational purposes. Return '1' (Yes – suitable) if teachers or learners can meaningfully use it for teaching, instruction or self-study — background information, professional articles, tools or events count too. Return '0' (No – unsuitable) for pure product advertising, shop and pricing pages, landing pages without substance, login/paywall pages without accessible content, spam, error pages or content without any educational relevance. Evaluate the resource presented, not the platform in general."
+      },
+      "system": {
+        "path": "ccm:oeh_quality_relevancy_for_education",
+        "uri": "ccm:oeh_quality_relevancy_for_education",
+        "datatype": "string",
+        "multiple": false,
+        "required": false,
+        "ask_user": false,
+        "ai_fillable": true,
+        "repo_field": true,
+        "index": {
+          "keyword": true
+        },
+        "vocabulary": {
+          "type": "closed",
+          "concepts": [
+            {
+              "label": {
+                "de": "Nein – ungeeignet",
+                "en": "No – unsuitable"
+              },
+              "value": "0"
+            },
+            {
+              "label": {
+                "de": "Ja – geeignet",
+                "en": "Yes – suitable"
+              },
+              "value": "1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ccm:oeh_quality_criminal_law",
+      "group": "quality",
+      "label": {
+        "de": "Strafrecht",
+        "en": "Criminal law"
+      },
+      "description": {
+        "de": "Prüfung auf strafrechtlich relevante Inhalte. K.O.-Kriterium: Ein Treffer schließt die Aufnahme in WLO aus. WLO-Repository-Feld, wird nicht im Canvas angezeigt.",
+        "en": "Check for content relevant under criminal law. Knock-out criterion: any finding excludes the resource from WLO. WLO repository field, not shown in the canvas."
+      },
+      "prompt": {
+        "de": "Prüfe die Ressource auf strafrechtlich relevante Inhalte: Volksverhetzung, Holocaustleugnung, verfassungsfeindliche Kennzeichen oder Propaganda, Aufruf oder Anleitung zu Straftaten, Gewaltverherrlichung, Terrorpropaganda, Beleidigung und Verleumdung. Antworte mit der URI für 'Nein – unauffällig', wenn nichts gefunden wurde, und mit der URI für 'Ja – auffällig', wenn mindestens ein Punkt zutrifft. Bewerte NUR die vorliegende Ressource, nicht die Plattform allgemein. Im Zweifel und ohne konkreten Anhaltspunkt: 'Nein – unauffällig'.",
+        "en": "Check the resource for content relevant under criminal law: incitement to hatred, Holocaust denial, unconstitutional symbols or propaganda, incitement or instructions for crimes, glorification of violence, terrorist propaganda, insult and defamation. Answer with the URI for 'No – unremarkable' if nothing was found, and with the URI for 'Yes – flagged' if at least one point applies. Evaluate ONLY the resource at hand, not the platform in general. When in doubt and without concrete evidence: 'No – unremarkable'."
+      },
+      "system": {
+        "path": "ccm:oeh_quality_criminal_law",
+        "uri": "ccm:oeh_quality_criminal_law",
+        "datatype": "string",
+        "multiple": false,
+        "required": false,
+        "ask_user": false,
+        "ai_fillable": true,
+        "repo_field": true,
+        "index": {
+          "keyword": true
+        },
+        "vocabulary": {
+          "type": "closed",
+          "concepts": [
+            {
+              "label": {
+                "de": "Nein – unauffällig (keine Auffälligkeiten gefunden, Maschine)",
+                "en": "No – unremarkable (no findings, machine)"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality/no_auto_findings"
+            },
+            {
+              "label": {
+                "de": "Ja – auffällig (Auffälligkeiten gefunden, Maschine)",
+                "en": "Yes – flagged (findings detected, machine)"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality/auto_findings"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ccm:oeh_quality_protection_of_minors",
+      "group": "quality",
+      "label": {
+        "de": "Jugendschutz",
+        "en": "Protection of minors"
+      },
+      "description": {
+        "de": "Prüfung auf jugendgefährdende Inhalte. K.O.-Kriterium: Ein Treffer schließt die Aufnahme in WLO aus. WLO-Repository-Feld, wird nicht im Canvas angezeigt.",
+        "en": "Check for content harmful to minors. Knock-out criterion: any finding excludes the resource from WLO. WLO repository field, not shown in the canvas."
+      },
+      "prompt": {
+        "de": "Prüfe die Ressource auf jugendgefährdende Inhalte: Pornografie und sexualisierte Darstellungen, drastische Gewalt- oder Schockbilder, Verharmlosung von Drogen, Suizid, Selbstverletzung oder Essstörungen, Glücksspiel, Kontaktanbahnung zu Minderjährigen sowie Werbung, die sich diese Themen zunutze macht. Antworte mit der URI für 'Nein – unauffällig', wenn nichts gefunden wurde, und mit der URI für 'Ja – auffällig', wenn mindestens ein Punkt zutrifft. Bewerte NUR die vorliegende Ressource, nicht die Plattform allgemein. Im Zweifel und ohne konkreten Anhaltspunkt: 'Nein – unauffällig'.",
+        "en": "Check the resource for content harmful to minors: pornography and sexualised depictions, drastic violence or shock imagery, trivialisation of drugs, suicide, self-harm or eating disorders, gambling, grooming, as well as advertising exploiting these topics. Answer with the URI for 'No – unremarkable' if nothing was found, and with the URI for 'Yes – flagged' if at least one point applies. Evaluate ONLY the resource at hand, not the platform in general. When in doubt and without concrete evidence: 'No – unremarkable'."
+      },
+      "system": {
+        "path": "ccm:oeh_quality_protection_of_minors",
+        "uri": "ccm:oeh_quality_protection_of_minors",
+        "datatype": "string",
+        "multiple": false,
+        "required": false,
+        "ask_user": false,
+        "ai_fillable": true,
+        "repo_field": true,
+        "index": {
+          "keyword": true
+        },
+        "vocabulary": {
+          "type": "closed",
+          "concepts": [
+            {
+              "label": {
+                "de": "Nein – unauffällig (keine Auffälligkeiten gefunden, Maschine)",
+                "en": "No – unremarkable (no findings, machine)"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality/no_auto_findings"
+            },
+            {
+              "label": {
+                "de": "Ja – auffällig (Auffälligkeiten gefunden, Maschine)",
+                "en": "Yes – flagged (findings detected, machine)"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality/auto_findings"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ccm:oeh_quality_copyright_law",
+      "group": "quality",
+      "label": {
+        "de": "Urheberrecht",
+        "en": "Copyright law"
+      },
+      "description": {
+        "de": "Prüfung auf urheberrechtliche Auffälligkeiten. K.O.-Kriterium: Ein Treffer schließt die Aufnahme in WLO aus. WLO-Repository-Feld, wird nicht im Canvas angezeigt.",
+        "en": "Check for copyright issues. Knock-out criterion: any finding excludes the resource from WLO. WLO repository field, not shown in the canvas."
+      },
+      "prompt": {
+        "de": "Prüfe die Ressource auf urheberrechtliche Auffälligkeiten: übernommene Texte, Bilder, Noten, Videos oder Musik ohne Lizenz- und Quellenangabe, Volltexte geschützter Werke, Scans aus Schulbüchern, Links auf Filesharing- oder Streaming-Portale mit Raubkopien, widersprüchliche oder fehlende Lizenzangaben bei erkennbar fremdem Material. Eine sauber angegebene freie Lizenz (CC, Public Domain) oder eigenes Material ist unauffällig. Antworte mit der URI für 'Nein – unauffällig', wenn nichts gefunden wurde, und mit der URI für 'Ja – auffällig', wenn mindestens ein Punkt zutrifft. Bewerte NUR die vorliegende Ressource, nicht die Plattform allgemein. Im Zweifel und ohne konkreten Anhaltspunkt: 'Nein – unauffällig'.",
+        "en": "Check the resource for copyright issues: reused texts, images, sheet music, videos or music without licence and source attribution, full texts of protected works, textbook scans, links to filesharing or streaming portals with pirated copies, contradictory or missing licence information for evidently third-party material. A properly stated open licence (CC, public domain) or own material is unremarkable. Answer with the URI for 'No – unremarkable' if nothing was found, and with the URI for 'Yes – flagged' if at least one point applies. Evaluate ONLY the resource at hand, not the platform in general. When in doubt and without concrete evidence: 'No – unremarkable'."
+      },
+      "system": {
+        "path": "ccm:oeh_quality_copyright_law",
+        "uri": "ccm:oeh_quality_copyright_law",
+        "datatype": "string",
+        "multiple": false,
+        "required": false,
+        "ask_user": false,
+        "ai_fillable": true,
+        "repo_field": true,
+        "index": {
+          "keyword": true
+        },
+        "vocabulary": {
+          "type": "closed",
+          "concepts": [
+            {
+              "label": {
+                "de": "Nein – unauffällig (keine Auffälligkeiten gefunden, Maschine)",
+                "en": "No – unremarkable (no findings, machine)"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality/no_auto_findings"
+            },
+            {
+              "label": {
+                "de": "Ja – auffällig (Auffälligkeiten gefunden, Maschine)",
+                "en": "Yes – flagged (findings detected, machine)"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality/auto_findings"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ccm:oeh_quality_personal_law",
+      "group": "quality",
+      "label": {
+        "de": "Persönlichkeitsrechte",
+        "en": "Personal rights"
+      },
+      "description": {
+        "de": "Prüfung auf Verletzung von Persönlichkeitsrechten. K.O.-Kriterium: Ein Treffer schließt die Aufnahme in WLO aus. WLO-Repository-Feld, wird nicht im Canvas angezeigt.",
+        "en": "Check for violations of personal rights. Knock-out criterion: any finding excludes the resource from WLO. WLO repository field, not shown in the canvas."
+      },
+      "prompt": {
+        "de": "Prüfe die Ressource auf Verletzungen von Persönlichkeitsrechten: erkennbare Personen — besonders Kinder und Jugendliche — in Bild oder Video ohne erkennbare Einwilligung, Namen mit Adressen, Kontaktdaten oder Gesundheitsdaten, Bloßstellung oder Anprangerung Einzelner, heimliche Aufnahmen, unbelegte Tatsachenbehauptungen über konkrete Personen. Personen der Zeitgeschichte in ihrer öffentlichen Rolle sind unauffällig. Antworte mit der URI für 'Nein – unauffällig', wenn nichts gefunden wurde, und mit der URI für 'Ja – auffällig', wenn mindestens ein Punkt zutrifft. Bewerte NUR die vorliegende Ressource, nicht die Plattform allgemein. Im Zweifel und ohne konkreten Anhaltspunkt: 'Nein – unauffällig'.",
+        "en": "Check the resource for violations of personal rights: identifiable people — especially children and adolescents — in images or video without apparent consent, names combined with addresses, contact or health data, public shaming of individuals, covert recordings, unsubstantiated factual claims about specific people. Public figures in their public role are unremarkable. Answer with the URI for 'No – unremarkable' if nothing was found, and with the URI for 'Yes – flagged' if at least one point applies. Evaluate ONLY the resource at hand, not the platform in general. When in doubt and without concrete evidence: 'No – unremarkable'."
+      },
+      "system": {
+        "path": "ccm:oeh_quality_personal_law",
+        "uri": "ccm:oeh_quality_personal_law",
+        "datatype": "string",
+        "multiple": false,
+        "required": false,
+        "ask_user": false,
+        "ai_fillable": true,
+        "repo_field": true,
+        "index": {
+          "keyword": true
+        },
+        "vocabulary": {
+          "type": "closed",
+          "concepts": [
+            {
+              "label": {
+                "de": "Nein – unauffällig (keine Auffälligkeiten gefunden, Maschine)",
+                "en": "No – unremarkable (no findings, machine)"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality/no_auto_findings"
+            },
+            {
+              "label": {
+                "de": "Ja – auffällig (Auffälligkeiten gefunden, Maschine)",
+                "en": "Yes – flagged (findings detected, machine)"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality/auto_findings"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ccm:oeh_quality_correctness",
+      "group": "quality",
+      "label": {
+        "de": "Sachrichtigkeit",
+        "en": "Factual correctness"
+      },
+      "description": {
+        "de": "Sachrichtigkeit auf einer Skala von 0 (sachlich falsch) bis 5 (wissenschaftlich belegt). WLO-Repository-Feld, wird nicht im Canvas angezeigt.",
+        "en": "Factual correctness on a scale from 0 (factually wrong) to 5 (scientifically substantiated). WLO repository field, not shown in the canvas."
+      },
+      "prompt": {
+        "de": "Stufe die Sachrichtigkeit der Ressource auf einer Skala von 0 bis 5 ein und gib den passenden Wert zurück. 0 = sachlich falsch (widerlegte Aussagen, Verschwörungserzählungen, Pseudowissenschaft). 1 = enthält Unkorrektheiten (im Kern richtig, aber einzelne Fehler, irreführende Statistiken oder veraltete, inzwischen korrigierte Darstellungen). 2 = sehr stark vereinfacht (didaktisch reduziert bis an die Grenze zur Verzerrung). 3 = stark vereinfacht (fachlich tragfähig, aber deutlich reduziert). 4 = sachlich richtig, keine oder wenige Belege angeführt. 5 = wissenschaftlich belegt (fachlich korrekt mit nachvollziehbaren Quellen, Literatur- oder Studienangaben). Zielgruppengerechte Vereinfachung ist kein Fehler, sondern führt zu Stufe 2 oder 3. Ohne jeden Anhaltspunkt: null zurückgeben.",
+        "en": "Rate the factual correctness of the resource on a scale from 0 to 5 and return the matching value. 0 = factually wrong (refuted statements, conspiracy narratives, pseudoscience). 1 = contains inaccuracies (broadly right but with individual errors, misleading statistics or outdated, since-corrected descriptions). 2 = very heavily simplified (didactically reduced to the edge of distortion). 3 = heavily simplified (professionally sound but clearly reduced). 4 = factually correct, few or no sources cited. 5 = scientifically substantiated (correct with traceable sources, literature or study references). Audience-appropriate simplification is not an error but leads to level 2 or 3. Without any evidence: return null."
+      },
+      "system": {
+        "path": "ccm:oeh_quality_correctness",
+        "uri": "ccm:oeh_quality_correctness",
+        "datatype": "string",
+        "multiple": false,
+        "required": false,
+        "ask_user": false,
+        "ai_fillable": true,
+        "repo_field": true,
+        "index": {
+          "keyword": true
+        },
+        "vocabulary": {
+          "type": "closed",
+          "concepts": [
+            {
+              "label": {
+                "de": "0 – sachlich falsch",
+                "en": "0 – factually wrong"
+              },
+              "value": "0"
+            },
+            {
+              "label": {
+                "de": "1 – enthält Unkorrektheiten",
+                "en": "1 – contains inaccuracies"
+              },
+              "value": "1"
+            },
+            {
+              "label": {
+                "de": "2 – sehr stark vereinfacht",
+                "en": "2 – very heavily simplified"
+              },
+              "value": "2"
+            },
+            {
+              "label": {
+                "de": "3 – stark vereinfacht",
+                "en": "3 – heavily simplified"
+              },
+              "value": "3"
+            },
+            {
+              "label": {
+                "de": "4 – sachlich richtig, keine/wenige Belege angeführt",
+                "en": "4 – factually correct, few or no sources cited"
+              },
+              "value": "4"
+            },
+            {
+              "label": {
+                "de": "5 – wissenschaftlich belegt",
+                "en": "5 – scientifically substantiated"
+              },
+              "value": "5"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ccm:oeh_quality_data_privacy",
+      "group": "quality",
+      "label": {
+        "de": "Datenschutz",
+        "en": "Data privacy"
+      },
+      "description": {
+        "de": "Datenschutz-Einstufung der Ressource auf einer Skala von 0 (heimlich datensaugend) bis 5 (keinerlei Datenweitergabe). WLO-Repository-Feld, wird nicht im Canvas angezeigt.",
+        "en": "Data privacy rating of the resource on a scale from 0 (covertly data-hungry) to 5 (no data sharing at all). WLO repository field, not shown in the canvas."
+      },
+      "prompt": {
+        "de": "Stufe den Datenschutz der Ressource auf einer Skala von 0 bis 5 ein und gib die passende URI zurück. 0 = heimlich unangemessen datensaugend (Tracking ohne jeden Hinweis, keine Datenschutzerklärung). 1 = intransparent unangemessen viel datensaugend. 2 = intransparent Daten saugend (Tracker und Drittanbieter erkennbar, aber unklar erklärt). 3 = transparent unangemessen viel datensaugend (klare Datenschutzerklärung, aber umfangreiches Tracking, Werbenetzwerke, Social-Media-Plugins, Pflicht-Login). 4 = angemessen viele Daten mit Einverständnis (Datenschutzerklärung, echte Cookie-Wahl, nur nötige Dienste). 5 = keinerlei Datenweitergabe (keine Tracker, keine Drittanbieter, keine Registrierung, kein Werbenetzwerk). Achte auf Hinweise wie Cookie-Banner, Google Analytics, eingebettete Videos, Werbung, Registrierungs- oder Login-Zwang, Datenschutzerklärung. Ohne jeden Anhaltspunkt: null zurückgeben.",
+        "en": "Rate the data privacy of the resource on a scale from 0 to 5 and return the matching URI. 0 = covertly and inappropriately data-hungry (tracking without any notice, no privacy policy). 1 = non-transparent and inappropriately data-hungry. 2 = non-transparent data collection (trackers and third parties visible but poorly explained). 3 = transparent but inappropriately data-hungry (clear privacy policy, yet extensive tracking, ad networks, social media plugins, mandatory login). 4 = appropriate amount of data with consent (privacy policy, real cookie choice, only necessary services). 5 = no data sharing at all (no trackers, no third parties, no registration, no ad network). Look for cookie banners, Google Analytics, embedded videos, advertising, forced registration or login, privacy policy. Without any evidence: return null."
+      },
+      "system": {
+        "path": "ccm:oeh_quality_data_privacy",
+        "uri": "ccm:oeh_quality_data_privacy",
+        "datatype": "string",
+        "multiple": false,
+        "required": false,
+        "ask_user": false,
+        "ai_fillable": true,
+        "repo_field": true,
+        "index": {
+          "keyword": true
+        },
+        "vocabulary": {
+          "type": "closed",
+          "concepts": [
+            {
+              "label": {
+                "de": "0 – heimlich unangemessen datensaugend",
+                "en": "0 – covertly and inappropriately data-hungry"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_data_privacy/0"
+            },
+            {
+              "label": {
+                "de": "1 – intransparent unangemessen viel datensaugend",
+                "en": "1 – non-transparent and inappropriately data-hungry"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_data_privacy/1"
+            },
+            {
+              "label": {
+                "de": "2 – intransparent Daten saugend",
+                "en": "2 – non-transparent data collection"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_data_privacy/2"
+            },
+            {
+              "label": {
+                "de": "3 – transparent unangemessen viel datensaugend",
+                "en": "3 – transparent but inappropriately data-hungry"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_data_privacy/3"
+            },
+            {
+              "label": {
+                "de": "4 – angemessen viele Daten mit Einverständnis",
+                "en": "4 – appropriate amount of data with consent"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_data_privacy/4"
+            },
+            {
+              "label": {
+                "de": "5 – keinerlei Datenweitergabe",
+                "en": "5 – no data sharing at all"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_data_privacy/5"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ccm:oeh_quality_neutralness",
+      "group": "quality",
+      "label": {
+        "de": "Neutralität",
+        "en": "Neutrality"
+      },
+      "description": {
+        "de": "Neutralitäts-Einstufung der Ressource auf einer Skala von 0 (manipulativ) bis 5 (neutrale Formulierung, unabhängiger Ersteller). WLO-Repository-Feld, wird nicht im Canvas angezeigt.",
+        "en": "Neutrality rating of the resource on a scale from 0 (manipulative) to 5 (neutral wording, independent creator). WLO repository field, not shown in the canvas."
+      },
+      "prompt": {
+        "de": "Stufe die Neutralität der Ressource auf einer Skala von 0 bis 5 ein und gib die passende URI zurück. 0 = manipulativ (gezielte Meinungsmache, Propaganda, verdeckte Werbung, emotionalisierende Falschdarstellung). 1 = unneutral (klare Parteinahme ohne Kennzeichnung). 2 = ideologisch eingefärbt, aber korrekter Inhalt. 3 = ideologisch eingefärbt, aber transparent (Standpunkt und Interessenlage werden offengelegt). 4 = neutrale Formulierung (sachlich, mehrere Perspektiven, aber Ersteller mit eigenem Interesse, z. B. Unternehmen oder Verband). 5 = neutrale Formulierung und unabhängiger Ersteller (öffentlich-rechtlich, wissenschaftlich, gemeinnützig, ohne kommerzielles Eigeninteresse). Prüfe dafür Wortwahl, Ausgewogenheit, Quellenangaben, Werbeanteil und wer die Seite betreibt. Ohne jeden Anhaltspunkt: null zurückgeben.",
+        "en": "Rate the neutrality of the resource on a scale from 0 to 5 and return the matching URI. 0 = manipulative (deliberate opinion-shaping, propaganda, hidden advertising, emotionally charged misrepresentation). 1 = non-neutral (clear partisanship without disclosure). 2 = ideologically coloured but factually correct. 3 = ideologically coloured but transparent (standpoint and interests disclosed). 4 = neutral wording (objective, multiple perspectives, but creator has own interests, e.g. company or association). 5 = neutral wording and independent creator (public service, academic, non-profit, without commercial self-interest). Assess wording, balance, source attribution, share of advertising and who operates the site. Without any evidence: return null."
+      },
+      "system": {
+        "path": "ccm:oeh_quality_neutralness",
+        "uri": "ccm:oeh_quality_neutralness",
+        "datatype": "string",
+        "multiple": false,
+        "required": false,
+        "ask_user": false,
+        "ai_fillable": true,
+        "repo_field": true,
+        "index": {
+          "keyword": true
+        },
+        "vocabulary": {
+          "type": "closed",
+          "concepts": [
+            {
+              "label": {
+                "de": "0 – manipulativ",
+                "en": "0 – manipulative"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_neutrality/0"
+            },
+            {
+              "label": {
+                "de": "1 – unneutral",
+                "en": "1 – non-neutral"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_neutrality/1"
+            },
+            {
+              "label": {
+                "de": "2 – ideologisch eingefärbt, aber korrekter Inhalt",
+                "en": "2 – ideologically coloured but factually correct"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_neutrality/2"
+            },
+            {
+              "label": {
+                "de": "3 – ideologisch eingefärbt, aber transparent",
+                "en": "3 – ideologically coloured but transparent"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_neutrality/3"
+            },
+            {
+              "label": {
+                "de": "4 – neutrale Formulierung",
+                "en": "4 – neutral wording"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_neutrality/4"
+            },
+            {
+              "label": {
+                "de": "5 – neutrale Formulierung, unabhängiger Ersteller",
+                "en": "5 – neutral wording, independent creator"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_neutrality/5"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ccm:oeh_quality_didactics",
+      "group": "quality",
+      "label": {
+        "de": "Didaktik/Methodik",
+        "en": "Didactics / methodology"
+      },
+      "description": {
+        "de": "Didaktisch-methodische Qualität auf einer Skala von 0 (Methodik unangemessen) bis 5 (moderne, sehr gute Methodik). WLO-Repository-Feld, wird nicht im Canvas angezeigt.",
+        "en": "Didactic and methodological quality on a scale from 0 (inappropriate methodology) to 5 (modern, very good methodology). WLO repository field, not shown in the canvas."
+      },
+      "prompt": {
+        "de": "Stufe die didaktisch-methodische Qualität der Ressource auf einer Skala von 0 bis 5 ein und gib die passende URI zurück. 0 = Methodik unangemessen (kein erkennbarer didaktischer Aufbau, Methode passt nicht zum Inhalt oder zur Zielgruppe). 1 = Methodik ausreichend (rudimentärer Aufbau, überwiegend reine Wissensvermittlung). 2 = angemessene Methodik (klare Struktur, Beispiele oder Aufgaben vorhanden). 3 = gute Methodik (Lernziele erkennbar, Aufgaben mit Lösungen, sinnvolle Progression). 4 = moderne, gute Methodik (aktivierende Elemente, Differenzierung, Handreichungen für Lehrende). 5 = moderne, sehr gute Methodik (durchdachtes Gesamtkonzept: Lernziele, Differenzierung, Lernzielkontrolle, kooperative oder interaktive Formate). Reine Informationsseiten ohne didaktische Aufbereitung liegen bei 0 bis 1. Ohne jeden Anhaltspunkt: null zurückgeben.",
+        "en": "Rate the didactic and methodological quality of the resource on a scale from 0 to 5 and return the matching URI. 0 = inappropriate methodology (no discernible didactic structure, method does not fit content or audience). 1 = sufficient methodology (rudimentary structure, mostly plain knowledge transfer). 2 = appropriate methodology (clear structure, examples or exercises present). 3 = good methodology (recognisable learning objectives, exercises with solutions, sensible progression). 4 = modern, good methodology (activating elements, differentiation, teacher guidance). 5 = modern, very good methodology (coherent overall concept: objectives, differentiation, assessment, cooperative or interactive formats). Pure information pages without didactic preparation land at 0 to 1. Without any evidence: return null."
+      },
+      "system": {
+        "path": "ccm:oeh_quality_didactics",
+        "uri": "ccm:oeh_quality_didactics",
+        "datatype": "string",
+        "multiple": false,
+        "required": false,
+        "ask_user": false,
+        "ai_fillable": true,
+        "repo_field": true,
+        "index": {
+          "keyword": true
+        },
+        "vocabulary": {
+          "type": "closed",
+          "concepts": [
+            {
+              "label": {
+                "de": "0 – Methodik unangemessen",
+                "en": "0 – inappropriate methodology"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_didactics/0"
+            },
+            {
+              "label": {
+                "de": "1 – Methodik ausreichend",
+                "en": "1 – sufficient methodology"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_didactics/1"
+            },
+            {
+              "label": {
+                "de": "2 – angemessene Methodik",
+                "en": "2 – appropriate methodology"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_didactics/2"
+            },
+            {
+              "label": {
+                "de": "3 – gute Methodik",
+                "en": "3 – good methodology"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_didactics/3"
+            },
+            {
+              "label": {
+                "de": "4 – moderne, gute Methodik",
+                "en": "4 – modern, good methodology"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_didactics/4"
+            },
+            {
+              "label": {
+                "de": "5 – moderne, sehr gute Methodik",
+                "en": "5 – modern, very good methodology"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_didactics/5"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ccm:oeh_quality_medial",
+      "group": "quality",
+      "label": {
+        "de": "Medial passend",
+        "en": "Media fit"
+      },
+      "description": {
+        "de": "Mediale Aufbereitung auf einer Skala von 0 (medial unpassend) bis 5 (medial hervorragend). WLO-Repository-Feld, wird nicht im Canvas angezeigt.",
+        "en": "Media preparation on a scale from 0 (unsuitable) to 5 (outstanding). WLO repository field, not shown in the canvas."
+      },
+      "prompt": {
+        "de": "Stufe die mediale Aufbereitung der Ressource auf einer Skala von 0 bis 5 ein und gib die passende URI zurück. Bewertet wird, ob Format und Gestaltung zum Inhalt passen: Bildqualität, Ton, Lesbarkeit, Layout, Navigation, mobile Nutzbarkeit, Werbeanteil, Ladeverhalten. 0 = medial unpassend (unbrauchbare Qualität, Format passt nicht zum Inhalt, Werbung dominiert). 1 = medial schwierig (stark veraltete Darstellung, schlechte Lesbarkeit oder Tonqualität). 2 = medial ausreichend, aber suboptimal (nutzbar, aber unübersichtlich oder wenig ansprechend). 3 = medial passend (sauber aufbereitet, Format passt zum Inhalt). 4 = medial gut (ansprechendes Layout, gute Qualität, sinnvoller Medienmix). 5 = medial hervorragend (durchgängig hohe Produktionsqualität, interaktive oder multimediale Elemente, barrierearm und responsiv). Ohne jeden Anhaltspunkt: null zurückgeben.",
+        "en": "Rate the media preparation of the resource on a scale from 0 to 5 and return the matching URI. Assessed is whether format and design suit the content: image quality, audio, readability, layout, navigation, mobile usability, share of advertising, loading behaviour. 0 = unsuitable (unusable quality, format does not fit the content, advertising dominates). 1 = difficult (heavily outdated presentation, poor readability or audio). 2 = sufficient but suboptimal (usable but cluttered or unappealing). 3 = suitable (cleanly prepared, format fits the content). 4 = good (appealing layout, good quality, sensible media mix). 5 = outstanding (consistently high production quality, interactive or multimedia elements, accessible and responsive). Without any evidence: return null."
+      },
+      "system": {
+        "path": "ccm:oeh_quality_medial",
+        "uri": "ccm:oeh_quality_medial",
+        "datatype": "string",
+        "multiple": false,
+        "required": false,
+        "ask_user": false,
+        "ai_fillable": true,
+        "repo_field": true,
+        "index": {
+          "keyword": true
+        },
+        "vocabulary": {
+          "type": "closed",
+          "concepts": [
+            {
+              "label": {
+                "de": "0 – Medial unpassend",
+                "en": "0 – unsuitable"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_media/0"
+            },
+            {
+              "label": {
+                "de": "1 – Medial schwierig",
+                "en": "1 – difficult"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_media/1"
+            },
+            {
+              "label": {
+                "de": "2 – Medial ausreichend, aber suboptimal",
+                "en": "2 – sufficient but suboptimal"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_media/2"
+            },
+            {
+              "label": {
+                "de": "3 – Medial passend",
+                "en": "3 – suitable"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_media/3"
+            },
+            {
+              "label": {
+                "de": "4 – Medial gut",
+                "en": "4 – good"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_media/4"
+            },
+            {
+              "label": {
+                "de": "5 – Medial hervorragend",
+                "en": "5 – outstanding"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_media/5"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ccm:oeh_quality_transparentness",
+      "group": "quality",
+      "label": {
+        "de": "Anbieter Renommee",
+        "en": "Provider reputation"
+      },
+      "description": {
+        "de": "Transparenz und Renommee des Anbieters auf einer Skala von 0 (keine Angabe oder unseriös) bis 5 (renommierter Anbieter, korrekte Kontaktangaben). WLO-Repository-Feld, wird nicht im Canvas angezeigt.",
+        "en": "Transparency and reputation of the provider on a scale from 0 (no information or dubious) to 5 (renowned provider with correct contact details). WLO repository field, not shown in the canvas."
+      },
+      "prompt": {
+        "de": "Stufe Transparenz und Renommee des Anbieters auf einer Skala von 0 bis 5 ein und gib die passende URI zurück. Prüfe dafür Impressum, Über-uns-Angaben, Trägerschaft, Kontaktmöglichkeiten und Bekanntheit. 0 = keine Angabe oder unseriös — NUR wenn der Text die Anbieterseite selbst abbildet und dort kein Impressum steht, der Anbieter anonym bleibt oder erkennbar unseriös ist. 1 = Anbieter benannt, keine Kontaktangaben. 2 = Anbieter benannt, Kontaktangaben vorhanden (z. B. E-Mail oder Formular). 3 = Anbieter benannt, umfangreiche Kontaktangaben (Impressum mit Anschrift, Vertretungsberechtigten, Telefon). 4 = Anbieter bekannt, umfangreiche Kontaktangaben (etablierte Einrichtung, Verlag, Verein oder Hochschule). 5 = renommierter Anbieter, korrekte Kontaktangaben (öffentlich-rechtlich, staatlich, wissenschaftlich oder anderweitig anerkannt, vollständiges Impressum). Bewerte den Anbieter der Ressource, nicht die dargestellte Person oder Organisation. Enthält der Text überhaupt keine Angaben zum Anbieter — etwa weil nur der Artikelinhalt vorliegt — dann ist das KEINE Stufe 0, sondern null.",
+        "en": "Rate the transparency and reputation of the provider on a scale from 0 to 5 and return the matching URI. Check imprint, about page, ownership, contact options and prominence. 0 = no information or dubious — ONLY if the text shows the provider's own page and it carries no imprint, leaves the provider anonymous, or is evidently dubious. 1 = provider named, no contact details. 2 = provider named, contact details present (e.g. email or form). 3 = provider named, extensive contact details (imprint with address, legal representative, phone). 4 = provider well known, extensive contact details (established institution, publisher, association or university). 5 = renowned provider with correct contact details (public service, governmental, academic or otherwise recognised, complete imprint). Assess the provider of the resource, not the person or organisation being described. If the text carries no provider information at all — e.g. because only the article body is present — that is NOT level 0 but null."
+      },
+      "system": {
+        "path": "ccm:oeh_quality_transparentness",
+        "uri": "ccm:oeh_quality_transparentness",
+        "datatype": "string",
+        "multiple": false,
+        "required": false,
+        "ask_user": false,
+        "ai_fillable": true,
+        "repo_field": true,
+        "index": {
+          "keyword": true
+        },
+        "vocabulary": {
+          "type": "closed",
+          "concepts": [
+            {
+              "label": {
+                "de": "0 – keine Angabe oder unseriös",
+                "en": "0 – no information or dubious"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_transparency/0"
+            },
+            {
+              "label": {
+                "de": "1 – Anbieter benannt, keine Kontaktangaben",
+                "en": "1 – provider named, no contact details"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_transparency/1"
+            },
+            {
+              "label": {
+                "de": "2 – Anbieter benannt, Kontaktangaben vorhanden",
+                "en": "2 – provider named, contact details present"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_transparency/2"
+            },
+            {
+              "label": {
+                "de": "3 – Anbieter benannt, umfangreiche Kontaktangaben",
+                "en": "3 – provider named, extensive contact details"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_transparency/3"
+            },
+            {
+              "label": {
+                "de": "4 – Anbieter bekannt, umfangreiche Kontaktangaben",
+                "en": "4 – provider well known, extensive contact details"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_transparency/4"
+            },
+            {
+              "label": {
+                "de": "5 – renommierter Anbieter, korrekte Kontaktangaben",
+                "en": "5 – renowned provider, correct contact details"
+              },
+              "uri": "http://w3id.org/openeduhub/vocabs/quality_transparency/5"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ccm:oeh_quality_currentness",
+      "group": "quality",
+      "label": {
+        "de": "Aktualität",
+        "en": "Currentness"
+      },
+      "description": {
+        "de": "Aktualität auf einer Skala von 0 (veralteter Inhalt) bis 5 (hochaktuell). WLO-Repository-Feld, wird nicht im Canvas angezeigt.",
+        "en": "Currentness on a scale from 0 (outdated content) to 5 (highly current). WLO repository field, not shown in the canvas."
+      },
+      "prompt": {
+        "de": "Stufe die Aktualität der Ressource auf einer Skala von 0 bis 5 ein und gib den passenden Wert zurück. 0 = veralteter Inhalt (inhaltlich überholt, sachlich nicht mehr haltbar). 1 = veraltet, aber teils noch relevant. 2 = veraltete Darstellung, inhaltlich noch aktuell (Layout, Beispiele oder Technik wirken alt, die Aussagen stimmen weiterhin). 3 = zeitlos aktuell (Thema unterliegt keiner nennenswerten Alterung, z. B. Grundlagenwissen). 4 = aktueller Wissensstand. 5 = hochaktuell / neuester Wissensstand (greift aktuelle Entwicklungen, Daten oder Forschungsergebnisse auf). Nutze dafür Datumsangaben, genannte Jahreszahlen, Rechtsstände, erwähnte Technologien und Aktualisierungshinweise. Ein fehlendes Datum allein ist kein Hinweis auf Veralterung. Ohne jeden Anhaltspunkt: null zurückgeben.",
+        "en": "Rate the currentness of the resource on a scale from 0 to 5 and return the matching value. 0 = outdated content (superseded, no longer tenable). 1 = outdated but partly still relevant. 2 = outdated presentation, content still current (layout, examples or technology look old while the statements still hold). 3 = timelessly current (topic barely ages, e.g. foundational knowledge). 4 = current state of knowledge. 5 = highly current / latest state of knowledge (picks up recent developments, data or research). Use dates, mentioned years, legal status, referenced technologies and update notices. A missing date alone is no indication of being outdated. Without any evidence: return null."
+      },
+      "system": {
+        "path": "ccm:oeh_quality_currentness",
+        "uri": "ccm:oeh_quality_currentness",
+        "datatype": "string",
+        "multiple": false,
+        "required": false,
+        "ask_user": false,
+        "ai_fillable": true,
+        "repo_field": true,
+        "index": {
+          "keyword": true
+        },
+        "vocabulary": {
+          "type": "closed",
+          "concepts": [
+            {
+              "label": {
+                "de": "0 – veralteter Inhalt",
+                "en": "0 – outdated content"
+              },
+              "value": "0"
+            },
+            {
+              "label": {
+                "de": "1 – veraltet, aber teils noch relevant",
+                "en": "1 – outdated but partly still relevant"
+              },
+              "value": "1"
+            },
+            {
+              "label": {
+                "de": "2 – veraltete Darstellung, inhaltlich noch aktuell",
+                "en": "2 – outdated presentation, content still current"
+              },
+              "value": "2"
+            },
+            {
+              "label": {
+                "de": "3 – zeitlos aktuell",
+                "en": "3 – timelessly current"
+              },
+              "value": "3"
+            },
+            {
+              "label": {
+                "de": "4 – aktueller Wissensstand",
+                "en": "4 – current state of knowledge"
+              },
+              "value": "4"
+            },
+            {
+              "label": {
+                "de": "5 – hochaktuell/neuester Wissensstand",
+                "en": "5 – highly current / latest state of knowledge"
+              },
+              "value": "5"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ccm:oeh_buffet_criteria",
+      "group": "quality",
+      "label": {
+        "de": "Kriterien für Redaktionsbuffet",
+        "en": "Editorial buffet criteria"
+      },
+      "description": {
+        "de": "Mehrfachauswahl der erfüllten Buffet-Kriterien. WLO-Repository-Feld, wird nicht im Canvas angezeigt.",
+        "en": "Multi-select of the fulfilled buffet criteria. WLO repository field, not shown in the canvas."
+      },
+      "prompt": {
+        "de": "Wähle alle Kriterien aus, die die Ressource nachweislich erfüllt, und gib ein JSON-Array der Werte zurück. 'content_valid' = Sachrichtigkeit: fachlich korrekt, keine erkennbaren Fehler oder Falschinformationen. 'speech_valid' = Sprachliche Verständlichkeit: klare, zielgruppengerechte, sprachlich korrekte Darstellung. 'medial_relevant' = Medial passend: Format und Aufbereitung (Text, Bild, Video, Interaktion) passen zum Inhalt und sind zeitgemäß. 'didactics_valid' = Didaktik/Methodik gut: erkennbarer didaktischer Aufbau, Lernziele, Aufgaben, Beispiele oder Materialien für den Einsatz im Unterricht. 'accessible' = Barrierearmut: Hinweise auf Untertitel, Transkripte, Alternativtexte, Leichte Sprache, gute Kontraste oder Tastaturbedienbarkeit. 'usable_for_buffet' = Gesamturteil: NUR setzen, wenn content_valid, speech_valid, medial_relevant und didactics_valid gemeinsam erfüllt sind. Setze ein Kriterium nicht, wenn du es aus dem Inhalt nicht belegen kannst. Trifft nichts zu: leeres Array oder null.",
+        "en": "Select all criteria the resource demonstrably fulfils and return a JSON array of the values. 'content_valid' = factual correctness: professionally correct, no discernible errors or misinformation. 'speech_valid' = linguistic clarity: clear, audience-appropriate, linguistically correct presentation. 'medial_relevant' = media fit: format and preparation (text, image, video, interaction) suit the content and are up to date. 'didactics_valid' = good didactics/methodology: recognisable didactic structure, learning objectives, exercises, examples or materials for classroom use. 'accessible' = accessibility: evidence of subtitles, transcripts, alt texts, plain language, good contrast or keyboard operability. 'usable_for_buffet' = overall verdict: set ONLY if content_valid, speech_valid, medial_relevant and didactics_valid are all fulfilled together. Do not set a criterion you cannot substantiate from the content. If nothing applies: empty array or null."
+      },
+      "system": {
+        "path": "ccm:oeh_buffet_criteria",
+        "uri": "ccm:oeh_buffet_criteria",
+        "datatype": "array",
+        "multiple": true,
+        "required": false,
+        "ask_user": false,
+        "ai_fillable": true,
+        "repo_field": true,
+        "index": {
+          "keyword": true
+        },
+        "vocabulary": {
+          "type": "closed",
+          "concepts": [
+            {
+              "label": {
+                "de": "Sachrichtigkeit",
+                "en": "Factual correctness"
+              },
+              "value": "content_valid"
+            },
+            {
+              "label": {
+                "de": "Sprachliche Verständlichkeit",
+                "en": "Linguistic clarity"
+              },
+              "value": "speech_valid"
+            },
+            {
+              "label": {
+                "de": "Medial passend",
+                "en": "Media fit"
+              },
+              "value": "medial_relevant"
+            },
+            {
+              "label": {
+                "de": "Didaktik / Methodik gut",
+                "en": "Good didactics / methodology"
+              },
+              "value": "didactics_valid"
+            },
+            {
+              "label": {
+                "de": "Barrierearmut",
+                "en": "Accessibility"
+              },
+              "value": "accessible"
+            },
+            {
+              "label": {
+                "de": "Für Redaktionsbuffet geeignet",
+                "en": "Usable for editorial buffet"
+              },
+              "value": "usable_for_buffet"
+            }
+          ]
         }
       }
     }

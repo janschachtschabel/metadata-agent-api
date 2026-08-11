@@ -15,6 +15,7 @@ Generiert strukturierte Metadaten nach dem [WLO/OEH-Schema](https://wirlernenonl
   - [POST /validate](#post-validate)
   - [POST /export/markdown](#post-exportmarkdown)
   - [POST /upload](#post-upload)
+  - [POST /workflow/{node_id}](#post-workflownodeid)
   - [POST /upload/verify/{node_id}](#post-uploadverifynodeid)
   - [POST /screenshot](#post-screenshot)
   - [Info-Endpunkte](#info-endpunkte)
@@ -25,7 +26,8 @@ Generiert strukturierte Metadaten nach dem [WLO/OEH-Schema](https://wirlernenonl
 
 **Weitere Dokumente:** [WIDGET-REFERENZ.md](WIDGET-REFERENZ.md) — vollständige Referenz
 der Webkomponente (Layouts, alle Attribute, Events) · [UPLOAD-RESPONSE.md](UPLOAD-RESPONSE.md)
-— Antwortformat von `/upload`
+— Antwortformat von `/upload` · [WLO-REPO-FELDER.md](WLO-REPO-FELDER.md) — alle Felder,
+die ins WLO-Repository geschrieben werden
 
 ---
 
@@ -112,7 +114,11 @@ Request → Input Source → LLM Extraction → Normalization → Response
 | `field_normalizer.py` | Typ-basierte Normalisierung (Datum, Boolean, Vokabular, etc.) |
 | `output_normalizer.py` | Strukturanpassung für Canvas-Webkomponente |
 | `geocoding_service.py` | Adressen → Koordinaten via Photon/Komoot API |
-| `repository_service.py` | Upload ins WLO edu-sharing Repository (Aspects, VCARD, Geo) |
+| `repository_service.py` | Upload ins WLO edu-sharing Repository: Node anlegen, Metadaten und Extended-Felder schreiben, Aspects, Zurücklesen |
+| `repository_values.py` | Wert-Aufbereitung für die Repository-API: Feld-Filter, Flattening, Autor→VCARD, Koordinaten (rein, ohne HTTP) |
+| `repository_licenses.py` | Lizenz-Erkennung: CC-Deed-Links und Vokabular-URIs → `ccm:commonlicense_key` + Version, alles andere bleibt als Freitext erhalten (rein) |
+| `repository_diff.py` | SOLL/IST-Vergleich für `/upload/verify` — Vergleichsregeln für Arrays, Groß-/Kleinschreibung und Datumsformate (rein) |
+| `repository_curation.py` | Was nach dem Schreiben passiert: Referenzierung in Sammlungen, Redaktions-Workflow Schritt für Schritt |
 | `screenshot_service.py` | Screenshot-Erfassung via PageShot API oder Playwright (Chromium) |
 | `schema_loader.py` | Schema-Laden, Caching, Versions-Auflösung |
 
@@ -487,6 +493,54 @@ Lädt Metadaten ins WLO edu-sharing Repository hoch.
 | `write_extended_data` | bool | `true` | Extended-Felder schreiben (`ccm:oeh_extendedType`, `ccm:oeh_extendedData`, `ccm:oeh_extendedText`) |
 | `extended_text` | string | — | Rohtext vor der KI-Extraktion. Wird in `ccm:oeh_extendedText` geschrieben |
 | `return_full_node` | bool | `false` | Node nach dem Schreiben zurücklesen und als `node_full` mitliefern |
+| `collection_id` | string \| string[] | — | Sammlung(en), in der/denen der Inhalt referenziert wird. ID, Liste von IDs oder Sammlungs-URL |
+| `workflow_steps` | string[] | `["200_tocheck"]` | Workflow-Status, die nach dem Upload der Reihe nach gesetzt werden |
+| `workflow_comment` | string | `Upload via Metadata Agent API` | Kommentar zu jedem Workflow-Schritt |
+| `workflow_receiver` | string[] | siehe unten | Authority-Namen, die je Schritt benachrichtigt werden |
+
+#### Sammlungen
+
+`collection_id` legt den hochgeladenen Inhalt zusätzlich als **Referenz** in eine
+oder mehrere Sammlungen. Das Original bleibt im Inbox-Ordner, die Sammlung
+bekommt einen Verweis darauf.
+
+Akzeptiert wird, was man aus der Redaktionsumgebung kopiert:
+
+```jsonc
+{ "collection_id": "3039bdb2-f51f-4cc8-b1d9-3fb6b0ffc1d9" }
+{ "collection_id": ["3039bdb2-…", "7a1e0c44-…"] }
+{ "collection_id": "https://repository.staging.openeduhub.net/edu-sharing/components/collections?id=3039bdb2-…" }
+```
+
+Sammlungen aus den Metadaten (`virtual:collection_id_primary`, `ccm:collection_id`)
+werden zusätzlich berücksichtigt; Duplikate werden entfernt. Die Antwort enthält
+`collections` mit einem Ergebnis pro Sammlung.
+
+#### Prüf-Workflow
+
+Ohne weitere Angabe endet der Upload bei `200_tocheck` — der Inhalt liegt damit
+zur Prüfung durch Menschen bereit (bisheriges Verhalten). Über `workflow_steps`
+lässt sich der Redaktions-Workflow weiter durchlaufen:
+
+```jsonc
+{ "workflow_steps": ["200_tocheck", "140_ELEMENT_LEGALLY_APPROVED"] }
+```
+
+Jeder Schritt ist ein eigener Aufruf und damit ein eigener Eintrag in der
+Workflow-Historie des Nodes — inklusive ausführendem Nutzer. Genau darüber lässt
+sich später abfragen, wer die Qualität bestätigt hat. Ausgeführt wird unter dem
+Service-Account aus `METADATA_AGENT_WLO_GUEST_USERNAME`; bei Gast-Zugang
+erscheint entsprechend der hinterlegte Gast-Nutzer.
+
+`workflow_receiver` ist standardmäßig `["GROUP_ORG_WLO-Uploadmanager"]` für
+`200_tocheck` und leer für alle anderen Status. Die verfügbaren Status stehen
+unter [POST /workflow/{node_id}](#post-workflownodeid); unbekannte Status werden
+mit `422` abgelehnt. Für einen Upload **ohne** Workflow-Schritt
+`start_workflow: false` setzen — eine leere `workflow_steps`-Liste wird ebenfalls
+mit `422` abgelehnt, weil sie sonst still auf den Standard zurückfiele und den
+Node damit doch in die Prüf-Warteschlange legen würde.
+
+Für bereits hochgeladene Nodes gibt es denselben Ablauf als eigenen Endpoint.
 
 #### `node_full` — vollständiger Node in der Antwort
 
@@ -521,9 +575,9 @@ Read-Back kostet einen zusätzlichen Repository-Aufruf; schlägt er fehl, bleibt
 2. **Node erstellen** — Legt neuen Node mit Basisdaten an
 3. **Aspects setzen** — Fügt benötigte Alfresco-Aspects hinzu (siehe unten)
 4. **Metadaten setzen** — Überträgt alle Metadaten-Felder (`obeyMds=false`)
-5. **Collections** — Fügt Node zu Collections hinzu (falls in Metadaten)
+5. **Collections** — Referenziert den Node in Sammlungen (`collection_id` und/oder Metadaten)
 6. **Extended Fields** — Schreibt `ccm:oeh_extendedType/Data/Text` (optional, Standard: aktiv)
-7. **Workflow starten** — Startet Review-Prozess (optional)
+7. **Workflow** — Durchläuft `workflow_steps` Schritt für Schritt (optional)
 
 #### Extended Metadata Fields
 
@@ -543,10 +597,13 @@ Die API führt vor dem Schreiben automatisch folgende Transformationen durch:
 
 | Transformation | Beschreibung |
 |----------------|-------------|
-| **VCARD Author** | `cm:author: ["Max Müller"]` → `ccm:lifecyclecontributer_author: ["BEGIN:VCARD\nFN:Max Müller\nN:Müller;Max\nVERSION:3.0\nEND:VCARD"]` |
+| **VCARD Author** | `cm:author: ["Max Müller"]` → `ccm:lifecyclecontributer_author: ["BEGIN:VCARD\nVERSION:3.0\nFN:Max Müller\nN:Müller;Max;;;\nEND:VCARD"]`. Feldreihenfolge und die fünf `N`-Komponenten folgen dem, was edu-sharing selbst schreibt — der Parser zerlegt `N` positionell nach `ccm:lifecyclecontributer_authorVCARD_SURNAME` / `_GIVENNAME`. Zeilenumbrüche im Namen werden zu Leerzeichen, `;` und `,` in den `N`-Komponenten escaped (RFC 6350); `FN` bleibt unescaped |
 | **Geo-Extraktion** | `schema:location[].geo.latitude/longitude` → `cm:latitude` / `cm:longitude` (String-Arrays) |
 | **Geo-Fallback** | `schema:geo.latitude/longitude` (organization.json) → `cm:latitude` / `cm:longitude` |
-| **Lizenz** | `ccm:custom_license` URI → `ccm:commonlicense_key` + `ccm:commonlicense_cc_version` |
+| **Lizenz (CC-Link)** | `https://creativecommons.org/licenses/by-sa/4.0/` → `ccm:commonlicense_key: ["CC_BY_SA"]` + `ccm:commonlicense_cc_version: ["4.0"]`. Die Version kommt aus der URL, ein Länderkürzel (`/3.0/de/`) wird nicht mitgelesen. `publicdomain/zero` → `CC_0`, `publicdomain/mark` → `PDM` (ohne Version) |
+| **Lizenz (Vokabular)** | `…/vocabs/licenses/CC_BY_40` → `ccm:commonlicense_key` (+ Version) |
+| **Lizenz (Rest)** | Freitext und nicht zuordenbare Links bleiben als `ccm:custom_license` erhalten und werden mit `CUSTOM` markiert. Steht ein erkannter Link **innerhalb** eines Satzes, wird der Key gesetzt **und** der Text behalten — der Satz kann mehr sagen als die Lizenz |
+| **Keine Lizenz** | Wird keine erkannt, bleibt `ccm:commonlicense_key` **leer**. Die API setzt bewusst keinen Default, weil sonst „unbekannt" als „urheberrechtsfrei" veröffentlicht würde — die Entscheidung trifft die Redaktion im Prüf-Workflow |
 | **obeyMds=false** | Umgeht den MDS-Filter, damit auch Felder wie `cm:latitude`, `ccm:oeh_event_begin` geschrieben werden |
 
 #### Aspects
@@ -571,9 +628,19 @@ Nach Node-Erstellung werden automatisch Aspects hinzugefügt, die für bestimmte
     "wwwurl": "https://example.com/workshop",
     "repositoryUrl": "https://repository.staging.openeduhub.net/edu-sharing/components/render/abc123-..."
   },
+  "collections": [
+    { "collectionId": "3039bdb2-f51f-4cc8-b1d9-3fb6b0ffc1d9", "success": true }
+  ],
+  "workflow": [
+    { "status": "200_tocheck", "success": true },
+    { "status": "140_ELEMENT_LEGALLY_APPROVED", "success": true }
+  ],
   "field_errors": []
 }
 ```
+
+`collections` erscheint nur, wenn Sammlungen angegeben waren; `workflow` nur bei
+`start_workflow: true`.
 
 #### Response (Dublette)
 
@@ -601,6 +668,88 @@ Nach Node-Erstellung werden automatisch Aspects hinzugefügt, die für bestimmte
 
 ---
 
+### POST /workflow/{node_id}
+
+Führt den Prüf-Workflow eines bereits hochgeladenen Nodes schrittweise weiter.
+
+> Erfordert `WLO_GUEST_USERNAME` und `WLO_GUEST_PASSWORD` Umgebungsvariablen.
+
+`POST /upload` endet standardmäßig bei `200_tocheck` — der Inhalt liegt zur
+Prüfung durch Menschen bereit. Dieser Endpoint setzt von dort aus die weiteren
+Status.
+
+#### Request
+
+| Parameter | Typ | Default | Beschreibung |
+|-----------|-----|---------|--------------|
+| `steps` | string \| string[] | **erforderlich** | Status, die der Reihe nach gesetzt werden |
+| `comment` | string | `Upload via Metadata Agent API` | Kommentar je Schritt |
+| `receiver` | string[] | siehe unten | Authority-Namen, die benachrichtigt werden |
+
+`node_id` muss eine Node-UUID sein — der Wert landet in der Repository-URL, die
+der Dienst daraus baut, und diese Anfrage trägt die Zugangsdaten des
+Service-Accounts. Alles andere wird mit `400` abgelehnt.
+
+#### Status des WLO-Redaktions-Workflows
+
+| Status | Bedeutung |
+|--------|-----------|
+| `100_unchecked` | Ungeprüft |
+| `110_METADATA_RECORD_REQUESTED` | Metadaten-Erfassung angefordert |
+| `120_METADATA_QUALITY_CONFIRMED` | Metadaten-Qualität bestätigt |
+| `125_METADATA_QUALITY_FOR_BUFFET` | Für Redaktionsbuffet qualifiziert |
+| `130_ELEMENT_REJECTED` | Element abgelehnt |
+| `140_ELEMENT_LEGALLY_APPROVED` | Qualität bestätigt / Element freigegeben |
+| `150_PUBLISH_IN_SEARCH` | In der Suche veröffentlicht |
+| `160_REMOVE_FROM_SEARCH` | Aus der Suche entfernt |
+| `200_tocheck` | Zur Prüfung übergeben (Standard nach `/upload`) |
+| `TASK_CREATE_TREE`, `TASK_CHECK_COLLECTION_PROPOSAL`, `TASK_CHECK_QUALITY` | Aufgaben-Status |
+
+Die Liste stammt aus der Repository-Konfiguration (`/rest/config/v1/values` →
+`workflow.workflows`) plus den beiden Status, die in den Live-Daten vorkommen,
+dort aber nicht gelistet sind (`200_tocheck`, `125_METADATA_QUALITY_FOR_BUFFET`).
+Unbekannte Status werden mit `422` abgelehnt, bevor etwas ins Repository geht.
+
+`receiver` ist standardmäßig `["GROUP_ORG_WLO-Uploadmanager"]` für `200_tocheck`
+und leer für alle anderen Status.
+
+#### Warum Schritt für Schritt
+
+edu-sharing legt für **jeden** Aufruf einen eigenen Eintrag in der
+Workflow-Historie an — mit Status, Kommentar, Zeitpunkt und ausführendem Nutzer.
+Genau darüber lässt sich abfragen, wer die Qualität bestätigt hat. Ein Sprung
+direkt auf den Endstatus würde diese Spur verlieren.
+
+#### Beispiel
+
+```bash
+curl -X POST http://localhost:8000/workflow/3039bdb2-f51f-4cc8-b1d9-3fb6b0ffc1d9 \
+  -H "Content-Type: application/json" \
+  -d '{"steps": ["140_ELEMENT_LEGALLY_APPROVED"], "comment": ""}'
+```
+
+#### Response
+
+```json
+{
+  "success": true,
+  "nodeId": "3039bdb2-f51f-4cc8-b1d9-3fb6b0ffc1d9",
+  "steps": [{ "status": "140_ELEMENT_LEGALLY_APPROVED", "success": true }],
+  "current_status": "140_ELEMENT_LEGALLY_APPROVED",
+  "history": [
+    { "status": "140_ELEMENT_LEGALLY_APPROVED", "comment": "", "editor": "…", "time": 1786343291000 }
+  ],
+  "repositoryUrl": "https://repository.staging.openeduhub.net/edu-sharing/components/render/3039bdb2-…"
+}
+```
+
+`current_status` wird nach den Schritten aus dem Repository zurückgelesen,
+`history` enthält die Workflow-Historie des Nodes. Schlägt eine der beiden
+Leseoperationen fehl, bleibt das Feld leer — die bereits ausgeführten Schritte
+gelten trotzdem als erfolgreich.
+
+---
+
 ### POST /upload/verify/{node_id}
 
 Prüft hochgeladene Metadaten gegen die tatsächlichen Werte im Repository (SOLL/IST-Vergleich).
@@ -611,6 +760,10 @@ Prüft hochgeladene Metadaten gegen die tatsächlichen Werte im Repository (SOLL
 |-----------|-----|---------|--------------|
 | `node_id` | string (URL-Pfad) | **erforderlich** | Node-ID des hochgeladenen Objekts |
 | `expected_metadata` | object | — | Erwartete Metadaten (z.B. Output von `/generate`). Für SOLL/IST-Diff |
+
+`node_id` muss eine Node-UUID sein — der Wert landet in der Repository-URL, die
+der Dienst daraus baut, und diese Anfrage trägt die Zugangsdaten des
+Service-Accounts. Alles andere wird mit `400` abgelehnt.
 
 **Ohne Body** werden nur die aktuellen Repository-Metadaten gelesen (kein Diff).
 

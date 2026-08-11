@@ -49,7 +49,9 @@ docker run -d \
 | `OPENAI_API_KEY` | API-Key für nativen OpenAI-Zugang | Nur wenn `llm_provider=openai` |
 | `WLO_GUEST_USERNAME` | edu-sharing Login für Upload | `/upload` Endpunkt |
 | `WLO_GUEST_PASSWORD` | edu-sharing Passwort für Upload | `/upload` Endpunkt |
-| `WLO_REPOSITORY_BASE_URL` | Custom Repository-URL (überschreibt Staging/Prod) | Optional |
+
+Das Ziel-Repository wird über `METADATA_AGENT_REPOSITORY_URL` gesetzt (siehe
+nächste Tabelle) — es gibt keinen zweiten Schalter dafür.
 
 ### Konfiguration (mit Defaults)
 

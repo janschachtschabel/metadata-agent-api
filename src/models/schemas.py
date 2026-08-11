@@ -2,8 +2,27 @@
 
 import re
 from enum import Enum
-from typing import Any, Optional
+from typing import Any, Optional, Union
 from pydantic import BaseModel, Field, field_validator
+
+from ..services.repository_curation import KNOWN_WORKFLOW_STATUS
+from ..services.repository_service import is_valid_node_id
+
+
+def validate_node_id(value: Any) -> Any:
+    """
+    Reject anything that is not an edu-sharing node id.
+
+    Shared by every request model carrying one — the value reaches a repository
+    URL that is called with the service account's credentials, so the shape has
+    to be checked at the boundary rather than at each call site.
+    """
+    if value is None or is_valid_node_id(value):
+        return value
+    raise ValueError(
+        "Ungültige node_id — erwartet wird eine Node-UUID, "
+        "z.B. '3039bdb2-f51f-4cc8-b1d9-3fb6b0ffc1d9'."
+    )
 
 
 class InputSource(str, Enum):
@@ -97,8 +116,9 @@ class GenerateRequest(BaseModel):
     # NodeID input (required for input_source='node_id' or 'node_url')
     node_id: Optional[str] = Field(
         default=None,
-        description="Repository NodeID to fetch metadata and text from. Required when input_source='node_id' or 'node_url'.",
+        description="Repository NodeID to fetch metadata and text from. Required when input_source='node_id' or 'node_url'. Must be a node UUID.",
     )
+    _check_node_id = field_validator("node_id")(validate_node_id)
     repository: str = Field(
         default="staging",
         deprecated=True,
@@ -510,8 +530,9 @@ class ScreenshotRequest(BaseModel):
     # Optional: upload directly to a node
     node_id: Optional[str] = Field(
         default=None,
-        description="If provided, upload screenshot as preview to this edu-sharing node",
+        description="If provided, upload screenshot as preview to this edu-sharing node. Must be a node UUID.",
     )
+    _check_node_id = field_validator("node_id")(validate_node_id)
     repository: str = Field(
         default="staging",
         deprecated=True,
@@ -588,6 +609,80 @@ class UploadRequest(BaseModel):
         default=None,
         description="Bezugsquelle / Publisher-Name. Wenn angegeben, wird ccm:oeh_publisher_combined mit diesem Wert überschrieben.",
     )
+    # Collection options
+    # Union so the schema advertises the single ID the validator below accepts —
+    # a generated client only ever sends what the schema declares.
+    collection_id: Optional[Union[str, list[str]]] = Field(
+        default=None,
+        description=(
+            "Sammlung(en), in der/denen der hochgeladene Inhalt referenziert wird. "
+            "Akzeptiert eine einzelne ID, eine Liste von IDs oder Sammlungs-URLs "
+            "(z.B. '.../components/collections?id=<uuid>'). Sammlungen aus den "
+            "Metadaten (virtual:collection_id_primary, ccm:collection_id) werden "
+            "zusätzlich berücksichtigt."
+        ),
+    )
+
+    @field_validator("collection_id", mode="before")
+    @classmethod
+    def normalize_collection_id(cls, v: Any) -> Any:
+        """Accept a single ID/URL as well as a list, and drop empty entries."""
+        if v is None:
+            return None
+        if isinstance(v, str):
+            v = [v]
+        if not isinstance(v, list):
+            return v
+        cleaned = [str(x).strip() for x in v if x is not None and str(x).strip()]
+        return cleaned or None
+
+    # Workflow options
+    workflow_steps: Optional[list[str]] = Field(
+        default=None,
+        description=(
+            "Workflow-Status, die nach dem Upload der Reihe nach gesetzt werden. "
+            "Standard: nur '200_tocheck' (Übergabe zur Prüfung durch Menschen). "
+            "Beispiel für 'Qualität bestätigt': "
+            "['200_tocheck', '140_ELEMENT_LEGALLY_APPROVED']. "
+            f"Erlaubt: {', '.join(sorted(KNOWN_WORKFLOW_STATUS))}. "
+            "Wirkt nur bei start_workflow=true."
+        ),
+    )
+    workflow_comment: Optional[str] = Field(
+        default=None,
+        description="Kommentar, der bei jedem Workflow-Schritt protokolliert wird. Standard: 'Upload via Metadata Agent API'.",
+    )
+    workflow_receiver: Optional[list[str]] = Field(
+        default=None,
+        description=(
+            "Authority-Namen, die bei jedem Workflow-Schritt benachrichtigt werden "
+            "(z.B. ['GROUP_ORG_WLO-Uploadmanager']). Standard: die Uploadmanager-"
+            "Gruppe für '200_tocheck', leer für alle anderen Status."
+        ),
+    )
+
+    @field_validator("workflow_steps")
+    @classmethod
+    def validate_workflow_steps(cls, v: Optional[list[str]]) -> Optional[list[str]]:
+        """Reject unknown states — a typo must not end up in the repository."""
+        if v is None:
+            return None
+        if not v:
+            # Reads as "run no steps", but omitting it means "run the default",
+            # which hands the node to the editorial queue — the opposite of what
+            # was asked. start_workflow=false says it without the ambiguity.
+            raise ValueError(
+                "workflow_steps darf nicht leer sein. Für einen Upload ohne "
+                "Workflow-Schritt start_workflow=false setzen."
+            )
+        unknown = [s for s in v if s not in KNOWN_WORKFLOW_STATUS]
+        if unknown:
+            raise ValueError(
+                f"Unbekannte Workflow-Status: {', '.join(unknown)}. "
+                f"Erlaubt: {', '.join(sorted(KNOWN_WORKFLOW_STATUS))}"
+            )
+        return v
+
     # Screenshot / Preview options
     preview_url: Optional[str] = Field(
         default=None,
@@ -660,6 +755,22 @@ class FieldUploadError(BaseModel):
     status_code: Optional[int] = None
 
 
+class CollectionResult(BaseModel):
+    """Result of referencing the node in a single collection."""
+
+    collectionId: str
+    success: bool
+    error: Optional[str] = None
+
+
+class WorkflowStepResult(BaseModel):
+    """Result of a single workflow state transition."""
+
+    status: str
+    success: bool
+    error: Optional[str] = None
+
+
 class UploadResponse(BaseModel):
     """Response from repository upload."""
 
@@ -679,6 +790,96 @@ class UploadResponse(BaseModel):
         default=None,
         description="Preview screenshot status: {success, method, capture_time_ms, size_bytes} or {success: false, error}",
     )
+    collections: Optional[list[CollectionResult]] = Field(
+        default=None,
+        description="Ergebnis pro Sammlung, in der der Node referenziert wurde. Nur vorhanden, wenn Sammlungen angegeben waren.",
+    )
+    workflow: Optional[list[WorkflowStepResult]] = Field(
+        default=None,
+        description="Ergebnis pro Workflow-Schritt, in der ausgeführten Reihenfolge. Nur vorhanden, wenn start_workflow=true war.",
+    )
+    discarded_node: Optional[str] = Field(
+        default=None,
+        description="ID des unvollständigen Nodes, der nach einem Abbruch zurückgenommen wurde (Papierkorb, wiederherstellbar). Nur nach einem fehlgeschlagenen Upload gesetzt.",
+    )
+
+
+class WorkflowRequest(BaseModel):
+    """Request for advancing an existing node through the review workflow."""
+
+    steps: list[str] = Field(
+        ...,
+        min_length=1,
+        description=(
+            "Workflow-Status, die der Reihe nach gesetzt werden. Jeder Schritt "
+            "erzeugt einen eigenen Eintrag in der Workflow-Historie des Nodes — "
+            "so bleibt nachvollziehbar, wer welchen Status gesetzt hat. "
+            f"Erlaubt: {', '.join(sorted(KNOWN_WORKFLOW_STATUS))}."
+        ),
+    )
+    comment: Optional[str] = Field(
+        default=None,
+        description="Kommentar, der bei jedem Schritt protokolliert wird. Standard: 'Upload via Metadata Agent API'.",
+    )
+    receiver: Optional[list[str]] = Field(
+        default=None,
+        description=(
+            "Authority-Namen, die benachrichtigt werden (z.B. ['GROUP_ORG_WLO-Uploadmanager']). "
+            "Standard: die Uploadmanager-Gruppe für '200_tocheck', leer für alle anderen Status."
+        ),
+    )
+
+    @field_validator("steps", mode="before")
+    @classmethod
+    def normalize_steps(cls, v: Any) -> Any:
+        """Accept a single status string as well as a list."""
+        if isinstance(v, str):
+            return [v]
+        return v
+
+    @field_validator("steps")
+    @classmethod
+    def validate_steps(cls, v: list[str]) -> list[str]:
+        """Reject unknown states — a typo must not end up in the repository."""
+        unknown = [s for s in v if s not in KNOWN_WORKFLOW_STATUS]
+        if unknown:
+            raise ValueError(
+                f"Unbekannte Workflow-Status: {', '.join(unknown)}. "
+                f"Erlaubt: {', '.join(sorted(KNOWN_WORKFLOW_STATUS))}"
+            )
+        return v
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "steps": ["140_ELEMENT_LEGALLY_APPROVED"],
+                    "comment": "",
+                }
+            ]
+        }
+    }
+
+
+class WorkflowResponse(BaseModel):
+    """Response after running workflow steps on a node."""
+
+    success: bool
+    nodeId: str
+    steps: Optional[list[WorkflowStepResult]] = Field(
+        default=None,
+        description="Ergebnis pro Schritt, in der ausgeführten Reihenfolge",
+    )
+    current_status: Optional[str] = Field(
+        default=None,
+        description="ccm:wf_status des Nodes nach den Schritten (zurückgelesen aus dem Repository)",
+    )
+    history: Optional[list[dict[str, Any]]] = Field(
+        default=None,
+        description="Workflow-Historie des Nodes — enthält pro Eintrag u.a. Status, Kommentar, Zeitpunkt und den ausführenden Nutzer.",
+    )
+    repositoryUrl: Optional[str] = None
+    error: Optional[str] = None
 
 
 class FieldDiff(BaseModel):
@@ -772,8 +973,9 @@ class DetectContentTypeRequest(BaseModel):
     # NodeID input (required for input_source='node_id' or 'node_url')
     node_id: Optional[str] = Field(
         default=None,
-        description="Repository NodeID to fetch metadata and text from. Required when input_source='node_id' or 'node_url'.",
+        description="Repository NodeID to fetch metadata and text from. Required when input_source='node_id' or 'node_url'. Must be a node UUID.",
     )
+    _check_node_id = field_validator("node_id")(validate_node_id)
     repository: str = Field(
         default="staging",
         deprecated=True,
@@ -886,8 +1088,9 @@ class ExtractFieldRequest(BaseModel):
     # NodeID input (required for input_source='node_id' or 'node_url')
     node_id: Optional[str] = Field(
         default=None,
-        description="Repository NodeID to fetch metadata and text from. Required when input_source='node_id' or 'node_url'.",
+        description="Repository NodeID to fetch metadata and text from. Required when input_source='node_id' or 'node_url'. Must be a node UUID.",
     )
+    _check_node_id = field_validator("node_id")(validate_node_id)
     repository: str = Field(
         default="staging",
         deprecated=True,

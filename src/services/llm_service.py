@@ -1364,13 +1364,23 @@ IMPORTANT RULES:
 
         value_lower = str(value).lower().strip()
 
-        # Check if already a valid URI or value
+        # Check if already a valid URI or value.
+        # Numeric scales ('0'…'5') come back from the LLM as JSON numbers just as
+        # often as strings, so compare on the string form and return the value as
+        # the vocabulary spells it.
         uri_match = next((c for c in concepts if c.get("uri") == value), None)
         if uri_match:
             return value
-        value_match = next((c for c in concepts if c.get("value") == value), None)
+        value_match = next(
+            (
+                c
+                for c in concepts
+                if c.get("value") is not None and str(c["value"]) == str(value)
+            ),
+            None,
+        )
         if value_match:
-            return value
+            return value_match["value"]
 
         # Find by label (exact match)
         for concept in concepts:

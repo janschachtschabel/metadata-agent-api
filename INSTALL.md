@@ -598,7 +598,9 @@ Alle Variablen können in `.env`, als System-Umgebungsvariablen oder als Docker-
 | `OPENAI_API_KEY` | ✅¹ | OpenAI API Key (nur für `provider=openai`) |
 | `WLO_GUEST_USERNAME` | für `/upload` | WLO Repository Upload-Benutzername |
 | `WLO_GUEST_PASSWORD` | für `/upload` | WLO Repository Upload-Passwort |
-| `WLO_REPOSITORY_BASE_URL` | optional | Custom Repository-URL (überschreibt Staging/Prod) |
+
+> Das Ziel-Repository wird über `METADATA_AGENT_REPOSITORY_URL` gesetzt (unten
+> unter *Externe Dienste*) — es gibt keinen zweiten Schalter dafür.
 
 > ¹ Mindestens einer der LLM-Keys ist erforderlich.
 

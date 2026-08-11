@@ -74,7 +74,6 @@ class Settings(BaseSettings):
     # WLO Repository Upload Credentials (for /upload endpoint)
     wlo_guest_username: str = Field(default="", alias="WLO_GUEST_USERNAME")
     wlo_guest_password: str = Field(default="", alias="WLO_GUEST_PASSWORD")
-    wlo_repository_base_url: str = Field(default="", alias="WLO_REPOSITORY_BASE_URL")
 
     # WLO Repository Inbox ID (where new upload nodes are created)
     wlo_inbox_id: str = "21144164-30c0-4c01-ae16-264452197063"

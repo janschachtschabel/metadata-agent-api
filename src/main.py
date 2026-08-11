@@ -28,6 +28,10 @@ from .models.schemas import (
     UploadResponse,
     UploadedNodeInfo,
     FieldUploadError,
+    CollectionResult,
+    WorkflowStepResult,
+    WorkflowRequest,
+    WorkflowResponse,
     VerifyRequest,
     VerifyResponse,
     FieldDiff,
@@ -43,7 +47,7 @@ from .models.schemas import (
 )
 from .services.input_source_service import get_input_source_service
 from .services.metadata_service import get_metadata_service
-from .services.repository_service import get_repository_service
+from .services.repository_service import get_repository_service, is_valid_node_id
 from .services.llm_service import get_llm_service
 from .services.field_normalizer import get_field_normalizer
 from .services.screenshot_service import get_screenshot_service, ScreenshotError
@@ -193,6 +197,7 @@ def custom_openapi():
         ExportMarkdownRequest,
         UploadRequest,
         VerifyRequest,
+        WorkflowRequest,
     ]:
         model_schema = model.model_json_schema(
             ref_template="#/components/schemas/{model}"
@@ -2019,16 +2024,41 @@ Kopiere einfach den kompletten Output von `/generate` direkt hier rein.
 | `write_extended_data` | `true` (Standard), `false` | Extended-Felder schreiben (`ccm:oeh_extendedType`, `ccm:oeh_extendedData`, `ccm:oeh_extendedText`). |
 | `extended_text` | String (leer = auto) | Rohtext vor der Extraktion. Wird in `ccm:oeh_extendedText` geschrieben. |
 | `return_full_node` | `false` (Standard), `true` | Node nach dem Schreiben zurücklesen und als `node_full` mitliefern. |
+| `collection_id` | ID, Liste von IDs oder Sammlungs-URL | Sammlung(en), in der/denen der Inhalt referenziert wird. |
+| `workflow_steps` | Liste von Status | Workflow-Status, die nach dem Upload der Reihe nach gesetzt werden. Standard: `["200_tocheck"]`. |
+| `workflow_comment` | String | Kommentar zu jedem Workflow-Schritt. |
+| `workflow_receiver` | Liste von Authority-Namen | Empfänger jedes Workflow-Schritts. |
 
 ## Workflow
 
 1. **Duplikat-Check** (optional): Prüft ob URL bereits existiert
 2. **Node erstellen**: Legt neuen Node mit Basisdaten an
 3. **Metadaten setzen**: Überträgt alle Metadaten
-4. **Collections**: Fügt Node zu Collections hinzu (falls angegeben)
+4. **Collections**: Referenziert den Node in Sammlungen (`collection_id` und/oder Sammlungen aus den Metadaten)
 5. **Extended Fields** (optional): Schreibt `ccm:oeh_extendedType` (Inhaltstyp-URI), `ccm:oeh_extendedData` (Metadaten-JSON), `ccm:oeh_extendedText` (Rohtext)
-6. **Workflow starten** (optional): Startet Review-Prozess
+6. **Workflow** (optional): Durchläuft `workflow_steps` Schritt für Schritt
 7. **Node zurücklesen** (optional, `return_full_node`): Liest den fertigen Node erneut aus
+
+## Sammlungen
+
+`collection_id` akzeptiert eine einzelne ID, eine Liste oder eine kopierte
+Sammlungs-URL (`.../components/collections?id=<uuid>`). Der Node wird als
+Referenz in die Sammlung gelegt — das Original bleibt im Inbox-Ordner.
+Zusätzlich werden `virtual:collection_id_primary` und `ccm:collection_id`
+aus den Metadaten berücksichtigt; Duplikate werden entfernt.
+
+## Prüf-Workflow
+
+Standardmäßig endet der Upload bei `200_tocheck` — der Node liegt damit zur
+Prüfung durch Menschen bereit. Über `workflow_steps` lässt sich der
+Redaktions-Workflow weiter durchlaufen, jeder Schritt als eigener Eintrag in
+der Workflow-Historie:
+
+```jsonc
+{ "workflow_steps": ["200_tocheck", "140_ELEMENT_LEGALLY_APPROVED"] }
+```
+
+Für bereits hochgeladene Nodes gibt es dafür `POST /workflow/{node_id}`.
 
 ## Response
 
@@ -2036,6 +2066,8 @@ Kopiere einfach den kompletten Output von `/generate` direkt hier rein.
 - **duplicate**: `true` wenn URL bereits existiert
 - **node**: Node-Info mit ID und URL
 - **node_full**: Vollständiger edu-sharing Node — nur bei `return_full_node: true`
+- **collections**: Ergebnis pro Sammlung — nur wenn Sammlungen angegeben waren
+- **workflow**: Ergebnis pro Workflow-Schritt — nur bei `start_workflow: true`
 
 ### `node_full`
 
@@ -2077,7 +2109,24 @@ Kostet einen zusätzlichen Repository-Aufruf. Schlägt der Lesevorgang fehl, ble
                                 "write_extended_data": True,
                                 "extended_text": "Rohtext der Webseite vor der KI-Extraktion...",
                             },
-                        }
+                        },
+                        "mit_sammlung_und_workflow": {
+                            "summary": "Upload in eine Sammlung + Qualität bestätigen",
+                            "description": "Referenziert den Inhalt in einer Sammlung und durchläuft den Prüf-Workflow bis 'Qualität bestätigt'.",
+                            "value": {
+                                "contextName": "default",
+                                "schemaVersion": "2.0.0",
+                                "metadataset": "learning_material.json",
+                                "cclom:title": "Bruchrechnung Klasse 6",
+                                "ccm:wwwurl": "https://example.com/bruchrechnung",
+                                "collection_id": "3039bdb2-f51f-4cc8-b1d9-3fb6b0ffc1d9",
+                                "workflow_steps": [
+                                    "200_tocheck",
+                                    "140_ELEMENT_LEGALLY_APPROVED",
+                                ],
+                                "workflow_comment": "",
+                            },
+                        },
                     },
                 }
             }
@@ -2123,16 +2172,26 @@ async def upload_to_repository(request: Request):
         screenshot_method = data.pop("screenshot_method", "pageshot") or "pageshot"
         write_extended_data = data.pop("write_extended_data", True)
         extended_text = data.pop("extended_text", None)
+        return_full_node = data.pop("return_full_node", False)
+        collection_id = data.pop("collection_id", None)
+        workflow_steps = data.pop("workflow_steps", None)
+        workflow_comment = data.pop("workflow_comment", None)
+        workflow_receiver = data.pop("workflow_receiver", None)
         data = {
             "metadata": data,
             "repository": repository,
             "check_duplicates": check_duplicates,
             "start_workflow": start_workflow,
+            "return_full_node": return_full_node,
             "source": source,
             "preview_url": preview_url,
             "screenshot_method": screenshot_method,
             "write_extended_data": write_extended_data,
             "extended_text": extended_text,
+            "collection_id": collection_id,
+            "workflow_steps": workflow_steps,
+            "workflow_comment": workflow_comment,
+            "workflow_receiver": workflow_receiver,
         }
 
     # Validate with Pydantic model
@@ -2204,6 +2263,10 @@ async def upload_to_repository(request: Request):
         write_extended_data=req.write_extended_data,
         extended_text=req.extended_text,
         return_full_node=req.return_full_node,
+        collection_ids=req.collection_id,
+        workflow_steps=req.workflow_steps,
+        workflow_comment=req.workflow_comment,
+        workflow_receiver=req.workflow_receiver,
     )
 
     # ── Upload screenshot as preview (if screenshot was started and node was created) ──
@@ -2274,6 +2337,14 @@ async def upload_to_repository(request: Request):
     if raw_errors:
         field_errors = [FieldUploadError(**e) for e in raw_errors]
 
+    collections = None
+    if result.get("collections") is not None:
+        collections = [CollectionResult(**c) for c in result["collections"]]
+
+    workflow = None
+    if result.get("workflow") is not None:
+        workflow = [WorkflowStepResult(**s) for s in result["workflow"]]
+
     # Add preview info to result
     if preview_status:
         result["preview"] = preview_status
@@ -2289,6 +2360,167 @@ async def upload_to_repository(request: Request):
         fields_skipped=result.get("fields_skipped"),
         field_errors=field_errors,
         preview=preview_status,
+        collections=collections,
+        workflow=workflow,
+        discarded_node=result.get("discarded_node"),
+    )
+
+
+# ============================================================================
+# Workflow Endpoint
+# ============================================================================
+
+
+def require_node_id(node_id: str) -> None:
+    """
+    Reject a path parameter that is not an edu-sharing node id.
+
+    The value is interpolated into the repository URL the service builds, and
+    that request carries the service account's credentials — an id containing
+    '/' would steer it at a different endpoint.
+    """
+    if not is_valid_node_id(node_id):
+        raise HTTPException(
+            status_code=400,
+            detail="Ungültige node_id — erwartet wird eine Node-UUID, z.B. '3039bdb2-f51f-4cc8-b1d9-3fb6b0ffc1d9'.",
+        )
+
+
+@app.post(
+    "/workflow/{node_id}",
+    response_model=WorkflowResponse,
+    summary="Prüf-Workflow eines Nodes schrittweise weiterführen",
+    description="""Setzt die Workflow-Status eines bereits hochgeladenen Nodes — Schritt für Schritt.
+
+`POST /upload` endet standardmäßig bei `200_tocheck`: Der Inhalt liegt damit zur
+Prüfung durch Menschen bereit. Dieser Endpoint führt den Redaktions-Workflow von
+dort aus weiter.
+
+## Warum Schritt für Schritt
+
+edu-sharing legt für **jeden** PUT einen eigenen Eintrag in der Workflow-Historie
+des Nodes an — mit Status, Kommentar, Zeitpunkt und ausführendem Nutzer. Genau
+darüber lässt sich später abfragen, wer die Qualität bestätigt hat. Ein Sprung
+direkt auf den Endstatus würde diese Spur verlieren.
+
+Ausgeführt wird unter dem konfigurierten Service-Account
+(`METADATA_AGENT_WLO_GUEST_USERNAME`) — in der Historie erscheint also dieser
+Nutzer, bei Gast-Zugang entsprechend der hinterlegte Gast-Nutzer.
+
+## Status des WLO-Redaktions-Workflows
+
+| Status | Bedeutung |
+|--------|-----------|
+| `100_unchecked` | Ungeprüft |
+| `110_METADATA_RECORD_REQUESTED` | Metadaten-Erfassung angefordert |
+| `120_METADATA_QUALITY_CONFIRMED` | Metadaten-Qualität bestätigt |
+| `125_METADATA_QUALITY_FOR_BUFFET` | Für Redaktionsbuffet qualifiziert |
+| `130_ELEMENT_REJECTED` | Element abgelehnt |
+| `140_ELEMENT_LEGALLY_APPROVED` | Qualität bestätigt / Element freigegeben |
+| `150_PUBLISH_IN_SEARCH` | In der Suche veröffentlicht |
+| `160_REMOVE_FROM_SEARCH` | Aus der Suche entfernt |
+| `200_tocheck` | Zur Prüfung übergeben (Standard nach `/upload`) |
+| `TASK_CREATE_TREE`, `TASK_CHECK_COLLECTION_PROPOSAL`, `TASK_CHECK_QUALITY` | Aufgaben-Status |
+
+Die Liste stammt aus der Repository-Konfiguration (`/rest/config/v1/values`).
+Unbekannte Status werden mit `422` abgelehnt, damit ein Tippfehler nicht als
+Status im Repository landet.
+
+## Response
+
+- **steps**: Ergebnis pro Schritt in der ausgeführten Reihenfolge
+- **current_status**: `ccm:wf_status`, aus dem Repository zurückgelesen
+- **history**: Workflow-Historie des Nodes — enthält den ausführenden Nutzer je Eintrag
+""",
+    openapi_extra={
+        "requestBody": {
+            "required": True,
+            "content": {
+                "application/json": {
+                    "schema": {"$ref": "#/components/schemas/WorkflowRequest"},
+                    "examples": {
+                        "qualitaet_bestaetigen": {
+                            "summary": "1. Qualität bestätigen",
+                            "description": "Setzt den Node auf '140_ELEMENT_LEGALLY_APPROVED'.",
+                            "value": {
+                                "steps": ["140_ELEMENT_LEGALLY_APPROVED"],
+                                "comment": "",
+                            },
+                        },
+                        "mehrere_schritte": {
+                            "summary": "2. Mehrere Schritte nacheinander",
+                            "description": "Jeder Schritt wird einzeln gesetzt und einzeln protokolliert.",
+                            "value": {
+                                "steps": [
+                                    "120_METADATA_QUALITY_CONFIRMED",
+                                    "140_ELEMENT_LEGALLY_APPROVED",
+                                    "150_PUBLISH_IN_SEARCH",
+                                ],
+                                "comment": "Redaktionell geprüft",
+                            },
+                        },
+                    },
+                }
+            },
+        }
+    },
+)
+async def set_node_workflow(node_id: str, request: Request):
+    """Advance an existing node through the editorial review workflow."""
+    require_node_id(node_id)
+
+    repo_service = get_repository_service()
+
+    if not repo_service:
+        raise HTTPException(
+            status_code=503,
+            detail="Repository service not configured. Set WLO_GUEST_USERNAME and WLO_GUEST_PASSWORD environment variables.",
+        )
+
+    raw_body = await request.body()
+    if not raw_body or not raw_body.strip():
+        raise HTTPException(
+            status_code=400,
+            detail='Body erforderlich, z.B. {"steps": ["140_ELEMENT_LEGALLY_APPROVED"]}.',
+        )
+
+    try:
+        data = json.loads(sanitize_json_string(raw_body.decode("utf-8")))
+    except (UnicodeDecodeError, json.JSONDecodeError) as e:
+        raise HTTPException(status_code=400, detail=f"Ungültiger JSON-Body: {e}") from e
+
+    if not isinstance(data, dict):
+        raise HTTPException(
+            status_code=400,
+            detail='Body muss ein JSON-Objekt sein, z.B. {"steps": ["140_ELEMENT_LEGALLY_APPROVED"]}.',
+        )
+
+    try:
+        req = WorkflowRequest(**data)
+    except ValidationError as e:
+        raise HTTPException(
+            status_code=422, detail=f"Ungültiger Request-Body: {e.errors()}"
+        ) from e
+
+    result = await repo_service.set_workflow(
+        node_id=node_id,
+        steps=req.steps,
+        comment=req.comment,
+        receiver=req.receiver,
+    )
+
+    steps = None
+    if result.get("steps") is not None:
+        steps = [WorkflowStepResult(**s) for s in result["steps"]]
+
+    return WorkflowResponse(
+        success=result.get("success", False),
+        nodeId=result.get("nodeId", node_id),
+        steps=steps,
+        current_status=result.get("current_status"),
+        history=result.get("history"),
+        repositoryUrl=result.get("repositoryUrl"),
+        error=result.get("error"),
     )
 
 
@@ -2444,6 +2676,8 @@ async def verify_upload(node_id: str, request: Request):
 
     Optionally compares against expected metadata to produce a field-level diff.
     """
+    require_node_id(node_id)
+
     repo_service = get_repository_service()
 
     if not repo_service:

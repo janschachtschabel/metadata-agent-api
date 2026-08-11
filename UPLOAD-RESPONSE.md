@@ -8,7 +8,12 @@ heute gegen `/upload` programmiert, muss nichts anpassen.
 ```jsonc
 {
   "metadata": { "...": "..." },   // Output von /generate
-  "return_full_node": true        // NEU, Default: false
+  "return_full_node": true,       // Default: false
+  "collection_id": "3039bdb2-…",  // NEU, optional — ID, Liste oder Sammlungs-URL
+  "workflow_steps": [             // NEU, Default: ["200_tocheck"]
+    "200_tocheck",
+    "140_ELEMENT_LEGALLY_APPROVED"
+  ]
 }
 ```
 
@@ -26,6 +31,9 @@ heute gegen `/upload` programmiert, muss nichts anpassen.
 | `fields_skipped` | int \| null | bei Erfolg | Übersprungene Felder (nicht repo-fähig) |
 | `field_errors` | array \| null | – | `[{field_id, error, status_code}]` |
 | `preview` | object \| null | – | Status des Vorschaubild-Uploads |
+| `collections` | array \| null | **nur wenn Sammlungen angegeben waren** | `[{collectionId, success, error}]` |
+| `workflow` | array \| null | **nur bei `start_workflow: true`** | `[{status, success, error}]` in ausgeführter Reihenfolge |
+| `discarded_node` | string \| null | nur nach Abbruch | ID des unvollständigen Nodes, der zurückgenommen wurde |
 
 ### `node` — die bisherige Kurzinfo
 
@@ -112,6 +120,55 @@ Wert.
   "error": "URL existiert bereits: \"Schon vorhanden\""
 }
 ```
+
+### `collections` und `workflow`
+
+```jsonc
+{
+  "collections": [
+    { "collectionId": "3039bdb2-…", "success": true,  "error": null },
+    { "collectionId": "unbekannt",  "success": false, "error": "HTTP 404: …" }
+  ],
+  "workflow": [
+    { "status": "200_tocheck",                 "success": true, "error": null },
+    { "status": "140_ELEMENT_LEGALLY_APPROVED", "success": true, "error": null }
+  ]
+}
+```
+
+Beide Schritte laufen **nach** dem Schreiben der Metadaten. Ein Fehlschlag dort
+setzt `success` des Uploads nicht zurück — der Node existiert dann bereits mit
+allen Metadaten, nur die Sammlungs-Referenz bzw. der Workflow-Schritt fehlt. Das
+steht im jeweiligen Eintrag.
+
+Jeder Workflow-Schritt ist ein eigener Aufruf und damit ein eigener Eintrag in
+der Workflow-Historie des Nodes — inklusive ausführendem Nutzer. Für bereits
+hochgeladene Nodes gibt es denselben Ablauf als `POST /workflow/{node_id}`.
+
+## Abbruch nach dem Anlegen
+
+Der Upload legt den Node zuerst an und füllt ihn danach. Bricht die Verbindung
+dazwischen ab — Timeout, Netzfehler —, bliebe sonst ein Node im Eingangsordner
+zurück, der nur seinen Titel trägt: für den Aufrufer unsichtbar, der `success:
+false` sieht und es erneut versucht, wobei jedes Mal einer mehr liegen bleibt.
+
+Deshalb nimmt die API den angelegten Node in diesem Fall zurück (Papierkorb,
+`recycle=true`, also wiederherstellbar) und meldet ihn als `discarded_node`:
+
+```jsonc
+{
+  "success": false,
+  "error": "Timeout bei der Verbindung zum Repository: … (unvollständiger Node wurde verworfen)",
+  "discarded_node": "244bf208-de5e-4543-8bf2-08de5ed543fe"
+}
+```
+
+Scheitert auch das Verwerfen, bleibt der Node bestehen und wird als `node.nodeId`
+mit einem entsprechenden Hinweis in `error` zurückgegeben — dann ist ein manueller
+Eingriff nötig.
+
+Ein Fehler **vor** dem Anlegen verwirft nichts; ein erfolgreicher Upload ebenso
+wenig.
 
 ## Kosten
 
