@@ -9,7 +9,8 @@ heute gegen `/upload` programmiert, muss nichts anpassen.
 {
   "metadata": { "...": "..." },   // Output von /generate
   "return_full_node": true,       // Default: false
-  "collection_id": "3039bdb2-…",  // NEU, optional — ID, Liste oder Sammlungs-URL
+  "collection_id": ["3039bdb2-…"], // NEU, optional — immer eine Liste von
+                                   // IDs oder Sammlungs-URLs
   "workflow_steps": [             // NEU, Default: ["200_tocheck"]
     "200_tocheck",
     "140_ELEMENT_LEGALLY_APPROVED"
@@ -28,6 +29,8 @@ heute gegen `/upload` programmiert, muss nichts anpassen.
 | `error` | string \| null | – | Fehlermeldung |
 | `step` | string \| null | – | Schritt, an dem es scheiterte (z. B. `setMetadata`) |
 | `fields_written` | int \| null | bei Erfolg | Geschriebene Felder |
+| `schema_used` | string \| null | bei Erfolg | **NEU** — Typschema, gegen das geschrieben wurde. `null` = nur `core.json` |
+| `repo_fields_available` | int \| null | bei Erfolg | **NEU** — wie viele Felder dieses Schema überhaupt schreiben darf (core 22, +`event.json` 29, +`learning_material.json` 34) |
 | `fields_skipped` | int \| null | bei Erfolg | Übersprungene Felder (nicht repo-fähig) |
 | `field_errors` | array \| null | – | `[{field_id, error, status_code}]` |
 | `preview` | object \| null | – | Status des Vorschaubild-Uploads |

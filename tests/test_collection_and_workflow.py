@@ -10,6 +10,7 @@ it can reach the repository.
 
 import pytest
 from fastapi.testclient import TestClient
+from pydantic import ValidationError
 
 from src import main
 from src.models.schemas import UploadRequest, WorkflowRequest
@@ -42,30 +43,39 @@ def test_collection_id_is_extracted_from_what_users_paste(value):
     assert extract_id_from_url(value) == COLLECTION_ID
 
 
-def test_collection_id_accepts_a_single_value_or_a_list():
-    assert UploadRequest(metadata={}, collection_id=COLLECTION_ID).collection_id == [
-        COLLECTION_ID
-    ]
+def test_a_list_is_required():
     assert UploadRequest(
         metadata={}, collection_id=[COLLECTION_ID, "second"]
     ).collection_id == [COLLECTION_ID, "second"]
 
 
-@pytest.mark.parametrize("value", [None, "", "   ", [], ["", "  "]])
+def test_a_bare_id_is_rejected():
+    """
+    One shape for one field. The other list parameters of this endpoint —
+    workflow_steps, workflow_receiver — take a list and nothing else; accepting
+    a bare string here as well would make the request format a matter of which
+    parameter you happen to be filling in.
+    """
+    with pytest.raises(ValidationError):
+        UploadRequest(metadata={}, collection_id=COLLECTION_ID)
+
+
+@pytest.mark.parametrize("value", [None, [], ["", "  "]])
 def test_empty_collection_id_stays_absent(value):
+    """An empty list is unambiguous — omitting the field means the same thing."""
     assert UploadRequest(metadata={}, collection_id=value).collection_id is None
 
 
-def test_the_schema_advertises_the_single_id_the_code_accepts():
+def test_the_schema_declares_an_array_and_nothing_else():
     """
-    A generated client only ever sends what the schema declares. If it says
-    'array' while the code also takes a bare string, the documented contract and
-    the implementation disagree — and the README documents the string.
+    A generated client only ever sends what the schema declares. As long as the
+    schema still offers 'string', clients will send one.
     """
     collection_id = UploadRequest.model_json_schema()["properties"]["collection_id"]
     types = {variant.get("type") for variant in collection_id.get("anyOf", [])}
 
-    assert {"string", "array"} <= types
+    assert "array" in types
+    assert "string" not in types
 
 
 def test_requested_collections_come_first_and_duplicates_are_dropped():
@@ -296,7 +306,7 @@ def test_upload_forwards_collection_and_workflow_options(client):
         "/upload",
         json={
             "cclom:title": "Titel",
-            "collection_id": COLLECTION_ID,
+            "collection_id": [COLLECTION_ID],
             "workflow_steps": [DEFAULT_WORKFLOW_STATUS, "140_ELEMENT_LEGALLY_APPROVED"],
             "workflow_comment": "",
             "workflow_receiver": [],
@@ -319,7 +329,7 @@ def test_upload_forwards_collection_and_workflow_options(client):
 
 def test_upload_reports_collection_and_workflow_results(client):
     response = client.post(
-        "/upload", json={"cclom:title": "Titel", "collection_id": COLLECTION_ID}
+        "/upload", json={"cclom:title": "Titel", "collection_id": [COLLECTION_ID]}
     )
 
     body = response.json()
@@ -329,6 +339,16 @@ def test_upload_reports_collection_and_workflow_results(client):
     assert body["workflow"] == [
         {"status": DEFAULT_WORKFLOW_STATUS, "success": True, "error": None}
     ]
+
+
+def test_the_endpoint_refuses_a_bare_collection_id(client):
+    """422 at the boundary, not a coerced guess about what was meant."""
+    response = client.post(
+        "/upload", json={"cclom:title": "Titel", "collection_id": COLLECTION_ID}
+    )
+
+    assert response.status_code == 422
+    assert "collection_id" in response.text
 
 
 def test_upload_without_collections_keeps_the_previous_response_shape(client):

@@ -602,3 +602,34 @@ async def test_a_rejected_bulk_write_names_the_fields_that_failed(monkeypatch):
         and len(c["json"]) == 1
     ]
     assert len(singles) == result["fields_written"]
+
+
+# ------------------------------------------------- which schema was applied
+#
+# metadataset decides which type schema joins core.json, and with it how many
+# fields may be written at all. Getting it wrong costs fields but not the 200,
+# so the answer has to say which schema actually applied.
+
+
+@pytest.mark.asyncio
+async def test_the_result_names_the_schema_that_was_applied(recorded):
+    result = await _upload()
+
+    assert result["schema_used"] == "learning_material.json"
+    assert result["repo_fields_available"] == 34
+
+
+@pytest.mark.asyncio
+async def test_without_a_metadataset_only_core_fields_are_reported(recorded):
+    """22 against 34 is the difference a caller needs to be able to see."""
+    service = RepositoryService("user", "password")
+    result = await service.upload_metadata(
+        metadata={"cclom:title": "Ohne Typangabe"},
+        check_duplicates=False,
+        context="default",
+        version="2.0.0",
+        write_extended_data=False,
+    )
+
+    assert result["schema_used"] is None
+    assert result["repo_fields_available"] == 22

@@ -63,6 +63,30 @@ from .utils.schema_loader import (
 )
 
 
+def carry_schema_markers(data: dict) -> dict:
+    """
+    Move contextName, schemaVersion and metadataset into `metadata`.
+
+    /generate answers with those markers *beside* `metadata`, while every
+    consumer looks for them *inside* it. Posting that response verbatim — the
+    way the docs describe — would otherwise fall back to auto-detection:
+    /upload writes only the core.json fields and silently drops the
+    type-specific ones, /validate and /export/markdown work against a schema
+    they guessed. Markers already present inside win, which is what the web
+    component sends.
+
+    Mutates and returns `data`. The markers are filtered out again before
+    anything reaches the repository.
+    """
+    inner = data.get("metadata")
+    if not isinstance(inner, dict):
+        return data
+    for marker in ("contextName", "schemaVersion", "metadataset"):
+        if marker in data and marker not in inner:
+            inner[marker] = data[marker]
+    return data
+
+
 def sanitize_json_string(raw_body: str) -> str:
     """
     Sanitize raw JSON string by escaping control characters in string values.
@@ -1854,6 +1878,8 @@ async def validate_metadata(request: Request):
     # If direct metadata (no "metadata" wrapper), wrap it for Pydantic model
     if "metadata" not in data or not isinstance(data.get("metadata"), dict):
         data = {"metadata": data}
+    else:
+        carry_schema_markers(data)
 
     # Validate with Pydantic model
     try:
@@ -1958,6 +1984,8 @@ async def export_markdown(request: Request):
     # If direct metadata (no "metadata" wrapper), wrap it for Pydantic model
     if "metadata" not in data or not isinstance(data.get("metadata"), dict):
         data = {"metadata": data}
+    else:
+        carry_schema_markers(data)
 
     # Validate with Pydantic model
     try:
@@ -2012,6 +2040,23 @@ async def export_markdown(request: Request):
 
 Kopiere einfach den kompletten Output von `/generate` direkt hier rein.
 
+## Body-Format
+
+**Empfohlen:** die `/generate`-Antwort unverändert weiterreichen — Umschlag
+oben, Felder als flache Liste unter `metadata`. Nichts umbauen, nichts
+verlieren.
+
+Zwei weitere Formen sind gleichwertig und schreiben dieselben Felder:
+
+2. **Flach** — Umschlag und Felder auf einer Ebene
+3. **Alles unter `metadata`** — so sendet die Webkomponente
+
+**`metadataset` in jedem Fall mitschicken.** Der Schlüssel entscheidet, welches
+Typschema zusätzlich zu `core.json` gilt und damit, welche Felder überhaupt
+geschrieben werden dürfen (nur core: 22 Felder, + `event.json`: 29,
++ `learning_material.json`: 34). Fehlt er, fallen typspezifische Felder wie
+`ccm:oeh_event_begin` oder `ccm:price` stillschweigend weg.
+
 ## Optionale Parameter
 
 | Parameter | Werte | Beschreibung |
@@ -2024,7 +2069,7 @@ Kopiere einfach den kompletten Output von `/generate` direkt hier rein.
 | `write_extended_data` | `true` (Standard), `false` | Extended-Felder schreiben (`ccm:oeh_extendedType`, `ccm:oeh_extendedData`, `ccm:oeh_extendedText`). |
 | `extended_text` | String (leer = auto) | Rohtext vor der Extraktion. Wird in `ccm:oeh_extendedText` geschrieben. |
 | `return_full_node` | `false` (Standard), `true` | Node nach dem Schreiben zurücklesen und als `node_full` mitliefern. |
-| `collection_id` | ID, Liste von IDs oder Sammlungs-URL | Sammlung(en), in der/denen der Inhalt referenziert wird. |
+| `collection_id` | Liste von IDs oder Sammlungs-URLs | Sammlung(en), in der/denen der Inhalt referenziert wird. Immer eine Liste, auch bei einer Sammlung. |
 | `workflow_steps` | Liste von Status | Workflow-Status, die nach dem Upload der Reihe nach gesetzt werden. Standard: `["200_tocheck"]`. |
 | `workflow_comment` | String | Kommentar zu jedem Workflow-Schritt. |
 | `workflow_receiver` | Liste von Authority-Namen | Empfänger jedes Workflow-Schritts. |
@@ -2041,9 +2086,11 @@ Kopiere einfach den kompletten Output von `/generate` direkt hier rein.
 
 ## Sammlungen
 
-`collection_id` akzeptiert eine einzelne ID, eine Liste oder eine kopierte
-Sammlungs-URL (`.../components/collections?id=<uuid>`). Der Node wird als
-Referenz in die Sammlung gelegt — das Original bleibt im Inbox-Ordner.
+`collection_id` ist **immer eine Liste** — auch bei einer einzelnen Sammlung.
+Die Einträge sind IDs oder kopierte Sammlungs-URLs
+(`.../components/collections?id=<uuid>`). Ein nackter String wird mit `422`
+abgelehnt. Der Node wird als Referenz in die Sammlung gelegt — das Original
+bleibt im Inbox-Ordner.
 Zusätzlich werden `virtual:collection_id_primary` und `ccm:collection_id`
 aus den Metadaten berücksichtigt; Duplikate werden entfernt.
 
@@ -2119,7 +2166,9 @@ Kostet einen zusätzlichen Repository-Aufruf. Schlägt der Lesevorgang fehl, ble
                                 "metadataset": "learning_material.json",
                                 "cclom:title": "Bruchrechnung Klasse 6",
                                 "ccm:wwwurl": "https://example.com/bruchrechnung",
-                                "collection_id": "3039bdb2-f51f-4cc8-b1d9-3fb6b0ffc1d9",
+                                "collection_id": [
+                                    "3039bdb2-f51f-4cc8-b1d9-3fb6b0ffc1d9"
+                                ],
                                 "workflow_steps": [
                                     "200_tocheck",
                                     "140_ELEMENT_LEGALLY_APPROVED",
@@ -2193,6 +2242,8 @@ async def upload_to_repository(request: Request):
             "workflow_comment": workflow_comment,
             "workflow_receiver": workflow_receiver,
         }
+    else:
+        carry_schema_markers(data)
 
     # Validate with Pydantic model
     try:
@@ -2358,6 +2409,8 @@ async def upload_to_repository(request: Request):
         step=result.get("step"),
         fields_written=result.get("fields_written"),
         fields_skipped=result.get("fields_skipped"),
+        schema_used=result.get("schema_used"),
+        repo_fields_available=result.get("repo_fields_available"),
         field_errors=field_errors,
         preview=preview_status,
         collections=collections,

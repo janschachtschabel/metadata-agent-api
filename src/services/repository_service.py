@@ -286,6 +286,12 @@ class RepositoryService:
 
                 result = {
                     "success": True,
+                    # Which schema decided what may be written. Without it a
+                    # caller cannot tell a complete upload from one that quietly
+                    # fell back to core.json and dropped the type-specific
+                    # fields — both answer 200.
+                    "schema_used": schema_file,
+                    "repo_fields_available": len(repo_field_ids),
                     "node": {
                         "nodeId": node_id,
                         "title": title,

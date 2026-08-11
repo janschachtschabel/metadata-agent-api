@@ -383,7 +383,10 @@ Validiert Metadaten gegen das Schema. Prüft Core-Felder und Schema-spezifische 
 
 #### Request
 
-Der Body kann **direkt der `/generate`-Output** sein (flaches Format) oder ein Objekt mit `metadata`-Wrapper:
+Der Body kann **direkt der `/generate`-Output** sein (flaches Format) oder ein
+Objekt mit `metadata`-Wrapper — beide Formen sind gleichwertig, siehe
+[Body-Format](#body-format) bei `/upload`. Entscheidend ist `metadataset`:
+daran hängt, gegen welches Typschema geprüft wird.
 
 ```bash
 # Variante 1: Direkter /generate-Output
@@ -479,11 +482,49 @@ Lädt Metadaten ins WLO edu-sharing Repository hoch.
 >
 > **Einfache Nutzung:** Den kompletten `/generate`-Output direkt als Body senden. Optional `repository`, `check_duplicates`, `start_workflow` mit übergeben.
 
+#### Body-Format
+
+**Empfohlen ist Form 1:** die `/generate`-Antwort unverändert weiterreichen —
+Umschlag oben, die Felder als flache Liste unter `metadata`. Das ist die Form,
+die `/generate` erzeugt und die Webkomponente exportiert; man muss nichts
+umbauen und kann dabei nichts verlieren.
+
+Die anderen beiden sind **gleichwertig** und schreiben dieselben Felder — sie
+existieren, weil beide Formen im Umlauf sind:
+
+```jsonc
+// 1) EMPFOHLEN — /generate-Antwort unverändert weiterreichen
+{
+  "contextName": "default", "schemaVersion": "2.0.0",
+  "metadataset": "event.json",
+  "metadata": { "cclom:title": "…", "ccm:oeh_event_begin": "…" },
+  "start_workflow": true                       // Optionen daneben
+}
+
+// 2) Flach: Umschlag und Felder auf einer Ebene
+{
+  "contextName": "default", "schemaVersion": "2.0.0",
+  "metadataset": "event.json",
+  "cclom:title": "…", "ccm:oeh_event_begin": "…"
+}
+
+// 3) Alles unter `metadata` (so sendet die Webkomponente)
+{ "metadata": { "contextName": "…", "metadataset": "event.json",
+                "metadata": { "cclom:title": "…" } } }
+```
+
+> **`metadataset` mitschicken.** Der Schlüssel entscheidet, welches Typschema
+> zusätzlich zu `core.json` geladen wird — und damit, welche Felder überhaupt
+> geschrieben werden dürfen. Ohne ihn gelten nur die 22 Core-Felder: bei einer
+> Veranstaltung fallen `ccm:oeh_event_begin`, `ccm:oeh_event_end`, `ccm:price`
+> und `ccm:competence` stillschweigend weg. `/generate` liefert den Schlüssel
+> mit; wer die Antwort umbaut, muss ihn behalten.
+
 #### Request
 
 | Parameter | Typ | Default | Beschreibung |
 |-----------|-----|---------|--------------|
-| `metadata` | object | **erforderlich** | Metadaten — flaches Format (direkt `/generate`-Output) oder verschachteltes Format (`{ metadata: {...}, _origins: {...} }`) |
+| `metadata` | object | **erforderlich** | Metadaten — siehe [Body-Format](#body-format) oben |
 | `repository` | string | `staging` | *Deprecated — wird ignoriert, siehe [Umgebungsvariablen](#umgebungsvariablen)* |
 | `check_duplicates` | bool | `true` | Dublettenprüfung via `ccm:wwwurl` |
 | `start_workflow` | bool | `true` | Review-Workflow starten |
@@ -493,7 +534,7 @@ Lädt Metadaten ins WLO edu-sharing Repository hoch.
 | `write_extended_data` | bool | `true` | Extended-Felder schreiben (`ccm:oeh_extendedType`, `ccm:oeh_extendedData`, `ccm:oeh_extendedText`) |
 | `extended_text` | string | — | Rohtext vor der KI-Extraktion. Wird in `ccm:oeh_extendedText` geschrieben |
 | `return_full_node` | bool | `false` | Node nach dem Schreiben zurücklesen und als `node_full` mitliefern |
-| `collection_id` | string \| string[] | — | Sammlung(en), in der/denen der Inhalt referenziert wird. ID, Liste von IDs oder Sammlungs-URL |
+| `collection_id` | string[] | — | Sammlung(en), in der/denen der Inhalt referenziert wird. **Immer eine Liste**, Einträge sind IDs oder Sammlungs-URLs |
 | `workflow_steps` | string[] | `["200_tocheck"]` | Workflow-Status, die nach dem Upload der Reihe nach gesetzt werden |
 | `workflow_comment` | string | `Upload via Metadata Agent API` | Kommentar zu jedem Workflow-Schritt |
 | `workflow_receiver` | string[] | siehe unten | Authority-Namen, die je Schritt benachrichtigt werden |
@@ -504,12 +545,15 @@ Lädt Metadaten ins WLO edu-sharing Repository hoch.
 oder mehrere Sammlungen. Das Original bleibt im Inbox-Ordner, die Sammlung
 bekommt einen Verweis darauf.
 
-Akzeptiert wird, was man aus der Redaktionsumgebung kopiert:
+Der Parameter ist **immer eine Liste** — auch bei einer einzelnen Sammlung.
+Ein nackter String wird mit `422` abgelehnt, statt ihn stillschweigend zu
+deuten. Als Einträge wird akzeptiert, was man aus der Redaktionsumgebung
+kopiert:
 
 ```jsonc
-{ "collection_id": "3039bdb2-f51f-4cc8-b1d9-3fb6b0ffc1d9" }
+{ "collection_id": ["3039bdb2-f51f-4cc8-b1d9-3fb6b0ffc1d9"] }
 { "collection_id": ["3039bdb2-…", "7a1e0c44-…"] }
-{ "collection_id": "https://repository.staging.openeduhub.net/edu-sharing/components/collections?id=3039bdb2-…" }
+{ "collection_id": ["https://repository.staging.openeduhub.net/edu-sharing/components/collections?id=3039bdb2-…"] }
 ```
 
 Sammlungen aus den Metadaten (`virtual:collection_id_primary`, `ccm:collection_id`)
@@ -621,6 +665,8 @@ Nach Node-Erstellung werden automatisch Aspects hinzugefügt, die für bestimmte
 {
   "success": true,
   "fields_written": 12,
+  "schema_used": "event.json",
+  "repo_fields_available": 29,
   "node": {
     "nodeId": "abc123-def456-...",
     "title": "Workshop KI in der Bildung",

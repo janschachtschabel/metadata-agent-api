@@ -2,7 +2,7 @@
 
 import re
 from enum import Enum
-from typing import Any, Optional, Union
+from typing import Any, Optional
 from pydantic import BaseModel, Field, field_validator
 
 from ..services.repository_curation import KNOWN_WORKFLOW_STATUS
@@ -610,13 +610,16 @@ class UploadRequest(BaseModel):
         description="Bezugsquelle / Publisher-Name. Wenn angegeben, wird ccm:oeh_publisher_combined mit diesem Wert überschrieben.",
     )
     # Collection options
-    # Union so the schema advertises the single ID the validator below accepts —
-    # a generated client only ever sends what the schema declares.
-    collection_id: Optional[Union[str, list[str]]] = Field(
+    # Always a list, never a bare string: the other list parameters of this
+    # endpoint (workflow_steps, workflow_receiver) take a list and nothing else,
+    # and a field that silently accepts both makes the request format depend on
+    # which parameter you happen to be filling in.
+    collection_id: Optional[list[str]] = Field(
         default=None,
         description=(
             "Sammlung(en), in der/denen der hochgeladene Inhalt referenziert wird. "
-            "Akzeptiert eine einzelne ID, eine Liste von IDs oder Sammlungs-URLs "
+            "Immer eine Liste — auch bei einer einzelnen Sammlung. Die Einträge "
+            "sind IDs oder Sammlungs-URLs "
             "(z.B. '.../components/collections?id=<uuid>'). Sammlungen aus den "
             "Metadaten (virtual:collection_id_primary, ccm:collection_id) werden "
             "zusätzlich berücksichtigt."
@@ -626,12 +629,10 @@ class UploadRequest(BaseModel):
     @field_validator("collection_id", mode="before")
     @classmethod
     def normalize_collection_id(cls, v: Any) -> Any:
-        """Accept a single ID/URL as well as a list, and drop empty entries."""
-        if v is None:
-            return None
-        if isinstance(v, str):
-            v = [v]
+        """Drop empty entries; a list that holds nothing usable counts as absent."""
         if not isinstance(v, list):
+            # Anything else — including a bare ID — is left for the type check
+            # to reject, so the caller gets told what shape was expected.
             return v
         cleaned = [str(x).strip() for x in v if x is not None and str(x).strip()]
         return cleaned or None
@@ -785,6 +786,22 @@ class UploadResponse(BaseModel):
     step: Optional[str] = None
     fields_written: Optional[int] = None
     fields_skipped: Optional[int] = None
+    schema_used: Optional[str] = Field(
+        default=None,
+        description=(
+            "Typschema, gegen das geschrieben wurde (aus 'metadataset'). "
+            "null bedeutet: nur core.json galt — wurde kein metadataset "
+            "mitgeschickt, fallen typspezifische Felder weg."
+        ),
+    )
+    repo_fields_available: Optional[int] = Field(
+        default=None,
+        description=(
+            "Anzahl der Felder, die dieses Schema überhaupt ins Repository "
+            "schreiben darf. Deutlich weniger als erwartet heißt: falsches "
+            "oder fehlendes 'metadataset'."
+        ),
+    )
     field_errors: Optional[list[FieldUploadError]] = None
     preview: Optional[dict[str, Any]] = Field(
         default=None,
