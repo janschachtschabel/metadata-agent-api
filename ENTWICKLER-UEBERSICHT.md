@@ -37,22 +37,22 @@ Der komplette Umschlag kann **unverändert** als `/upload`-Body gesendet werden.
 
 ### Body-Format beim Upload
 
-**Nimm Form 1:** die `/generate`-Antwort unverändert weiterreichen. Umschlag
-oben, Felder als flache Liste unter `metadata` — genau so, wie `/generate` sie
-liefert. Nichts umbauen, nichts verlieren.
+**Nimm Form 1:** die `/generate`-Antwort unverändert weiterreichen. `/generate`
+antwortet **flach** — Umschlag und Felder auf einer Ebene ([main.py](src/main.py:1786)).
+Nichts umbauen, nichts verlieren.
 
 Form 2 und 3 sind gleichwertig und schreiben dieselben Felder; sie existieren,
 weil beide im Umlauf sind.
 
 ```jsonc
-// 1) EMPFOHLEN — /generate-Antwort 1:1 weiterreichen
+// 1) EMPFOHLEN — genau das, was /generate zurückgibt
 { "contextName": "default", "schemaVersion": "2.0.0", "metadataset": "event.json",
-  "metadata": { "cclom:title": "…" },
+  "cclom:title": "…",
   "collection_id": ["3039bdb2-…"] }          // Optionen daneben
 
-// 2) Flach — Umschlag und Felder auf einer Ebene
+// 2) Felder unter `metadata` — so exportiert die Webkomponente
 { "contextName": "default", "schemaVersion": "2.0.0", "metadataset": "event.json",
-  "cclom:title": "…" }
+  "metadata": { "cclom:title": "…" } }
 
 // 3) Alles unter `metadata` — so sendet die Webkomponente
 { "metadata": { "contextName": "…", "metadataset": "event.json",

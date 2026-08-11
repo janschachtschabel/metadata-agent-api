@@ -2042,14 +2042,13 @@ Kopiere einfach den kompletten Output von `/generate` direkt hier rein.
 
 ## Body-Format
 
-**Empfohlen:** die `/generate`-Antwort unverändert weiterreichen — Umschlag
-oben, Felder als flache Liste unter `metadata`. Nichts umbauen, nichts
-verlieren.
+**Empfohlen:** die `/generate`-Antwort unverändert weiterreichen. `/generate`
+antwortet flach — Umschlag und Felder auf einer Ebene.
 
 Zwei weitere Formen sind gleichwertig und schreiben dieselben Felder:
 
-2. **Flach** — Umschlag und Felder auf einer Ebene
-3. **Alles unter `metadata`** — so sendet die Webkomponente
+2. **Felder unter `metadata`** — so exportiert die Webkomponente
+3. **Alles unter `metadata`** — doppelt verschachtelt
 
 **`metadataset` in jedem Fall mitschicken.** Der Schlüssel entscheidet, welches
 Typschema zusätzlich zu `core.json` gilt und damit, welche Felder überhaupt

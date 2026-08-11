@@ -75,7 +75,9 @@ Alle Konfigurationsvariablen haben das Prefix `METADATA_AGENT_`:
 | Variable | Default | Beschreibung |
 |---|---|---|
 | `METADATA_AGENT_B_API_OPENAI_BASE` | `https://b-api.staging.openeduhub.net/api/v1/llm/openai` | B-API OpenAI Endpoint |
-| `METADATA_AGENT_B_API_OPENAI_MODEL` | `gpt-4.1-mini` | B-API OpenAI Modell |
+| `METADATA_AGENT_B_API_OPENAI_MODEL` | `gpt-5.6-luna` | B-API OpenAI Modell |
+| `METADATA_AGENT_LLM_VERBOSITY` | `low` | Nur GPT-5-Serie/o-Modelle. Leer = nicht senden |
+| `METADATA_AGENT_LLM_REASONING_EFFORT` | `low` | Nur GPT-5-Serie/o-Modelle. `none`/`low`/`medium`/`high` |
 | `METADATA_AGENT_B_API_ACADEMICCLOUD_BASE` | `https://b-api.staging.openeduhub.net/api/v1/llm/academiccloud` | B-API AcademicCloud Endpoint |
 | `METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL` | `deepseek-r1` | B-API AcademicCloud Modell |
 | `METADATA_AGENT_OPENAI_API_BASE` | `https://api.openai.com/v1` | Nativer OpenAI Endpoint |

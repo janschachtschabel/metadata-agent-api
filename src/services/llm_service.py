@@ -9,6 +9,18 @@ from typing import Any, Optional
 from ..config import get_settings
 from ..utils.text_utils import levenshtein_distance
 
+# Reasoning models take a different request body: 'max_completion_tokens'
+# instead of 'max_tokens', no temperature other than the default, and they are
+# the only ones that accept 'verbosity' and 'reasoning_effort' — gpt-4.1-mini
+# answers 400 for those. Matched by prefix so a new model in the same family
+# does not need a code change; anything unknown keeps the classic body.
+_REASONING_MODEL_PREFIXES = ("gpt-5", "o1", "o3", "o4")
+
+
+def uses_reasoning_parameters(model: str) -> bool:
+    """Whether this model expects the reasoning-style request body."""
+    return str(model).lower().startswith(_REASONING_MODEL_PREFIXES)
+
 
 class LLMService:
     """Service for LLM-based metadata extraction with parallel processing."""
@@ -40,6 +52,8 @@ class LLMService:
         self.requires_custom_header = self.llm_config["requires_custom_header"]
         self.max_tokens = settings.llm_max_tokens
         self.max_retries = settings.llm_max_retries
+        self.verbosity = settings.llm_verbosity
+        self.reasoning_effort = settings.llm_reasoning_effort
 
         # HTTP client for B-API (requires custom headers)
         self.http_client = httpx.AsyncClient(timeout=60.0)
@@ -66,12 +80,23 @@ class LLMService:
         temp = temperature if temperature is not None else self.temperature
         tokens = max_tokens if max_tokens is not None else self.max_tokens
 
-        request_body = {
+        request_body: dict[str, Any] = {
             "model": self.model,
             "messages": messages,
-            "temperature": temp,
-            "max_tokens": tokens,
         }
+
+        if uses_reasoning_parameters(self.model):
+            # Measured against the B-API: these models answer 400 for
+            # 'max_tokens' ("use max_completion_tokens instead") and for any
+            # temperature other than the default, so it is left out entirely.
+            request_body["max_completion_tokens"] = tokens
+            if self.verbosity:
+                request_body["verbosity"] = self.verbosity
+            if self.reasoning_effort:
+                request_body["reasoning_effort"] = self.reasoning_effort
+        else:
+            request_body["temperature"] = temp
+            request_body["max_tokens"] = tokens
 
         # Build headers based on provider
         headers = {"Content-Type": "application/json"}

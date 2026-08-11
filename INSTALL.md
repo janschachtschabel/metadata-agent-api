@@ -655,7 +655,9 @@ docker run -d \
 | Variable | Default | Beschreibung |
 |---|---|---|
 | `METADATA_AGENT_B_API_OPENAI_BASE` | *(abgeleitet aus `B_API_BASE_URL`)* | Überschreibt den abgeleiteten OpenAI-Endpoint |
-| `METADATA_AGENT_B_API_OPENAI_MODEL` | `gpt-4.1-mini` | Modell für B-API OpenAI |
+| `METADATA_AGENT_B_API_OPENAI_MODEL` | `gpt-5.6-luna` | Modell für B-API OpenAI |
+| `METADATA_AGENT_LLM_VERBOSITY` | `low` | Nur GPT-5-Serie/o-Modelle |
+| `METADATA_AGENT_LLM_REASONING_EFFORT` | `low` | Nur GPT-5-Serie/o-Modelle |
 | `METADATA_AGENT_B_API_ACADEMICCLOUD_BASE` | *(abgeleitet aus `B_API_BASE_URL`)* | Überschreibt den abgeleiteten AcademicCloud-Endpoint |
 | `METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL` | `deepseek-r1` | Modell für B-API AcademicCloud |
 | `METADATA_AGENT_OPENAI_API_BASE` | `https://api.openai.com/v1` | Natives OpenAI API |

@@ -88,11 +88,12 @@ sie:
 | `/validate` | prüfte gegen `learning_material.json` statt `event.json` |
 | `/export/markdown` | `schema_used: "auto"` — keine Erkennung |
 
-Jetzt liefern alle drei Formen dasselbe Ergebnis. **Empfohlen bleibt Form 1** —
-die `/generate`-Antwort unverändert weiterreichen:
+Jetzt liefern alle drei Formen dasselbe Ergebnis. **Empfohlen ist die
+`/generate`-Antwort unverändert** — sie kommt flach, Umschlag und Felder auf
+einer Ebene:
 
 ```jsonc
-// 1) EMPFOHLEN: /generate-Antwort            2) flach
+// 1) Felder unter metadata                   2) EMPFOHLEN: flach (= /generate)
 { "contextName": "…", "metadataset": "…",    { "contextName": "…",
   "metadata": { "cclom:title": "…" } }         "metadataset": "…",
                                                "cclom:title": "…" }
@@ -156,6 +157,36 @@ bewusst unescaped — dort schützt der Escape nichts und würde als Backslash i
 angezeigten Namen landen.
 
 ---
+
+### 10. Standard-LLM ist `gpt-5.6-luna`
+
+Vorher `gpt-4.1-mini`. Das neue Modell ist ein Reasoning-Modell der Nano-Klasse
+und nimmt einen anderen Request-Body — beides gegen die B-API gemessen:
+
+| Parameter | gpt-5.6-luna |
+|---|---|
+| `max_tokens` | **400** — „use `max_completion_tokens` instead" |
+| `temperature: 0.3` | **400** — nur der Default (1) ist erlaubt |
+| `verbosity`, `reasoning_effort` | ✅ (bei `gpt-4.1-mini` beide **400**) |
+| `response_format: json_object` | ✅ |
+
+`llm_service` schaltet deshalb per Modell-Präfix (`gpt-5`, `o1`, `o3`, `o4`):
+Reasoning-Modelle bekommen `max_completion_tokens` ohne `temperature`, alle
+anderen behalten **unverändert** ihren bisherigen Body.
+
+Neue Einstellungen `METADATA_AGENT_LLM_VERBOSITY` und
+`METADATA_AGENT_LLM_REASONING_EFFORT`, beide `low`. Leer = Parameter nicht
+senden. `reasoning_effort` erlaubt `none`/`low`/`medium`/`high`; `minimal` wird
+abgelehnt.
+
+**Warum `low` und nicht `none`:** `none` ist rund 40 % schneller (6,9–8,9 s statt
+9,6–15,3 s) und braucht halb so viele Output-Token — verlor aber in 2 von 5
+Läufen `ccm:oeh_event_begin` und destabilisierte einmal die Inhaltstyp-Erkennung.
+`low` traf in sieben Läufen jedes Mal 8 von 9 Sollfeldern.
+
+> **Bekannt:** Der AcademicCloud-Default `deepseek-r1` antwortet auf Staging mit
+> `404 Model Not Found` — unabhängig von dieser Änderung, aber der Provider
+> `b-api-academiccloud` ist damit unbrauchbar.
 
 ## Konfiguration
 

@@ -35,7 +35,7 @@ class Settings(BaseSettings):
     # B-API OpenAI (OpenAI-compatible endpoint via B-API)
     # Derived from b_api_base_url if left empty
     b_api_openai_base: str = ""
-    b_api_openai_model: str = "gpt-4.1-mini"
+    b_api_openai_model: str = "gpt-5.6-luna"
 
     # B-API AcademicCloud (AcademicCloud endpoint via B-API)
     # Derived from b_api_base_url if left empty
@@ -45,6 +45,18 @@ class Settings(BaseSettings):
     # General LLM Settings
     llm_temperature: float = 0.3
     llm_max_tokens: int = 2000
+
+    # Only sent to reasoning models (GPT-5 family, o-series); older models
+    # reject both. Empty means: do not send the parameter at all.
+    #
+    # Measured against gpt-5.6-luna on 2026-08-11, five runs per level on event
+    # texts. 'none' is roughly 40% faster (6.9-8.9s vs 9.6-15.3s) and costs half
+    # the output tokens — but dropped ccm:oeh_event_begin in 2 of 5 runs and
+    # once destabilised the content-type detection, while 'low' hit 8/9 expected
+    # fields every time. A missing event date is not worth three seconds.
+    # 'minimal' is rejected by the API; valid: none, low, medium, high.
+    llm_verbosity: str = "low"
+    llm_reasoning_effort: str = "low"
     llm_max_retries: int = 3
     llm_retry_delay: float = 1.0
 

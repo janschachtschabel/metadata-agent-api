@@ -156,7 +156,7 @@ Generiert vollständige Metadaten aus Text, URL oder Repository-Node.
 | `normalize` | bool | `true` | Normalisierung (Datum, Boolean, Vokabular, Struktur) |
 | **LLM-Overrides** ||||
 | `llm_provider` | string | aus `.env` | `openai`, `b-api-openai`, `b-api-academiccloud` |
-| `llm_model` | string | aus `.env` | z.B. `gpt-4.1-mini`, `gpt-4o-mini`, `deepseek-r1` |
+| `llm_model` | string | aus `.env` | z.B. `gpt-5.6-luna`, `gpt-4.1-mini`, `gpt-4o-mini` |
 | **Regeneration** ||||
 | `existing_metadata` | object | — | Bestehende Metadaten als Basis |
 | `regenerate_fields` | array | — | Nur diese Feld-IDs neu extrahieren |
@@ -215,7 +215,7 @@ Die Metadaten-Felder liegen **direkt auf Top-Level** (nicht in einem `metadata`-
     "fields_total": 41,
     "processing_time_ms": 2500,
     "llm_provider": "b-api-openai",
-    "llm_model": "gpt-4.1-mini",
+    "llm_model": "gpt-5.6-luna",
     "errors": [],
     "warnings": []
   },
@@ -306,7 +306,7 @@ Extrahiert oder regeneriert ein einzelnes Feld. Nützlich um einzelne Felder zu 
   "schema_file": "event.json",
   "processing": {
     "llm_provider": "b-api-openai",
-    "llm_model": "gpt-4.1-mini",
+    "llm_model": "gpt-5.6-luna",
     "processing_time_ms": 450
   }
 }
@@ -484,28 +484,27 @@ Lädt Metadaten ins WLO edu-sharing Repository hoch.
 
 #### Body-Format
 
-**Empfohlen ist Form 1:** die `/generate`-Antwort unverändert weiterreichen —
-Umschlag oben, die Felder als flache Liste unter `metadata`. Das ist die Form,
-die `/generate` erzeugt und die Webkomponente exportiert; man muss nichts
-umbauen und kann dabei nichts verlieren.
+**Empfohlen ist Form 1:** die `/generate`-Antwort unverändert weiterreichen.
+`/generate` liefert **flach** — Umschlag und Felder auf einer Ebene. Nichts
+umbauen, nichts verlieren.
 
 Die anderen beiden sind **gleichwertig** und schreiben dieselben Felder — sie
 existieren, weil beide Formen im Umlauf sind:
 
 ```jsonc
-// 1) EMPFOHLEN — /generate-Antwort unverändert weiterreichen
+// 1) EMPFOHLEN — genau das, was /generate zurückgibt
 {
   "contextName": "default", "schemaVersion": "2.0.0",
   "metadataset": "event.json",
-  "metadata": { "cclom:title": "…", "ccm:oeh_event_begin": "…" },
+  "cclom:title": "…", "ccm:oeh_event_begin": "…",
   "start_workflow": true                       // Optionen daneben
 }
 
-// 2) Flach: Umschlag und Felder auf einer Ebene
+// 2) Felder unter `metadata` (so exportiert die Webkomponente)
 {
   "contextName": "default", "schemaVersion": "2.0.0",
   "metadataset": "event.json",
-  "cclom:title": "…", "ccm:oeh_event_begin": "…"
+  "metadata": { "cclom:title": "…", "ccm:oeh_event_begin": "…" }
 }
 
 // 3) Alles unter `metadata` (so sendet die Webkomponente)
@@ -1145,7 +1144,9 @@ Prefix `METADATA_AGENT_` wird automatisch vorangestellt (außer API-Keys).
 | Variable | Default |
 |----------|---------|
 | `METADATA_AGENT_B_API_OPENAI_BASE` | *(abgeleitet aus `B_API_BASE_URL`)* |
-| `METADATA_AGENT_B_API_OPENAI_MODEL` | `gpt-4.1-mini` |
+| `METADATA_AGENT_B_API_OPENAI_MODEL` | `gpt-5.6-luna` |
+| `METADATA_AGENT_LLM_VERBOSITY` | `low` |
+| `METADATA_AGENT_LLM_REASONING_EFFORT` | `low` |
 
 **B-API AcademicCloud:**
 
