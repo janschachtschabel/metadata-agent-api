@@ -99,9 +99,11 @@ def compute_diff(
         if expected_val is None or expected_val == "" or expected_val == []:
             continue
 
-        # Fields that were never eligible for repo write
-        if field_id.startswith("virtual:") or field_id.startswith("schema:"):
-            # These are internal fields that get transformed (e.g. schema:location → cm:latitude)
+        # Fields that were never eligible for repo write. Only 'virtual:' is
+        # unconditional — it is computed by edu-sharing, never stored. A
+        # 'schema:' field falls through to the repo_field check below, which is
+        # what decides it on the write path too (see normalize_for_repo).
+        if field_id.startswith("virtual:"):
             diff.append(
                 {
                     "field_id": field_id,

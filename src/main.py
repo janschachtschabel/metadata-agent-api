@@ -157,7 +157,24 @@ async def lifespan(app: FastAPI):
     print(f"B-API Base URL: {settings.b_api_base_url}")
     print(f"Text Extraction URL: {settings.text_extraction_api_url}")
     print(f"Repository URL: {settings.repository_url}")
-    print(f"Default Workers: {settings.default_max_workers}")
+
+    # The gateway budget decides the real parallelism — printing the requested
+    # worker count alone would say 10 where 2 is what happens.
+    concurrent = llm_config["max_concurrent_requests"]
+    rate = llm_config["requests_per_second"]
+    effective = min(settings.default_max_workers, concurrent)
+    print(
+        f"Default Workers: {settings.default_max_workers}"
+        + (
+            f" → {effective} (limit of {llm_config['limit_group']})"
+            if effective < settings.default_max_workers
+            else ""
+        )
+    )
+    print(
+        f"LLM Throughput: max {concurrent} in flight, "
+        + (f"max {rate:g} req/s" if rate else "no rate cap")
+    )
 
     yield
 

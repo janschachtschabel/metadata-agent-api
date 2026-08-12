@@ -30,7 +30,7 @@ heute gegen `/upload` programmiert, muss nichts anpassen.
 | `step` | string \| null | – | Schritt, an dem es scheiterte (z. B. `setMetadata`) |
 | `fields_written` | int \| null | bei Erfolg | Geschriebene Felder |
 | `schema_used` | string \| null | bei Erfolg | **NEU** — Typschema, gegen das geschrieben wurde. `null` = nur `core.json` |
-| `repo_fields_available` | int \| null | bei Erfolg | **NEU** — wie viele Felder dieses Schema überhaupt schreiben darf (core 22, +`event.json` 29, +`learning_material.json` 34) |
+| `repo_fields_available` | int \| null | bei Erfolg | **NEU** — wie viele Felder dieses Schema überhaupt schreiben darf (core 26, +`event.json` 33, +`learning_material.json` 40) |
 | `fields_skipped` | int \| null | bei Erfolg | Übersprungene Felder (nicht repo-fähig) |
 | `field_errors` | array \| null | – | `[{field_id, error, status_code}]` |
 | `preview` | object \| null | – | Status des Vorschaubild-Uploads |

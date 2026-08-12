@@ -1,9 +1,9 @@
 # Änderungen
 
-Stand: 2026-08-11 · gegenüber Commit `52b008c` (CORS Fix)
+Stand: 2026-08-12 · gegenüber Commit `52b008c` (CORS Fix)
 
 Alles unten ist im Arbeitsbaum, noch nicht committet. Die Testsuite umfasst
-**452 Tests**; `ruff check` und `ruff format --check` sind sauber.
+**579 Tests**; `ruff check` und `ruff format --check` sind sauber.
 
 ---
 
@@ -108,19 +108,19 @@ einer Ebene:
 {
   "success": true,
   "schema_used": "event.json",     // null = nur core.json
-  "repo_fields_available": 29,     // wie viele Felder überhaupt erlaubt waren
+  "repo_fields_available": 33,     // wie viele Felder überhaupt erlaubt waren
   "fields_written": 12
 }
 ```
 
 `metadataset` entscheidet, welches Typschema zusätzlich zu `core.json` gilt —
-und damit, wie viele Felder geschrieben werden dürfen (core: 22,
-+ `event.json`: 29, + `learning_material.json`: 34). Fehlt es, gibt es keinen
+und damit, wie viele Felder geschrieben werden dürfen (core: 26,
++ `event.json`: 33, + `learning_material.json`: 40). Fehlt es, gibt es keinen
 Fehler und keine Warnung. Diese beiden Felder machen den Unterschied sichtbar:
 
 ```
-mit metadataset  : schema_used="event.json"  repo_fields_available=29
-ohne metadataset : schema_used=null          repo_fields_available=22
+mit metadataset  : schema_used="event.json"  repo_fields_available=33
+ohne metadataset : schema_used=null          repo_fields_available=26
 ```
 
 Der Name `schema_used` ist derselbe wie bei `/validate` und `/export/markdown`.
@@ -184,9 +184,217 @@ abgelehnt.
 Läufen `ccm:oeh_event_begin` und destabilisierte einmal die Inhaltstyp-Erkennung.
 `low` traf in sieben Läufen jedes Mal 8 von 9 Sollfeldern.
 
-> **Bekannt:** Der AcademicCloud-Default `deepseek-r1` antwortet auf Staging mit
-> `404 Model Not Found` — unabhängig von dieser Änderung, aber der Provider
-> `b-api-academiccloud` ist damit unbrauchbar.
+> Der AcademicCloud-Default `deepseek-r1` antwortete auf Staging mit
+> `404 Model Not Found`. Behoben in Punkt 13.
+
+### 11. Sechs Felder erreichen das Repository, die vorher weggefiltert wurden
+
+Ein redaktioneller Vergleichs-Upload von WLO-Seite schrieb Felder, die dieser
+Agent nicht schrieb. Der Grund waren drei verschiedene Sperren, nicht eine:
+
+| Feld | Sperre | jetzt |
+|---|---|---|
+| `oeh:new_lrt` | `repo_field: false` | `true` in `core.json` |
+| `oeh:required_tools` | `repo_field: false` | `true` in `learning_material.json` |
+| `schema:datePublished` | `repo_field: false` **und** Präfix-Filter | `true` + Filter präzisiert |
+| `ccm:commonlicense_ai_allow_usage` | in keinem Schema definiert | neu in `core.json` |
+| `ccm:commonlicense_ai_generated` | in keinem Schema definiert | neu in `core.json` |
+| `ccm:commonlicense_ai_manually_modified` | in keinem Schema definiert | neu in `core.json` |
+
+**Der Präfix-Filter.** `normalize_for_repo()` verwarf jeden Schlüssel mit dem
+Präfix `virtual:` **oder** `schema:`, unabhängig vom Schema-Flag. Das war für
+`schema:` zu grob: `schema:` ist ein regulärer Namensraum des Repositories, und
+`schema:datePublished` wird von der Redaktion direkt geschrieben. Jetzt ist nur
+noch `virtual:` unbedingt gesperrt — dahinter steht ein Wert, den edu-sharing
+beim Lesen berechnet und nie speichert, für den es also keine sinnvolle
+Schema-Einstellung gibt. Über alles andere entscheidet allein `repo_field`.
+
+Das war gefahrlos, weil `repo_field` schon vorher die schärfere der beiden
+Sperren war: kein einziges Feld mit `schema:`- oder `virtual:`-Präfix trug
+`repo_field: true`, der Präfix-Filter war also faktisch wirkungslos. Die
+Transformations-Eingaben `schema:location` und `schema:geo` stehen weiterhin auf
+`repo_field: false` und gehen weiter über `cm:latitude`/`cm:longitude` ein — ein
+Test wacht darüber, dass das so bleibt. Dieselbe Präzisierung in
+`repository_diff.py`, damit `/upload/verify` `schema:datePublished` nicht
+weiterhin als `not_written` meldet.
+
+**Die drei KI-Felder** liegen in `core.json` und gelten damit für jeden
+Inhaltstyp — eine Veranstaltung kann so gut KI-erzeugt sein wie ein
+Arbeitsblatt. Sie sind `string` mit geschlossenem Vokabular `"true"`/`"false"`,
+nicht `boolean`: das Repository bekommt `["false"]`, ein Python-`False` würde als
+JSON-`false` serialisiert und wäre auf der Leitung ein anderer Wert. Im Canvas
+sind sie sichtbar (`ask_user: true`), damit die Redaktion eine falsche
+Einschätzung korrigieren kann. Die Prompts setzen einen Wert nur, wenn Text,
+Impressum oder Lizenz es hergeben — aus Stil oder Qualität auf KI-Herkunft zu
+schließen ist ausdrücklich untersagt.
+
+Dabei fiel ein Fehler im Vokabular-Abgleich auf: `_validate_vocabulary()`
+verglich den Wert **exakt** gegen die Konzept-Werte. Ein Modell, das nach
+`'true'` oder `'false'` gefragt wird, antwortet aber etwa gleich oft mit einem
+JSON-Boolean — und `str(True)` ist `'True'`, nicht `'true'`. Der Wert fiel
+kommentarlos auf `None`. Der Abgleich läuft jetzt über die kleingeschriebene
+String-Form, zurückgegeben wird weiterhin die Schreibweise aus dem Vokabular.
+Kein Vokabular in den Schemata hat Werte, die sich nur in der Groß-/
+Kleinschreibung unterscheiden — geprüft, bevor der Vergleich gelockert wurde.
+
+> **Kosten:** drei zusätzliche Extraktions-Calls pro Upload, für jeden
+> Inhaltstyp — ein Lernmaterial kommt damit auf 50 statt 47. Sie laufen im
+> bestehenden Parallel-Fan-out mit.
+
+`oeh:new_lrt` und `ccm:oeh_lrt` bleiben getrennt: `ccm:oeh_lrt` wird weiterhin
+aus dem erkannten Inhaltstyp abgeleitet und mit den Extended Data geschrieben,
+`oeh:new_lrt` trägt jetzt zusätzlich, was die Extraktion gefunden hat.
+
+Damit stehen **45 eindeutige Feld-IDs** auf `repo_field: true`, 26 davon in
+`core.json` (vorher 39 / 22). `repo_fields_available` in der Upload-Antwort
+steigt entsprechend von 34 auf 40 für ein Lernmaterial.
+
+> **Sammlungen** waren nie ein Filter-Problem: der ausgerollte Stand kennt den
+> Parameter `collection_id` schlicht nicht (siehe Punkt 4). Ein Deploy behebt das.
+
+**Am lebenden Repository nachgemessen** (2026-08-12, Staging, Knoten
+`5443240c-43a2-4961-8324-0c43a22961dd`) — und das Ergebnis ist zur Hälfte
+ernüchternd:
+
+| Feld | geschrieben? |
+|---|---|
+| `ccm:commonlicense_ai_allow_usage` | ✅ |
+| `ccm:commonlicense_ai_generated` | ✅ |
+| `ccm:commonlicense_ai_manually_modified` | ✅ |
+| `oeh:new_lrt` | ❌ verworfen |
+| `oeh:required_tools` | ❌ verworfen |
+| `schema:datePublished` | ❌ verworfen |
+
+Alfresco quittiert den POST mit `200` und **verwirft Properties, die nicht im
+Content-Modell stehen, ohne Rückmeldung**. Weder Statuscode noch
+`fields_written` zeigen das an — die einzige Möglichkeit, es zu bemerken, ist
+Zurücklesen. Von 100 gelesenen Bestandsknoten trägt kein einziger eines der drei
+Felder; `ccm:oeh_lrt` dagegen 91.
+
+Der Lernressourcentyp geht dadurch **nicht** verloren: `ccm:oeh_lrt` wird
+weiterhin aus dem erkannten Inhaltstyp abgeleitet und über den
+Extended-Data-Pfad geschrieben. Verloren geht der von der KI aus dem Vokabular
+extrahierte Wert.
+
+Die drei Flags bleiben auf `true` — das Senden kostet nichts und wirkt ohne
+Codeänderung, sobald WLO die Properties anlegt. `WLO-REPO-FELDER.md` führt sie
+mit ⚠️ und ist damit zugleich die Liste, die es dafür braucht.
+
+### 12. Durchsatzgrenzen des LLM-Gateways sind einstellbar (neu)
+
+Zwei neue Einstellungen, beide prozessweit wirksam:
+
+```env
+METADATA_AGENT_LLM_MAX_CONCURRENT_REQUESTS=   # leer = gemessener Default
+METADATA_AGENT_LLM_MAX_REQUESTS_PER_SECOND=   # leer = gemessener Default, 0 = aus
+```
+
+| Provider-Gruppe | gleichzeitig | pro Sekunde |
+|---|---:|---:|
+| `b-api` (beide B-API-Provider) | **2** | **2** |
+| `openai` (nativ) | 10 | keine Grenze |
+
+**Warum das nötig war.** Die B-API erlaubt exakt zwei Requests gleichzeitig und
+etwa zwei pro Sekunde. Das Budget hängt am **Key am Gateway**, nicht am Modell —
+`b-api-openai` und `b-api-academiccloud` teilen es sich deshalb. Ein dritter
+paralleler Request wird sofort mit `429` abgewiesen, **ohne `retry-after`**: ein
+Client kann die Wartezeit nicht ablesen, er muss unter der Grenze bleiben. Mehr
+Last hilft nicht, sie schadet — bei 3 req/s fällt der effektive Durchsatz unter
+den Wert bei 2 req/s. Der Agent lief mit `DEFAULT_MAX_WORKERS=10` um Faktor 5
+darüber, die meisten Feld-Extraktionen landeten im Retry.
+
+**Wo die Grenze sitzt.** In `_call_llm` — dem einzigen Punkt, durch den *jeder*
+LLM-Request läuft, auch die Inhaltstyp-Erkennung und die Normalisierung, die
+nicht über den parallelen Feld-Fan-out gehen. Ein Retry ist ein eigener Request
+und nimmt einen Platz.
+
+Das Semaphore ist **prozessweit**, nicht pro Service-Objekt: `get_llm_service()`
+erzeugt bei Provider- oder Modell-Override eine neue `LLMService`-Instanz, ein
+instanzgebundenes Limit hätte bei zwei gleichzeitigen API-Requests also die
+doppelte Zahl durchgelassen. Ein Test hält das fest.
+
+`DEFAULT_MAX_WORKERS` wird auf die Grenze gedeckelt und das beim Start
+ausgewiesen, statt eine Parallelität zu versprechen, die nicht stattfindet:
+
+```
+Default Workers: 10 → 2 (limit of b-api)
+LLM Throughput: max 2 in flight, max 2 req/s
+```
+
+### 13. AcademicCloud-Default ist ein Modell, das es gibt
+
+`deepseek-r1` → **`openai-gpt-oss-120b`**. Der alte Default antwortete mit
+`404 Model Not Found`; ein Default, der nicht funktionieren kann, ist schlechter
+als keiner, weil nichts am Fehler auf die Einstellung zeigt. Das neue Modell
+lieferte in der Messung vom 12.08.2026 die gleichmäßigste Latenz der
+AcademicCloud-Modelle (4,99 s ± 2,31 s bei der Extraktion, p95 6,59 s im Chat).
+
+### 14. Nativ OpenAI zieht mit der B-API-Implementierung gleich
+
+- **`METADATA_AGENT_OPENAI_API_BASE`** muss nicht auf OpenAI zeigen. Jeder
+  Endpunkt, der `/chat/completions` bedient und einen Bearer-Token annimmt,
+  funktioniert — Azure, selbst gehostetes vLLM, ein Gateway davor. Die
+  Einstellung gab es schon, dokumentiert war sie nicht.
+- **`METADATA_AGENT_OPENAI_TEMPERATURE`** folgt jetzt standardmäßig
+  `METADATA_AGENT_LLM_TEMPERATURE`. Vorher ignorierte genau einer von drei
+  Providern die gemeinsame Einstellung — eine Falle, kein Feature. Wer den
+  eigenen Wert schon setzt, behält ihn.
+- Die Durchsatzgrenzen gelten für alle drei Provider, nur mit anderen Defaults.
+
+Was schon vorher providerunabhängig war und es bleibt: die Erkennung der
+Reasoning-Modelle (`gpt-5`, `o1`, `o3`, `o4` → `max_completion_tokens`, kein
+`temperature`, dafür `verbosity` und `reasoning_effort`) greift bei nativem
+OpenAI genauso wie über die B-API.
+
+### 15. `ENV-PARAMETER.md` — vollständige Referenz (neu)
+
+Alle 43 Umgebungsvariablen an einer Stelle, mit Defaults und Betriebsbeispielen.
+`README.md`, `INSTALL.md` und `DEPLOYMENT.md` verweisen darauf, statt jeweils
+eine eigene, unvollständige Teilliste zu führen.
+
+Zwei Tests halten das Dokument ehrlich: eine Einstellung im Code ohne Eintrag
+lässt den Test fehlschlagen, und ein dokumentierter Name, den `Settings` nicht
+mehr liest, ebenfalls — letzteres ist der unangenehmere Fall, weil das Setzen
+dann so aussieht, als wirke es.
+
+### 16. Der Lernressourcentyp kommt an — im richtigen Feld, aus dem vollen Vokabular
+
+Zwei Fehler, die sich gegenseitig verdeckten.
+
+**Falsches Zielfeld.** Das Schema nennt das Feld `oeh:new_lrt`, und genau so
+wurde es geschrieben. Diese Property gibt es im Content-Modell aber nicht — der
+POST kam mit `200` zurück, der Wert war weg. Was das Repository führt, ist
+**`ccm:oeh_lrt`** (91 von 100 gelesenen Knoten, 124 Werte, alle aus
+`…/vocabs/new_lrt/`). Der Upload benennt das Feld beim Schreiben jetzt um, wie
+er es bei `cm:author` → `ccm:lifecyclecontributer_author` schon tut. **Die
+`/generate`-Antwort bleibt unverändert** — dort heißt das Feld weiter
+`oeh:new_lrt`, am Vertrag ändert sich nichts.
+
+**Halbes Vokabular.** Im Schema standen **87** Konzepte, veröffentlicht sind
+**220**. Die 87 waren eine saubere Teilmenge — keine veralteten Einträge, keine
+abweichenden Labels — es fehlten schlicht 133, darunter „Quelle", „Portal",
+„Datenbank" und „Lexikon oder Enzyklopädie". Das Vokabular ist geschlossen, ein
+fehlendes Konzept ist also ein Wert, den die Extraktion nie liefern kann. Jetzt
+vollständig, mit Snapshot unter `src/schemata/vocabs/new_lrt.json`.
+
+> `new_lrt_aggregated` (48 Konzepte) ist **nicht** das richtige Vokabular:
+> kein einziger der 124 gelesenen Werte stammt daraus.
+
+**Die Kollision, die dabei auffiel.** Der Upload schreibt `ccm:oeh_lrt` ein
+zweites Mal — aus dem erkannten Inhaltstyp abgeleitet, sechs grobe Typen
+(`learning_material` → „Material"). Dieser Schritt läuft **nach** dem
+Metadaten-Schreiben und hätte den genaueren extrahierten Wert ersetzt. Er greift
+jetzt nur noch, wenn die Extraktion nichts gefunden hat.
+
+**Am lebenden Repository nachgewiesen.** Dieselbe Seite, zweimal hochgeladen:
+
+| | `ccm:oeh_lrt` |
+|---|---|
+| vorher (`5443240c-…`) | `…/1846d876-…` → **„Material"** (abgeleitet) |
+| jetzt (`5d648bba-…`) | `…/9f40cd56-…` → **„Lexikon oder Enzyklopädie"** (extrahiert) |
+
+Das Konzept „Lexikon oder Enzyklopädie" war eines der 133 fehlenden — ohne beide
+Korrekturen zusammen wäre es nicht möglich gewesen.
 
 ## Konfiguration
 
@@ -229,7 +437,7 @@ Import auf UTF-8. Unter Linux, Docker und Vercel ändert das nichts.
 
 ### Tests und Abdeckung
 
-452 Tests (vorher keine). Abdeckung der Service-Schicht:
+579 Tests (vorher keine). Abdeckung der Service-Schicht:
 
 | Modul | Abdeckung |
 |---|---|

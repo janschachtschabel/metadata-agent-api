@@ -5,7 +5,16 @@ Stand Schema-Version **2.0.0** (Kontexte `default` und `mds_oeh`, identisch).
 
 Maßgeblich ist das Flag `system.repo_field: true` im Schema. `get_repo_fields()`
 sammelt daraus `core.json` **plus** das Schema des erkannten Inhaltstyps;
-`_normalize_for_repo()` schreibt ausschließlich Felder aus dieser Menge.
+`normalize_for_repo()` schreibt ausschließlich Felder aus dieser Menge.
+
+Daneben gibt es genau eine Ausnahme, die das Flag überstimmt: Feld-IDs mit dem
+Präfix `virtual:` werden nie geschrieben. Sie benennen etwas, das edu-sharing
+beim Lesen berechnet — es gibt keinen Schema-Eintrag, der das Schreiben richtig
+machen könnte. Das Präfix `schema:` ist dagegen ein regulärer Namensraum des
+Repositories (`schema:datePublished` wird direkt geschrieben); ob so ein Feld
+ins Repository geht, entscheidet allein `repo_field`. Die Transformations-
+Eingaben `schema:location` und `schema:geo` stehen deshalb auf `repo_field: false`
+— sie fließen über `cm:latitude` / `cm:longitude` ein, nicht als Rohwert.
 
 Legende: **sichtbar** = wird im Webcomponent-Canvas angezeigt (`ask_user: true`),
 **versteckt** = wird nicht angezeigt (`ask_user: false`), Wert läuft aber von
@@ -25,7 +34,11 @@ Legende: **sichtbar** = wird im Webcomponent-Canvas angezeigt (`ask_user: true`)
 | `cclom:general_language` | Sprache | sichtbar | ja |
 | `ccm:educationalcontext` | Bildungsstufe | sichtbar | ja |
 | `ccm:taxonid` | Fach | sichtbar | ja |
+| `oeh:new_lrt` | Lernressourcentyp | sichtbar | ja | → `ccm:oeh_lrt` |
 | `ccm:educationalintendedenduserrole` | Zielgruppe | sichtbar | ja |
+| `ccm:commonlicense_ai_allow_usage` | KI-Nutzung erlaubt | sichtbar | ja |
+| `ccm:commonlicense_ai_generated` | Mit KI erzeugt | sichtbar | ja |
+| `ccm:commonlicense_ai_manually_modified` | KI-Ergebnis redaktionell überarbeitet | sichtbar | ja |
 | `ccm:oeh_quality_relevancy_for_education` | Geeignet für Bildung (WLO-Suche) | versteckt | ja |
 | `ccm:oeh_quality_criminal_law` | Strafrecht | versteckt | ja |
 | `ccm:oeh_quality_protection_of_minors` | Jugendschutz | versteckt | ja |
@@ -40,9 +53,21 @@ Legende: **sichtbar** = wird im Webcomponent-Canvas angezeigt (`ask_user: true`)
 | `ccm:oeh_quality_currentness` | Aktualität | versteckt | ja |
 | `ccm:oeh_buffet_criteria` | Kriterien für Redaktionsbuffet | versteckt | ja |
 
-**Nicht** als Repo-Feld markiert (bewusst): `ccm:oeh_extendedType` (wird separat
-über den Extended-Data-Pfad geschrieben) und `oeh:new_lrt` (wird beim Upload aus
-dem Inhaltstyp nach `ccm:oeh_lrt` abgeleitet).
+**Nicht** als Repo-Feld markiert (bewusst): `ccm:oeh_extendedType` — wird separat
+über den Extended-Data-Pfad geschrieben.
+
+**Der Lernressourcentyp landet in `ccm:oeh_lrt`, nicht in `oeh:new_lrt`.** Das
+Schema und die `/generate`-Antwort nennen das Feld `oeh:new_lrt`, aber diese
+Property gibt es im Content-Modell nicht — der Upload benennt sie deshalb beim
+Schreiben um, so wie er `cm:author` in `ccm:lifecyclecontributer_author`
+überführt. Das Vokabular bleibt dasselbe (`…/vocabs/new_lrt/`, 220 Konzepte); es
+ist eine Umbenennung, keine Umrechnung.
+
+Dieselbe Property beschreibt der Upload ein zweites Mal: aus dem erkannten
+Inhaltstyp leitet er einen groben Typ ab (`learning_material` → „Material").
+Dieser abgeleitete Wert greift **nur, wenn die Extraktion nichts gefunden hat** —
+sonst würde er den genaueren überschreiben, denn der Extended-Data-Schritt läuft
+nach dem Metadaten-Schreiben.
 
 ---
 
@@ -221,6 +246,43 @@ des Repositories vor und wird von der KI nur gesetzt, wenn `content_valid`,
 
 ---
 
+## KI-Herkunft und -Nutzung — Werte
+
+`ccm:commonlicense_ai_allow_usage`, `ccm:commonlicense_ai_generated`,
+`ccm:commonlicense_ai_manually_modified` — jeweils genau zwei Werte, als
+**String**, nicht als JSON-Boolean:
+
+| Wert | Bedeutung |
+|------|-----------|
+| `"true"` | trifft zu |
+| `"false"` | trifft nicht zu |
+
+Auf der Leitung sieht das so aus — dieselbe Form, die die redaktionellen Uploads
+schon heute schreiben:
+
+```json
+"ccm:commonlicense_ai_allow_usage": ["true"],
+"ccm:commonlicense_ai_generated": ["false"],
+"ccm:commonlicense_ai_manually_modified": ["false"]
+```
+
+Deshalb sind die Felder als `datatype: "string"` mit geschlossenem Vokabular
+angelegt und nicht als `boolean`: ein Python-`False` würde als JSON-`false`
+serialisiert, und das ist auf der Leitung ein anderer Wert als `"false"`.
+
+Die Prompts sind bewusst zurückhaltend formuliert — die KI setzt einen Wert nur,
+wenn der Text, das Impressum oder die Lizenz es hergibt. Steht nichts dazu da,
+bleibt das Feld leer, statt aus Stil oder Qualität eine KI-Herkunft zu raten.
+Alle drei sind im Canvas sichtbar (`ask_user: true`), damit die Redaktion eine
+falsche Einschätzung korrigieren kann.
+
+Im MDS `mds_oeh` sind für diese drei Felder **keine** Widgets hinterlegt
+(Stand 2026-08-12, 208 Widgets geprüft). Das Repository nimmt sie trotzdem an —
+der MDS entscheidet nicht, was schreibbar ist, sondern nur, was die
+Redaktionsoberfläche als Formularfeld anzeigt.
+
+---
+
 ## Inhaltstyp-spezifische Schemata
 
 ### event.json
@@ -252,6 +314,8 @@ des Repositories vor und wird von der KI nur gesetzt, wenn `content_valid`,
 | `ccm:commonlicense_key` | Lizenztyp (CC) |
 | `ccm:commonlicense_cc_version` | Lizenzversion |
 | `ccm:fskRating` | FSK-Bewertung |
+| `oeh:required_tools` | Erforderliche Tools/Software ⚠️ |
+| `schema:datePublished` | Veröffentlichungsdatum ⚠️ |
 
 ### didactic_planning_tools.json
 
@@ -317,7 +381,7 @@ Diese setzt der Upload-Pfad unabhängig vom Schema-Flag:
 | `ccm:oeh_extendedType` | `write_extended_data: true` — URI des Inhaltstyps |
 | `ccm:oeh_extendedData` | `write_extended_data: true` — vollständiges Metadaten-JSON |
 | `ccm:oeh_extendedText` | `write_extended_data: true` und `extended_text` gesetzt |
-| `ccm:oeh_lrt` | Aus `ccm:oeh_extendedType` abgeleitet |
+| `ccm:oeh_lrt` | Aus `oeh:new_lrt` der Extraktion umbenannt. Nur wenn die nichts lieferte, ersatzweise aus `ccm:oeh_extendedType` abgeleitet |
 | `ccm:commonlicense_key` | `CUSTOM`, wenn `ccm:custom_license` nicht auf das Vokabular passt. Kein Fallback, wenn gar keine Lizenz erkannt wurde — das Feld bleibt leer |
 | `ccm:commonlicense_cc_version` | Aus `ccm:custom_license` abgeleitet — bei CC-Links aus der URL, sonst `4.0` für CC-Keys ohne Version |
 | `ccm:lifecyclecontributer_author` | Aus `cm:author` als VCARD |
@@ -325,9 +389,51 @@ Diese setzt der Upload-Pfad unabhängig vom Schema-Flag:
 
 ---
 
+## ⚠️ Felder, die das Repository nicht kennt
+
+Alfresco quittiert einen POST mit `200` und **verwirft Properties, die nicht im
+Content-Modell stehen, ohne jede Rückmeldung**. Weder der Statuscode noch
+`fields_written` zeigen das an — die einzige Möglichkeit, es zu bemerken, ist
+Zurücklesen.
+
+Gemessen am 2026-08-12 gegen Staging, Knoten
+`5443240c-43a2-4961-8324-0c43a22961dd`: sechs Felder einzeln geschrieben
+(`POST …/metadata?obeyMds=false` → `200`) und zurückgelesen.
+
+| Feld | Ergebnis |
+|---|---|
+| `ccm:commonlicense_ai_allow_usage` | gespeichert ✅ |
+| `ccm:commonlicense_ai_generated` | gespeichert ✅ |
+| `ccm:commonlicense_ai_manually_modified` | gespeichert ✅ |
+| `oeh:new_lrt` | verworfen → wird jetzt als `ccm:oeh_lrt` geschrieben |
+| `oeh:required_tools` | **verworfen** |
+| `schema:datePublished` | **verworfen** |
+
+Bestätigend über den Bestand: von 100 gelesenen Knoten trägt **kein einziger**
+eines dieser Felder — `ccm:oeh_lrt` dagegen 91, mit 124 Werten, alle aus
+`…/vocabs/new_lrt/`.
+
+`oeh:new_lrt` ist damit erledigt: der Upload benennt es beim Schreiben in
+`ccm:oeh_lrt` um (siehe oben). Am Knoten
+`5d648bba-0387-4896-a48b-ba0387a89657` nachgewiesen — `ccm:oeh_lrt` löst dort auf
+„Lexikon oder Enzyklopädie" auf.
+
+Für `oeh:required_tools` und `schema:datePublished` gibt es **keine** solche
+Property im Repository. Die Flags bleiben trotzdem auf `true`: das Senden kostet
+nichts, richtet nichts an, und sobald WLO die Properties ins Content-Modell
+aufnimmt, wirkt es ohne Codeänderung. Diese Tabelle ist zugleich die Liste, die
+es dafür braucht.
+
+> **Für den MDS gilt das nicht umgekehrt:** die drei `ccm:commonlicense_ai_*`
+> haben im `mds_oeh` **kein** Widget (208 geprüft) und werden trotzdem
+> gespeichert. Der MDS entscheidet, was die Redaktionsoberfläche als Formularfeld
+> zeigt — nicht, was schreibbar ist. Maßgeblich ist allein das Content-Modell.
+
+---
+
 ## Gesamtzahl
 
-39 eindeutige Feld-IDs mit `repo_field: true` über alle Schemata — 22 davon in
+45 eindeutige Feld-IDs mit `repo_field: true` über alle Schemata — 26 davon in
 `core.json` und damit für jeden Inhaltstyp aktiv.
 
 Im MDS existiert darüber hinaus noch `ccm:oeh_quality_language` (Sprachlich,

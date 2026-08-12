@@ -55,13 +55,19 @@ nächste Tabelle) — es gibt keinen zweiten Schalter dafür.
 
 ### Konfiguration (mit Defaults)
 
+> Die **vollständige** Liste aller Variablen steht in
+> [ENV-PARAMETER.md](ENV-PARAMETER.md). Unten nur, was beim Deployment
+> üblicherweise gesetzt wird.
+
 Alle Konfigurationsvariablen haben das Prefix `METADATA_AGENT_`:
 
 | Variable | Default | Beschreibung |
 |---|---|---|
 | `METADATA_AGENT_LLM_PROVIDER` | `b-api-openai` | LLM-Provider: `b-api-openai`, `b-api-academiccloud`, `openai` |
 | `METADATA_AGENT_DEBUG` | `false` | Debug-Modus |
-| `METADATA_AGENT_DEFAULT_MAX_WORKERS` | `10` | Parallele LLM-Worker (1–20) |
+| `METADATA_AGENT_DEFAULT_MAX_WORKERS` | `10` | Parallele LLM-Worker (1–20), gedeckelt auf die Gateway-Grenze |
+| `METADATA_AGENT_LLM_MAX_CONCURRENT_REQUESTS` | providerabhängig | Gleichzeitige LLM-Requests. Leer = gemessener Default (b-api: 2) |
+| `METADATA_AGENT_LLM_MAX_REQUESTS_PER_SECOND` | providerabhängig | LLM-Requests pro Sekunde. Leer = gemessener Default (b-api: 2), `0` = aus |
 | `METADATA_AGENT_REQUEST_TIMEOUT` | `60` | Request-Timeout in Sekunden |
 | `METADATA_AGENT_DEFAULT_CONTEXT` | `default` | Standard Schema-Kontext |
 | `METADATA_AGENT_DEFAULT_VERSION` | `1.8.1` | Standard Schema-Version |
@@ -79,9 +85,16 @@ Alle Konfigurationsvariablen haben das Prefix `METADATA_AGENT_`:
 | `METADATA_AGENT_LLM_VERBOSITY` | `low` | Nur GPT-5-Serie/o-Modelle. Leer = nicht senden |
 | `METADATA_AGENT_LLM_REASONING_EFFORT` | `low` | Nur GPT-5-Serie/o-Modelle. `none`/`low`/`medium`/`high` |
 | `METADATA_AGENT_B_API_ACADEMICCLOUD_BASE` | `https://b-api.staging.openeduhub.net/api/v1/llm/academiccloud` | B-API AcademicCloud Endpoint |
-| `METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL` | `deepseek-r1` | B-API AcademicCloud Modell |
-| `METADATA_AGENT_OPENAI_API_BASE` | `https://api.openai.com/v1` | Nativer OpenAI Endpoint |
+| `METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL` | `openai-gpt-oss-120b` | B-API AcademicCloud Modell |
+| `METADATA_AGENT_OPENAI_API_BASE` | `https://api.openai.com/v1` | Beliebiger OpenAI-kompatibler Endpunkt |
 | `METADATA_AGENT_OPENAI_MODEL` | `gpt-4o-mini` | Nativer OpenAI Modell |
+| `METADATA_AGENT_OPENAI_TEMPERATURE` | folgt `LLM_TEMPERATURE` | Nur nötig, wenn nativ OpenAI abweichen soll |
+
+**Durchsatzgrenzen der B-API** (gemessen am 12.08.2026): exakt 2 gleichzeitige
+Requests, ~2 pro Sekunde — pro **Key am Gateway**, nicht pro Modell. Beide
+B-API-Provider teilen sich also ein Budget. Ein dritter paralleler Request wird
+sofort mit `429` abgewiesen, ohne `retry-after`. Die Defaults bilden das ab; wer
+sie hochsetzt, erzeugt nur Retries.
 
 ---
 

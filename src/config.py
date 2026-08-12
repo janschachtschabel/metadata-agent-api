@@ -1,9 +1,34 @@
 """Application configuration."""
 
 from pydantic_settings import BaseSettings
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 from functools import lru_cache
-from typing import Optional
+from typing import Any, Optional
+
+
+# What the gateway behind a provider tolerates, as measured rather than promised.
+#
+# b-api (2026-08-12, staging): exactly two requests in flight, about two per
+# second. The budget hangs on the API key at the gateway — not on the model — so
+# both b-api providers draw from the same one, which is why they share a limit
+# group. A third parallel request is refused with 429 at once and the response
+# carries no `retry-after`, so a client cannot read the wait off; it has to stay
+# under the limit instead. Pushing harder is counter-productive: at 3 req/s the
+# effective throughput falls below what 2 req/s delivers.
+#
+# Native OpenAI grants far higher per-account limits and its 429 does say how
+# long to wait, so no client-side rate cap is imposed by default.
+PROVIDER_LIMITS: dict[str, dict[str, Any]] = {
+    "b-api": {"max_concurrent_requests": 2, "requests_per_second": 2.0},
+    "openai": {"max_concurrent_requests": 10, "requests_per_second": 0.0},
+}
+
+# provider name -> which budget it draws from
+LIMIT_GROUPS = {
+    "b-api-openai": "b-api",
+    "b-api-academiccloud": "b-api",
+    "openai": "openai",
+}
 
 
 class Settings(BaseSettings):
@@ -19,10 +44,17 @@ class Settings(BaseSettings):
     llm_provider: str = "b-api-openai"
 
     # OpenAI Configuration (native OpenAI API)
+    #
+    # openai_api_base points at any OpenAI-compatible endpoint, not only
+    # api.openai.com — an Azure deployment, a self-hosted vLLM or a gateway all
+    # work, as long as they serve /chat/completions and take a Bearer token.
     openai_api_key: str = Field(default="", alias="OPENAI_API_KEY")
     openai_api_base: str = "https://api.openai.com/v1"
     openai_model: str = "gpt-4o-mini"
-    openai_temperature: float = 0.3
+    # Unset means: follow llm_temperature, the same setting the b-api providers
+    # read. Having exactly one of three providers ignore the shared temperature
+    # is a trap; this keeps the separate knob for anyone who already sets it.
+    openai_temperature: Optional[float] = None
 
     # B-API Configuration (shared key for both b-api providers)
     b_api_key: str = Field(default="", alias="B_API_KEY")
@@ -38,9 +70,13 @@ class Settings(BaseSettings):
     b_api_openai_model: str = "gpt-5.6-luna"
 
     # B-API AcademicCloud (AcademicCloud endpoint via B-API)
-    # Derived from b_api_base_url if left empty
+    # Derived from b_api_base_url if left empty.
+    # 'openai-gpt-oss-120b' is served and was the most consistent of the
+    # AcademicCloud models in latency (measured 2026-08-12). The former default
+    # 'deepseek-r1' answered 404 Model Not Found — a default that cannot work is
+    # worse than none, because nothing in the failure names the setting.
     b_api_academiccloud_base: str = ""
-    b_api_academiccloud_model: str = "deepseek-r1"
+    b_api_academiccloud_model: str = "openai-gpt-oss-120b"
 
     # General LLM Settings
     llm_temperature: float = 0.3
@@ -60,7 +96,18 @@ class Settings(BaseSettings):
     llm_max_retries: int = 3
     llm_retry_delay: float = 1.0
 
+    # How hard the gateway may be pushed. Unset means: use the measured default
+    # for the provider (see PROVIDER_LIMITS). Both are enforced across the whole
+    # process, not per request — the gateway counts them that way too.
+    #   llm_max_concurrent_requests: requests allowed in flight at once
+    #   llm_max_requests_per_second: 0 switches the rate cap off entirely
+    llm_max_concurrent_requests: Optional[int] = None
+    llm_max_requests_per_second: Optional[float] = None
+
     # Worker Settings
+    # Fan-out width of the parallel field extraction. It is capped by
+    # llm_max_concurrent_requests — asking for more workers than the gateway
+    # allows in flight only queues them up.
     default_max_workers: int = 10
     request_timeout: int = 60
 
@@ -104,6 +151,24 @@ class Settings(BaseSettings):
 
     # CORS Settings
     cors_origins: str = "*"  # Comma-separated origins, or '*' for all
+
+    @field_validator(
+        "openai_temperature",
+        "llm_max_concurrent_requests",
+        "llm_max_requests_per_second",
+        mode="before",
+    )
+    @classmethod
+    def empty_means_unset(cls, v: Any) -> Any:
+        """
+        An empty environment variable means 'not configured', not '0'.
+
+        `METADATA_AGENT_LLM_MAX_REQUESTS_PER_SECOND=` in a .env file would
+        otherwise fail validation and take the whole process down at import.
+        """
+        if isinstance(v, str) and not v.strip():
+            return None
+        return v
 
     @model_validator(mode="after")
     def normalize_and_derive(self) -> "Settings":
@@ -170,11 +235,42 @@ class Settings(BaseSettings):
                 "api_key": self.openai_api_key,
                 "api_base": self.openai_api_base,
                 "model": model_override or self.openai_model,
-                "temperature": self.openai_temperature,
+                "temperature": (
+                    self.llm_temperature
+                    if self.openai_temperature is None
+                    else self.openai_temperature
+                ),
                 "requires_custom_header": False,
             }
 
+        config.update(self.get_throughput_limits(config["provider"]))
         return config
+
+    def get_throughput_limits(self, provider: str) -> dict:
+        """
+        How many requests this provider's gateway may be given, and how fast.
+
+        The configured values win over the measured defaults; a rate of 0 means
+        no cap and is deliberately distinguished from 'unset'.
+        """
+        group = LIMIT_GROUPS.get(provider, "openai")
+        defaults = PROVIDER_LIMITS[group]
+
+        concurrent = self.llm_max_concurrent_requests
+        per_second = self.llm_max_requests_per_second
+
+        return {
+            "limit_group": group,
+            "max_concurrent_requests": max(
+                1,
+                defaults["max_concurrent_requests"]
+                if concurrent is None
+                else concurrent,
+            ),
+            "requests_per_second": float(
+                defaults["requests_per_second"] if per_second is None else per_second
+            ),
+        }
 
 
 @lru_cache()

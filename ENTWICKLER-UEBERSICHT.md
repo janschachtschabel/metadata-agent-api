@@ -84,7 +84,7 @@ Dieselben drei Formen und dieselbe `metadataset`-Regel gelten für **`/validate`
 und **`/export/markdown`** — beide entscheiden daran, gegen welches Schema sie
 arbeiten.
 
-### Die 24 Core-Felder
+### Die 27 Core-Felder
 
 `Repo` = wird ins Repository geschrieben · `KI` = wird von der Extraktion
 befüllt · `User` = im Widget sichtbar/editierbar · `[]` = Mehrfachwert
@@ -100,8 +100,11 @@ befüllt · `User` = im Widget sichtbar/editierbar · `[]` = Mehrfachwert
 | `ccm:oeh_extendedType` | Inhaltsart(en) | array | ⚠️ | | | |
 | `ccm:educationalcontext` | Bildungsstufe | array | ✅ | ✅ | ✅ | ✅ |
 | `ccm:taxonid` | Fach | array | ✅ | ✅ | ✅ | ✅ |
-| `oeh:new_lrt` | Lernressourcentyp | array | ⚠️ | ✅ | ✅ | ✅ |
+| `oeh:new_lrt` | Lernressourcentyp | array | ✅ | ✅ | ✅ | ✅ |
 | `ccm:educationalintendedenduserrole` | Zielgruppe | array | ✅ | ✅ | ✅ | ✅ |
+| `ccm:commonlicense_ai_allow_usage` | KI-Nutzung erlaubt | string | ✅ | ✅ | ✅ | |
+| `ccm:commonlicense_ai_generated` | Mit KI erzeugt | string | ✅ | ✅ | ✅ | |
+| `ccm:commonlicense_ai_manually_modified` | KI-Ergebnis redaktionell überarbeitet | string | ✅ | ✅ | ✅ | |
 | `ccm:oeh_quality_relevancy_for_education` | Geeignet für Bildung (WLO-Suche) | string | ✅ | ✅ | | |
 | `ccm:oeh_quality_criminal_law` | Strafrecht | string | ✅ | ✅ | | |
 | `ccm:oeh_quality_protection_of_minors` | Jugendschutz | string | ✅ | ✅ | | |
@@ -116,10 +119,22 @@ befüllt · `User` = im Widget sichtbar/editierbar · `[]` = Mehrfachwert
 | `ccm:oeh_quality_currentness` | Aktualität | string | ✅ | ✅ | | |
 | `ccm:oeh_buffet_criteria` | Kriterien für Redaktionsbuffet | array | ✅ | ✅ | | ✅ |
 
-⚠️ `ccm:oeh_extendedType` und `oeh:new_lrt` tragen **kein** `repo_field`. Sie
-werden trotzdem geschrieben — über den Extended-Fields-Schritt beim Upload,
-nicht über den normalen Metadaten-Filter. Siehe
+⚠️ `ccm:oeh_extendedType` trägt **kein** `repo_field`. Es wird trotzdem
+geschrieben — über den Extended-Fields-Schritt beim Upload, nicht über den
+normalen Metadaten-Filter.
+
+`oeh:new_lrt` heißt im Repository **`ccm:oeh_lrt`**; der Upload benennt das Feld
+beim Schreiben um, genau wie er `cm:author` in
+`ccm:lifecyclecontributer_author` überführt. In der `/generate`-Antwort bleibt
+es `oeh:new_lrt` — am Vertrag ändert sich nichts. Findet die Extraktion keinen
+Typ, leitet der Upload ersatzweise einen groben aus `ccm:oeh_extendedType` ab
+(`learning_material` → „Material"). Siehe
 [WLO-REPO-FELDER.md](WLO-REPO-FELDER.md).
+
+Die drei `ccm:commonlicense_ai_*`-Felder sind Strings mit genau zwei möglichen
+Werten, `"true"` und `"false"` — bewusst kein JSON-Boolean, weil das Repository
+`["false"]` erwartet und nicht `[false]`. Die KI setzt sie nur, wenn Text,
+Impressum oder Lizenz es hergeben; sonst bleiben sie leer.
 
 ### Die zwölf Qualitätsfelder
 
@@ -161,9 +176,16 @@ zusammenbaut, erzeugt einen Wert, den WLO nicht auflöst.
 
 `/upload` filtert auf `repo_field: true` und wirft weg:
 
-- alles mit Präfix `virtual:` oder `schema:` (Eingaben für Transformationen)
+- alles mit Präfix `virtual:` — von edu-sharing beim Lesen berechnet, nie
+  gespeichert. Das gilt unabhängig vom Schema-Flag.
+- alles ohne `repo_field: true`, darunter die Transformations-Eingaben
+  `schema:location` und `schema:geo` (fließen über `cm:latitude` /
+  `cm:longitude` ein)
 - die internen Schlüssel `_origins`, `_source_text`
 - den Umschlag selbst (`contextName`, `schemaVersion`, `metadataset`, …)
+
+Das Präfix `schema:` allein schließt nichts aus: `schema:datePublished` ist ein
+reguläres Repository-Feld und wird geschrieben.
 
 Lädt kein Schema (Fehlerfall), wird **gar nichts** geschrieben statt blind zu
 raten.

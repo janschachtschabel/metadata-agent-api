@@ -659,16 +659,21 @@ docker run -d \
 | `METADATA_AGENT_LLM_VERBOSITY` | `low` | Nur GPT-5-Serie/o-Modelle |
 | `METADATA_AGENT_LLM_REASONING_EFFORT` | `low` | Nur GPT-5-Serie/o-Modelle |
 | `METADATA_AGENT_B_API_ACADEMICCLOUD_BASE` | *(abgeleitet aus `B_API_BASE_URL`)* | Überschreibt den abgeleiteten AcademicCloud-Endpoint |
-| `METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL` | `deepseek-r1` | Modell für B-API AcademicCloud |
-| `METADATA_AGENT_OPENAI_API_BASE` | `https://api.openai.com/v1` | Natives OpenAI API |
+| `METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL` | `openai-gpt-oss-120b` | Modell für B-API AcademicCloud |
+| `METADATA_AGENT_OPENAI_API_BASE` | `https://api.openai.com/v1` | Beliebiger OpenAI-kompatibler Endpunkt (Azure, vLLM, Gateway) |
 | `METADATA_AGENT_OPENAI_MODEL` | `gpt-4o-mini` | Modell für natives OpenAI |
+| `METADATA_AGENT_OPENAI_TEMPERATURE` | folgt `LLM_TEMPERATURE` | Nur nötig, wenn nativ OpenAI abweichen soll |
 
-### Worker & Performance
+### Worker & Durchsatz
 
 | Variable | Default | Beschreibung |
 |---|---|---|
-| `METADATA_AGENT_DEFAULT_MAX_WORKERS` | `10` | Parallele LLM-Aufrufe |
+| `METADATA_AGENT_DEFAULT_MAX_WORKERS` | `10` | Parallele LLM-Aufrufe, gedeckelt auf die Gateway-Grenze |
+| `METADATA_AGENT_LLM_MAX_CONCURRENT_REQUESTS` | providerabhängig | Gleichzeitige Requests. Leer = gemessener Default (b-api: 2) |
+| `METADATA_AGENT_LLM_MAX_REQUESTS_PER_SECOND` | providerabhängig | Requests pro Sekunde. Leer = gemessener Default (b-api: 2), `0` = aus |
 | `METADATA_AGENT_REQUEST_TIMEOUT` | `60` | HTTP-Timeout (Sekunden) |
+
+Vollständige Liste aller Umgebungsvariablen: [ENV-PARAMETER.md](ENV-PARAMETER.md).
 
 ### Schema
 

@@ -452,10 +452,10 @@ def test_the_endpoint_passes_a_discarded_node_on(monkeypatch, service_result, ex
 # while being the default path in production.
 
 
-async def _upload_with_extended(**kwargs):
+async def _upload_with_extended(metadata=None, **kwargs):
     service = RepositoryService("user", "password")
     return await service.upload_metadata(
-        metadata=GENERATED_METADATA,
+        metadata=metadata if metadata is not None else GENERATED_METADATA,
         check_duplicates=False,
         context="default",
         version="2.0.0",
@@ -505,6 +505,53 @@ async def test_the_content_type_uri_follows_the_schema_that_was_used(recorded):
         f"{VOCAB}/contentTypes/learning_material"
     ]
     assert written["ccm:oeh_lrt"][0].startswith(f"{VOCAB}/new_lrt/")
+
+
+# ---------------------------------------------------- the learning resource type
+#
+# Both writes target ccm:oeh_lrt, and the extended write goes out second. The
+# derivation knows six coarse types; the extraction picks from 220. Whichever of
+# the two ends up on the node decides whether an upload says 'Arbeitsblatt' or
+# just 'Material'.
+
+ARBEITSBLATT = f"{VOCAB}/new_lrt/8e83b3f9-cd5b-4bef-99c9-6bcdd6b1f3d8"
+
+
+@pytest.mark.asyncio
+async def test_the_extracted_type_is_written_to_the_repository_property(recorded):
+    """oeh:new_lrt does not exist in the content model — ccm:oeh_lrt does."""
+    await _upload_with_extended(
+        metadata={**GENERATED_METADATA, "oeh:new_lrt": [ARBEITSBLATT]}
+    )
+
+    written = _written_metadata(recorded)
+
+    assert written["ccm:oeh_lrt"] == [ARBEITSBLATT]
+    assert "oeh:new_lrt" not in written
+
+
+@pytest.mark.asyncio
+async def test_the_derived_type_does_not_overwrite_the_extracted_one(recorded):
+    """
+    The extended write happens after the metadata write. Setting the coarse
+    derived type there unconditionally would replace 'Arbeitsblatt' with
+    'Material' — silently, and only on the node.
+    """
+    await _upload_with_extended(
+        metadata={**GENERATED_METADATA, "oeh:new_lrt": [ARBEITSBLATT]}
+    )
+
+    assert "ccm:oeh_lrt" not in _extended_write(recorded)
+
+
+@pytest.mark.asyncio
+async def test_the_derived_type_still_applies_when_nothing_was_extracted(recorded):
+    """Without it an upload would carry no learning resource type at all."""
+    await _upload_with_extended()
+
+    assert _extended_write(recorded)["ccm:oeh_lrt"] == [
+        f"{VOCAB}/new_lrt/1846d876-d8fd-476a-b540-b8ffd713fedb"
+    ]
 
 
 @pytest.mark.asyncio
@@ -616,12 +663,16 @@ async def test_the_result_names_the_schema_that_was_applied(recorded):
     result = await _upload()
 
     assert result["schema_used"] == "learning_material.json"
-    assert result["repo_fields_available"] == 34
+    assert result["repo_fields_available"] == 40
 
 
 @pytest.mark.asyncio
 async def test_without_a_metadataset_only_core_fields_are_reported(recorded):
-    """22 against 34 is the difference a caller needs to be able to see."""
+    """
+    26 against 40 is the difference a caller needs to be able to see. The counts
+    follow the v2.0.0 schemas — marking another field repo_field moves them, and
+    that is the point: the number reported must be the one actually loaded.
+    """
     service = RepositoryService("user", "password")
     result = await service.upload_metadata(
         metadata={"cclom:title": "Ohne Typangabe"},
@@ -632,4 +683,4 @@ async def test_without_a_metadataset_only_core_fields_are_reported(recorded):
     )
 
     assert result["schema_used"] is None
-    assert result["repo_fields_available"] == 22
+    assert result["repo_fields_available"] == 26

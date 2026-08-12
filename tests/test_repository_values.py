@@ -31,12 +31,25 @@ def test_only_repo_fields_are_written():
     assert result == {"cclom:title": ["Titel"]}
 
 
-@pytest.mark.parametrize(
-    "key", ["virtual:collection_id_primary", "schema:location", "schema:name"]
-)
-def test_internal_prefixes_never_reach_the_repository(key):
-    """They are inputs for transformations, not properties of their own."""
+def test_virtual_fields_never_reach_the_repository():
+    """
+    Computed by edu-sharing on read, never stored — so no schema flag could make
+    writing one correct, and forcing it into the repo field set changes nothing.
+    """
+    key = "virtual:collection_id_primary"
     result = normalize_for_repo({key: "wert"}, REPO_FIELDS | {key})
+
+    assert result == {}
+
+
+@pytest.mark.parametrize("key", ["schema:location", "schema:name"])
+def test_transformation_inputs_are_kept_out_by_the_repo_field_set(key):
+    """
+    These feed transformations (schema:location → cm:latitude) rather than being
+    properties of their own. The schema marks them repo_field=false, which is
+    what keeps them out; the namespace prefix alone no longer decides.
+    """
+    result = normalize_for_repo({key: "wert"}, REPO_FIELDS)
 
     assert result == {}
 

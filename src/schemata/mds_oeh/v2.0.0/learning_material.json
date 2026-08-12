@@ -722,7 +722,7 @@
           "deduplicate": true,
           "map_labels_to_uris": true
         },
-        "repo_field": false
+        "repo_field": true
       }
     },
     {
@@ -1064,7 +1064,7 @@
           "trim": true,
           "deduplicate": true
         },
-        "repo_field": false
+        "repo_field": true
       }
     },
     {
@@ -1836,7 +1836,7 @@
         "required": false,
         "ask_user": true,
         "ai_fillable": true,
-        "repo_field": false,
+        "repo_field": true,
         "index": {
           "keyword": true
         },

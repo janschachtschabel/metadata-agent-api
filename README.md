@@ -24,10 +24,57 @@ Generiert strukturierte Metadaten nach dem [WLO/OEH-Schema](https://wirlernenonl
 - [Widget / Webkomponente](#widget--webkomponente)
 - [Deployment](#deployment)
 
-**Weitere Dokumente:** [WIDGET-REFERENZ.md](WIDGET-REFERENZ.md) — vollständige Referenz
-der Webkomponente (Layouts, alle Attribute, Events) · [UPLOAD-RESPONSE.md](UPLOAD-RESPONSE.md)
-— Antwortformat von `/upload` · [WLO-REPO-FELDER.md](WLO-REPO-FELDER.md) — alle Felder,
-die ins WLO-Repository geschrieben werden
+**Auf einen Blick:** [Was der Dienst tut](#auf-einen-blick) ·
+[Alle Umgebungsvariablen](ENV-PARAMETER.md) ·
+[Vercel einrichten](VERCEL-ENV.md)
+
+### Weitere Dokumente
+
+| Dokument | Inhalt |
+|---|---|
+| [ENV-PARAMETER.md](ENV-PARAMETER.md) | **Alle** Umgebungsvariablen mit Defaults und Betriebsbeispielen |
+| [VERCEL-ENV.md](VERCEL-ENV.md) | Was davon in Vercel einzutragen ist |
+| [DEPLOYMENT.md](DEPLOYMENT.md) | Docker / Kubernetes |
+| [INSTALL.md](INSTALL.md) | Installation im Detail |
+| [WIDGET-REFERENZ.md](WIDGET-REFERENZ.md) | Webkomponente: Layouts, Attribute, Events |
+| [UPLOAD-RESPONSE.md](UPLOAD-RESPONSE.md) | Antwortformat von `/upload` |
+| [WLO-REPO-FELDER.md](WLO-REPO-FELDER.md) | Welche Felder ins Repository geschrieben werden — und welche das Repository verwirft |
+| [ENTWICKLER-UEBERSICHT.md](ENTWICKLER-UEBERSICHT.md) | Für Integratoren: Core-Felder, Sammlungen, Workflow |
+| [CHANGELOG.md](CHANGELOG.md) | Änderungen gegenüber dem letzten Commit |
+
+---
+
+## Auf einen Blick
+
+```
+Text / URL / Node-ID
+        │
+        ▼
+   /generate ──────► Metadaten als flaches JSON (Umschlag + Felder auf einer Ebene)
+        │
+        ├──► /validate          Pflichtfelder und Wertebereiche prüfen
+        ├──► /export/markdown   Menschenlesbare Fassung
+        └──► /upload ─────────► Knoten im WLO-Repository
+                                  ├─ Metadaten (gefiltert auf repo_field)
+                                  ├─ Extended Data (Inhaltstyp, LRT, Voll-JSON)
+                                  ├─ Sammlungen (optional, collection_id)
+                                  └─ Prüf-Workflow (200_tocheck)
+```
+
+Die Antwort von `/generate` geht **unverändert** in `/upload` — Umschlag und
+Felder liegen auf einer Ebene, und alle drei Body-Formen sind gleichwertig
+(siehe [POST /upload](#post-upload)).
+
+**Zwei Dinge, die beim ersten Mal überraschen:**
+
+1. **Die B-API erlaubt nur 2 gleichzeitige LLM-Aufrufe und 2 pro Sekunde.**
+   `DEFAULT_MAX_WORKERS=10` wird darauf gedeckelt; eine Erschließung mit
+   50 Feldern dauert deshalb 25–60 s. Beides ist über
+   `METADATA_AGENT_LLM_MAX_CONCURRENT_REQUESTS` und
+   `…_MAX_REQUESTS_PER_SECOND` einstellbar.
+2. **Das Repository verwirft unbekannte Properties stillschweigend** — mit
+   `200` und ohne Hinweis in `fields_written`. Welche das betrifft, steht in
+   [WLO-REPO-FELDER.md](WLO-REPO-FELDER.md).
 
 ---
 
@@ -665,7 +712,7 @@ Nach Node-Erstellung werden automatisch Aspects hinzugefügt, die für bestimmte
   "success": true,
   "fields_written": 12,
   "schema_used": "event.json",
-  "repo_fields_available": 29,
+  "repo_fields_available": 33,
   "node": {
     "nodeId": "abc123-def456-...",
     "title": "Workshop KI in der Bildung",
@@ -1118,6 +1165,11 @@ console.log(`Valid: ${validation.valid}, Coverage: ${validation.coverage}%`);
 Alle Variablen können in `.env` oder als System-Umgebungsvariablen gesetzt werden.
 Prefix `METADATA_AGENT_` wird automatisch vorangestellt (außer API-Keys).
 
+> Unten die gebräuchlichen. **Vollständig** — jede Variable, die `src/config.py`
+> liest, gegen das Settings-Modell getestet — in
+> [ENV-PARAMETER.md](ENV-PARAMETER.md); für Vercel aufbereitet in
+> [VERCEL-ENV.md](VERCEL-ENV.md).
+
 ### API-Keys (ohne Prefix)
 
 | Variable | Beschreibung |
@@ -1153,21 +1205,29 @@ Prefix `METADATA_AGENT_` wird automatisch vorangestellt (außer API-Keys).
 | Variable | Default |
 |----------|---------|
 | `METADATA_AGENT_B_API_ACADEMICCLOUD_BASE` | *(abgeleitet aus `B_API_BASE_URL`)* |
-| `METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL` | `deepseek-r1` |
+| `METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL` | `openai-gpt-oss-120b` |
 
 **OpenAI (nativ):**
 
 | Variable | Default |
 |----------|---------|
-| `METADATA_AGENT_OPENAI_API_BASE` | `https://api.openai.com/v1` |
+| `METADATA_AGENT_OPENAI_API_BASE` | `https://api.openai.com/v1` — beliebiger OpenAI-kompatibler Endpunkt |
 | `METADATA_AGENT_OPENAI_MODEL` | `gpt-4o-mini` |
+| `METADATA_AGENT_OPENAI_TEMPERATURE` | folgt `METADATA_AGENT_LLM_TEMPERATURE` |
 
-### Worker & Performance
+### Worker & Durchsatz
 
 | Variable | Default | Beschreibung |
 |----------|---------|--------------|
-| `METADATA_AGENT_DEFAULT_MAX_WORKERS` | `10` | Standard parallele LLM-Aufrufe |
+| `METADATA_AGENT_DEFAULT_MAX_WORKERS` | `10` | Parallele LLM-Aufrufe, gedeckelt auf die Gateway-Grenze |
+| `METADATA_AGENT_LLM_MAX_CONCURRENT_REQUESTS` | providerabhängig | Gleichzeitige Requests. Leer = gemessener Default |
+| `METADATA_AGENT_LLM_MAX_REQUESTS_PER_SECOND` | providerabhängig | Requests pro Sekunde. `0` = keine Begrenzung |
 | `METADATA_AGENT_REQUEST_TIMEOUT` | `60` | HTTP-Timeout in Sekunden |
+
+Die Defaults stammen aus Messungen: **b-api 2 gleichzeitig / 2 pro Sekunde**
+(beide B-API-Provider teilen sich das Budget, weil das Gateway am Key zählt),
+**nativ OpenAI 10 gleichzeitig ohne Ratenbegrenzung**. Vollständige Liste aller
+Variablen: [ENV-PARAMETER.md](ENV-PARAMETER.md).
 
 ### Schema-Defaults
 

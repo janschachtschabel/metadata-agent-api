@@ -20,7 +20,7 @@ def normalize_for_repo(metadata: dict, repo_field_ids: set[str] | None = None) -
 
     Only includes fields that:
     - Have repo_field=true in schema (if repo_field_ids provided)
-    - Don't start with 'virtual:' or 'schema:' (internal prefixes)
+    - Don't start with 'virtual:' (computed by edu-sharing, never stored)
     - Have non-empty values
     """
     normalized = {}
@@ -31,8 +31,14 @@ def normalize_for_repo(metadata: dict, repo_field_ids: set[str] | None = None) -
         return normalized
 
     for key, value in metadata.items():
-        # Skip internal/virtual fields
-        if key.startswith("virtual:") or key.startswith("schema:"):
+        # 'virtual:' names something edu-sharing computes on read, so no schema
+        # flag could make writing one correct. 'schema:' is deliberately not
+        # filtered here: it is a real namespace in the repository — the editorial
+        # upload writes schema:datePublished directly — and whether such a field
+        # is written is the schema's call via repo_field below. The transformation
+        # inputs (schema:location, schema:geo) carry repo_field=false and are kept
+        # out by that gate.
+        if key.startswith("virtual:"):
             continue
 
         # Only include fields with repo_field=true in schema
@@ -148,6 +154,31 @@ def transform_author_to_vcard(normalized: dict):
         print(
             f"👤 Author VCARD: {len(vcards)} entries → ccm:lifecyclecontributer_author"
         )
+
+
+def transform_lrt(normalized: dict):
+    """
+    Move the extracted learning resource type into the property the repo keeps.
+
+    `oeh:new_lrt` is what the schema calls the field and what `/generate`
+    returns, but the repository has no such property: a write is answered 200 and
+    silently discarded, and no node carries it. What edu-sharing stores is
+    `ccm:oeh_lrt`, holding URIs from the same `new_lrt` vocabulary — so this is a
+    rename on the way out, not a conversion.
+
+    An existing `ccm:oeh_lrt` wins: whoever set the repository property directly
+    said what they meant, and the coarse type derived from the content type is
+    written separately (see `_write_extended_fields`).
+    """
+    lrt = normalized.pop("oeh:new_lrt", None)
+    if not lrt:
+        return
+
+    if "ccm:oeh_lrt" in normalized:
+        return
+
+    normalized["ccm:oeh_lrt"] = lrt
+    print(f"🏷️ LRT: {len(lrt)} entries → ccm:oeh_lrt")
 
 
 def extract_geo_coordinates(normalized: dict, original: dict):

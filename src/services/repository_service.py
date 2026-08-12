@@ -22,6 +22,7 @@ from .repository_values import (
     extract_geo_coordinates,
     normalize_for_repo,
     transform_author_to_vcard,
+    transform_lrt,
 )
 
 logger = logging.getLogger(__name__)
@@ -606,6 +607,9 @@ class RepositoryService:
         # Transform cm:author → ccm:lifecyclecontributer_author (VCARD format)
         transform_author_to_vcard(normalized)
 
+        # Transform oeh:new_lrt → ccm:oeh_lrt (the property the repository keeps)
+        transform_lrt(normalized)
+
         if not normalized:
             return {
                 "success": True,
@@ -722,13 +726,18 @@ class RepositoryService:
             else:
                 print(f"⚠️ extendedType: No URI found for schema_file={schema_file}")
 
-        # 1b. ccm:oeh_lrt — map extended type to learning resource type
-        if type_uri and type_uri in EXTENDED_TYPE_TO_NEW_LRT:
+        # 1b. ccm:oeh_lrt — derived from the content type, but only as a fallback.
+        # This write happens after the metadata write, so setting it here
+        # unconditionally would replace whatever the extraction found. The
+        # derivation knows six coarse types ('Material'); the extraction picks
+        # from 220 ('Arbeitsblatt', 'Simulation'). The precise value wins.
+        extracted_lrt = metadata.get("oeh:new_lrt") or metadata.get("ccm:oeh_lrt")
+        if extracted_lrt:
+            print(f"📎 lrt: kept from extraction, not overwritten ({extracted_lrt})")
+        elif type_uri and type_uri in EXTENDED_TYPE_TO_NEW_LRT:
             lrt_uri = EXTENDED_TYPE_TO_NEW_LRT[type_uri]
             extended_fields["ccm:oeh_lrt"] = [lrt_uri]
-            print(
-                f"📎 new_lrt: {lrt_uri} (from extendedType {type_uri.split('/')[-1]})"
-            )
+            print(f"📎 lrt: {lrt_uri} (from extendedType {type_uri.split('/')[-1]})")
 
         # 2. ccm:oeh_extendedData — full metadata as JSON string
         # Remove internal processing keys, keep only actual metadata fields

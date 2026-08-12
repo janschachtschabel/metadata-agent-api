@@ -21,6 +21,11 @@ dependencies = [
 asyncio_mode = "auto"
 asyncio_default_fixture_loop_scope = "function"
 testpaths = ["tests"]
+markers = [
+    # Talks to a network service. Skips itself when unreachable rather than
+    # failing, so the suite stays runnable offline — deselect with -m "not slow".
+    "slow: reaches an external service",
+]
 
 [dependency-groups]
 dev = [
