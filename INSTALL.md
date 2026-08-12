@@ -148,7 +148,7 @@ Minimale Konfiguration — nur B-API Key eintragen:
 ```env
 # Pflicht: LLM-Zugriff
 B_API_KEY=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-METADATA_AGENT_LLM_PROVIDER=b-api-openai
+METADATA_AGENT_LLM_PROVIDER=b-api-academiccloud
 
 # Externe Dienste (Default: Staging — für Prod URLs anpassen)
 # METADATA_AGENT_B_API_BASE_URL=https://b-api.staging.openeduhub.net
@@ -300,7 +300,7 @@ services:
       - "8000:8000"
     environment:
       # LLM Provider
-      - METADATA_AGENT_LLM_PROVIDER=b-api-openai
+      - METADATA_AGENT_LLM_PROVIDER=b-api-academiccloud
       - B_API_KEY=${B_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
 
@@ -474,7 +474,7 @@ services:
     build: .
     ports: ["8000:8000"]
     environment:
-      - METADATA_AGENT_LLM_PROVIDER=b-api-openai
+      - METADATA_AGENT_LLM_PROVIDER=b-api-academiccloud
       - B_API_KEY=${B_API_KEY}
 
   # Alternativ: B-API AcademicCloud / DeepSeek (Port 8001)
@@ -608,7 +608,7 @@ Alle Variablen können in `.env`, als System-Umgebungsvariablen oder als Docker-
 
 | Variable | Default | Beschreibung |
 |---|---|---|
-| `METADATA_AGENT_LLM_PROVIDER` | `b-api-openai` | `b-api-openai`, `b-api-academiccloud`, `openai` |
+| `METADATA_AGENT_LLM_PROVIDER` | `b-api-academiccloud` | `b-api-academiccloud`, `b-api-openai`, `openai` |
 | `METADATA_AGENT_LLM_TEMPERATURE` | `0.3` | Kreativität (0.0–1.0) |
 | `METADATA_AGENT_LLM_MAX_TOKENS` | `2000` | Max Tokens pro LLM-Aufruf |
 | `METADATA_AGENT_LLM_MAX_RETRIES` | `3` | Wiederholungsversuche bei Fehler |
@@ -659,7 +659,7 @@ docker run -d \
 | `METADATA_AGENT_LLM_VERBOSITY` | `low` | Nur GPT-5-Serie/o-Modelle |
 | `METADATA_AGENT_LLM_REASONING_EFFORT` | `low` | Nur GPT-5-Serie/o-Modelle |
 | `METADATA_AGENT_B_API_ACADEMICCLOUD_BASE` | *(abgeleitet aus `B_API_BASE_URL`)* | Überschreibt den abgeleiteten AcademicCloud-Endpoint |
-| `METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL` | `openai-gpt-oss-120b` | Modell für B-API AcademicCloud |
+| `METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL` | `deepseek-v4-flash` | Modell für B-API AcademicCloud |
 | `METADATA_AGENT_OPENAI_API_BASE` | `https://api.openai.com/v1` | Beliebiger OpenAI-kompatibler Endpunkt (Azure, vLLM, Gateway) |
 | `METADATA_AGENT_OPENAI_MODEL` | `gpt-4o-mini` | Modell für natives OpenAI |
 | `METADATA_AGENT_OPENAI_TEMPERATURE` | folgt `LLM_TEMPERATURE` | Nur nötig, wenn nativ OpenAI abweichen soll |

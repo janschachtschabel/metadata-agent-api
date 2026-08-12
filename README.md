@@ -7,6 +7,7 @@ Generiert strukturierte Metadaten nach dem [WLO/OEH-Schema](https://wirlernenonl
 ## Inhaltsverzeichnis
 
 - [Quickstart](#quickstart)
+- [LLM-Provider wählen](#llm-provider-wählen)
 - [Architektur](#architektur)
 - [API-Endpunkte](#api-endpunkte)
   - [POST /generate](#post-generate)
@@ -15,8 +16,8 @@ Generiert strukturierte Metadaten nach dem [WLO/OEH-Schema](https://wirlernenonl
   - [POST /validate](#post-validate)
   - [POST /export/markdown](#post-exportmarkdown)
   - [POST /upload](#post-upload)
-  - [POST /workflow/{node_id}](#post-workflownodeid)
-  - [POST /upload/verify/{node_id}](#post-uploadverifynodeid)
+  - [POST /workflow/{node_id}](#post-workflownode_id)
+  - [POST /upload/verify/{node_id}](#post-uploadverifynode_id)
   - [POST /screenshot](#post-screenshot)
   - [Info-Endpunkte](#info-endpunkte)
 - [Nutzungsbeispiele](#nutzungsbeispiele)
@@ -69,12 +70,114 @@ Felder liegen auf einer Ebene, und alle drei Body-Formen sind gleichwertig
 
 1. **Die B-API erlaubt nur 2 gleichzeitige LLM-Aufrufe und 2 pro Sekunde.**
    `DEFAULT_MAX_WORKERS=10` wird darauf gedeckelt; eine Erschließung mit
-   50 Feldern dauert deshalb 25–60 s. Beides ist über
-   `METADATA_AGENT_LLM_MAX_CONCURRENT_REQUESTS` und
-   `…_MAX_REQUESTS_PER_SECOND` einstellbar.
+   50 Feldern dauert deshalb 25–55 s. Siehe [LLM-Provider wählen](#llm-provider-wählen).
 2. **Das Repository verwirft unbekannte Properties stillschweigend** — mit
    `200` und ohne Hinweis in `fields_written`. Welche das betrifft, steht in
    [WLO-REPO-FELDER.md](WLO-REPO-FELDER.md).
+
+---
+
+## LLM-Provider wählen
+
+Drei Provider, dieselbe Schnittstelle. Alle Werte unten sind gemessen, nicht
+geschätzt (2026-08-12, Erschließung mit 50 Feldern).
+
+| Provider | Modell (Default) | gleichzeitig | pro Sekunde |
+|---|---|---:|---:|
+| **`b-api-academiccloud`** (Standard) | `deepseek-v4-flash` | 2 | 2 |
+| `b-api-openai` | `gpt-5.6-luna` | 2 | 2 |
+| `openai` (nativ) | `gpt-4o-mini` | 10 | keine Grenze |
+
+### Laufzeit
+
+Dieselbe Erschließung (50 Felder), 2026-08-12. Die Streuung ist erheblich und
+kommt von der Warteschlange am Gateway, nicht vom Modell — bei zwei Läufen sind
+das eher Größenordnungen als Messwerte:
+
+| Modell | Läufe | Spanne | Ø | Ø Felder |
+|---|---:|---:|---:|---:|
+| `gpt-5.6-luna` (b-api-openai) | 1 | — | 25,2 s | 22 |
+| `deepseek-v4-flash` | 6 | 26–90 s | **~46 s** | **~36** |
+| `openai-gpt-oss-120b` | 4 | 53–79 s | ~64 s | ~30 |
+
+`deepseek-v4-flash` war in der Gegenüberstellung auf beiden Achsen besser als
+`openai-gpt-oss-120b` — schneller **und** vollständiger (37 statt 30 von 50
+Feldern, und es traf ein erwartetes Feld, das das andere ausließ). Beide lieferten
+die exakt prüfbaren Werte richtig. Deshalb ist es der Standard.
+
+### Warum die Grenzen so eng sind
+
+Die B-API lässt **exakt zwei** Requests gleichzeitig zu und etwa zwei pro
+Sekunde. Das Budget hängt am **API-Key am Gateway**, nicht am Modell — beide
+B-API-Provider teilen es sich. Ein dritter paralleler Request wird sofort mit
+`429` abgewiesen, und die Antwort enthält **kein `retry-after`**: ein Client
+kann die Wartezeit nicht ablesen, er muss unter der Grenze bleiben. Mehr Last
+hilft nicht, sie schadet — bei 3 req/s fällt der effektive Durchsatz unter den
+Wert bei 2 req/s.
+
+Der Agent hält beide Grenzen selbst ein, an der einzigen Stelle, durch die jeder
+LLM-Request läuft. `DEFAULT_MAX_WORKERS` wird darauf gedeckelt und das beim
+Start ausgewiesen:
+
+```
+Default Workers: 10 → 2 (limit of b-api)
+LLM Throughput: max 2 in flight, max 2 req/s
+```
+
+### Umstellen
+
+**Auf AcademicCloud mit `deepseek-v4-flash`:**
+
+```env
+METADATA_AGENT_LLM_PROVIDER=b-api-academiccloud
+METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL=deepseek-v4-flash
+METADATA_AGENT_LLM_MAX_CONCURRENT_REQUESTS=2
+METADATA_AGENT_LLM_MAX_REQUESTS_PER_SECOND=2
+B_API_KEY=<Key>
+```
+
+Die Rate ist **pro Sekunde**, nicht pro Minute — `2` sind 120 Aufrufe/Minute.
+Beide Werte entsprechen den Defaults; explizit gesetzt sind sie in der
+Deployment-Oberfläche sichtbar.
+
+⏱️ **Laufzeit auf Vercel im Auge behalten** — die Streuung reicht von 32 s bis
+90 s. Siehe [VERCEL-ENV.md](VERCEL-ENV.md).
+
+**Auf einen eigenen OpenAI-kompatiblen Endpunkt** (Azure, vLLM, Gateway):
+
+```env
+METADATA_AGENT_LLM_PROVIDER=openai
+METADATA_AGENT_OPENAI_API_BASE=https://mein-gateway.example/v1
+METADATA_AGENT_OPENAI_MODEL=lokales-modell
+METADATA_AGENT_LLM_MAX_REQUESTS_PER_SECOND=0
+OPENAI_API_KEY=<was das Gateway erwartet>
+```
+
+`0` schaltet die Ratenbegrenzung ab.
+
+### Pro Request überschreiben
+
+`llm_provider` und `llm_model` im Body von `/generate`,
+`/detect-content-type` und `/extract-field` überschreiben die Konfiguration für
+diesen einen Aufruf — nützlich zum Vergleichen, ohne neu zu deployen:
+
+```jsonc
+{ "input_source": "text", "text": "…",
+  "llm_provider": "b-api-academiccloud",
+  "llm_model": "deepseek-v4-flash" }
+```
+
+Die Durchsatzgrenzen gelten trotzdem, und zwar prozessweit: sie hängen am
+Gateway, nicht an der Anfrage.
+
+### Reasoning-Parameter
+
+`METADATA_AGENT_LLM_VERBOSITY` und `…_LLM_REASONING_EFFORT` gehen **nur** an
+Modelle mit den Präfixen `gpt-5`, `o1`, `o3`, `o4` — ältere antworten darauf mit
+`400`. Dieselbe Erkennung stellt bei diesen Modellen `max_tokens` auf
+`max_completion_tokens` um und lässt `temperature` weg. Das gilt
+providerunabhängig, also auch bei nativem OpenAI. `deepseek-v4-flash`
+bekommt sie nicht.
 
 ---
 
@@ -202,8 +305,8 @@ Generiert vollständige Metadaten aus Text, URL oder Repository-Node.
 | `enable_geocoding` | bool | `true` | Adressen zu Koordinaten konvertieren |
 | `normalize` | bool | `true` | Normalisierung (Datum, Boolean, Vokabular, Struktur) |
 | **LLM-Overrides** ||||
-| `llm_provider` | string | aus `.env` | `openai`, `b-api-openai`, `b-api-academiccloud` |
-| `llm_model` | string | aus `.env` | z.B. `gpt-5.6-luna`, `gpt-4.1-mini`, `gpt-4o-mini` |
+| `llm_provider` | string | aus `.env` | `b-api-academiccloud`, `b-api-openai`, `openai` |
+| `llm_model` | string | aus `.env` | z.B. `deepseek-v4-flash`, `gpt-5.6-luna`, `gpt-4o-mini` |
 | **Regeneration** ||||
 | `existing_metadata` | object | — | Bestehende Metadaten als Basis |
 | `regenerate_fields` | array | — | Nur diese Feld-IDs neu extrahieren |
@@ -261,8 +364,8 @@ Die Metadaten-Felder liegen **direkt auf Top-Level** (nicht in einem `metadata`-
     "fields_extracted": 15,
     "fields_total": 41,
     "processing_time_ms": 2500,
-    "llm_provider": "b-api-openai",
-    "llm_model": "gpt-5.6-luna",
+    "llm_provider": "b-api-academiccloud",
+    "llm_model": "deepseek-v4-flash",
     "errors": [],
     "warnings": []
   },
@@ -352,8 +455,8 @@ Extrahiert oder regeneriert ein einzelnes Feld. Nützlich um einzelne Felder zu 
   "version": "1.8.1",
   "schema_file": "event.json",
   "processing": {
-    "llm_provider": "b-api-openai",
-    "llm_model": "gpt-5.6-luna",
+    "llm_provider": "b-api-academiccloud",
+    "llm_model": "deepseek-v4-flash",
     "processing_time_ms": 450
   }
 }
@@ -624,7 +727,7 @@ erscheint entsprechend der hinterlegte Gast-Nutzer.
 
 `workflow_receiver` ist standardmäßig `["GROUP_ORG_WLO-Uploadmanager"]` für
 `200_tocheck` und leer für alle anderen Status. Die verfügbaren Status stehen
-unter [POST /workflow/{node_id}](#post-workflownodeid); unbekannte Status werden
+unter [POST /workflow/{node_id}](#post-workflownode_id); unbekannte Status werden
 mit `422` abgelehnt. Für einen Upload **ohne** Workflow-Schritt
 `start_workflow: false` setzen — eine leere `workflow_steps`-Liste wird ebenfalls
 mit `422` abgelehnt, weil sie sonst still auf den Standard zurückfiele und den
@@ -1183,7 +1286,7 @@ Prefix `METADATA_AGENT_` wird automatisch vorangestellt (außer API-Keys).
 
 | Variable | Default | Beschreibung |
 |----------|---------|--------------|
-| `METADATA_AGENT_LLM_PROVIDER` | `b-api-openai` | `openai`, `b-api-openai`, `b-api-academiccloud` |
+| `METADATA_AGENT_LLM_PROVIDER` | `b-api-academiccloud` | `b-api-academiccloud`, `b-api-openai`, `openai` |
 | `METADATA_AGENT_LLM_TEMPERATURE` | `0.3` | Kreativität (0.0–1.0) |
 | `METADATA_AGENT_LLM_MAX_TOKENS` | `2000` | Max Tokens pro LLM-Aufruf |
 | `METADATA_AGENT_LLM_MAX_RETRIES` | `3` | Wiederholungsversuche bei Fehler |
@@ -1205,7 +1308,7 @@ Prefix `METADATA_AGENT_` wird automatisch vorangestellt (außer API-Keys).
 | Variable | Default |
 |----------|---------|
 | `METADATA_AGENT_B_API_ACADEMICCLOUD_BASE` | *(abgeleitet aus `B_API_BASE_URL`)* |
-| `METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL` | `openai-gpt-oss-120b` |
+| `METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL` | `deepseek-v4-flash` |
 
 **OpenAI (nativ):**
 
@@ -1265,7 +1368,7 @@ Jede URL ist einzeln konfigurierbar. Defaults sind Staging-URLs.
 ```env
 # LLM Provider (Standard: B-API)
 B_API_KEY=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx
-METADATA_AGENT_LLM_PROVIDER=b-api-openai
+METADATA_AGENT_LLM_PROVIDER=b-api-academiccloud
 
 # Externe Dienste (Default: Staging — für Prod URLs anpassen)
 # METADATA_AGENT_B_API_BASE_URL=https://b-api.prod.openeduhub.net
@@ -1533,7 +1636,7 @@ docker-compose up -d
 | Variable | Erforderlich | Beschreibung |
 |----------|:---:|-------------|
 | `B_API_KEY` | ✅ | B-API Key für LLM-Zugriff (oder `OPENAI_API_KEY`) |
-| `METADATA_AGENT_LLM_PROVIDER` | — | `b-api-openai` (Standard), `b-api-academiccloud`, `openai` |
+| `METADATA_AGENT_LLM_PROVIDER` | — | `b-api-academiccloud` (Standard), `b-api-openai`, `openai` |
 | `WLO_GUEST_USERNAME` | für `/upload` | WLO Repository Upload-Benutzername |
 | `WLO_GUEST_PASSWORD` | für `/upload` | WLO Repository Upload-Passwort |
 

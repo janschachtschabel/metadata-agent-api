@@ -28,7 +28,7 @@ bricht nichts, ein Tippfehler fällt aber auch nicht auf.
 
 | Variable | Default | Beschreibung |
 |---|---|---|
-| `METADATA_AGENT_LLM_PROVIDER` | `b-api-openai` | `b-api-openai`, `b-api-academiccloud` oder `openai` |
+| `METADATA_AGENT_LLM_PROVIDER` | `b-api-academiccloud` | `b-api-academiccloud`, `b-api-openai` oder `openai` |
 
 Pro Request überschreibbar: `llm_provider` und `llm_model` im Body von
 `/generate`, `/detect-content-type` und `/extract-field`.
@@ -63,7 +63,7 @@ hilft nicht — bei 3 req/s fällt der effektive Durchsatz *unter* den Wert bei
 | `METADATA_AGENT_B_API_OPENAI_BASE` | abgeleitet | Nur setzen, wenn der Pfad vom Schema abweicht |
 | `METADATA_AGENT_B_API_OPENAI_MODEL` | `gpt-5.6-luna` | Modell für `b-api-openai` |
 | `METADATA_AGENT_B_API_ACADEMICCLOUD_BASE` | abgeleitet | wie oben |
-| `METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL` | `openai-gpt-oss-120b` | Modell für `b-api-academiccloud` |
+| `METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL` | `deepseek-v4-flash` | Modell für `b-api-academiccloud` |
 | `METADATA_AGENT_OPENAI_API_BASE` | `https://api.openai.com/v1` | Beliebiger OpenAI-kompatibler Endpunkt |
 | `METADATA_AGENT_OPENAI_MODEL` | `gpt-4o-mini` | Modell für `openai` |
 
@@ -169,11 +169,17 @@ Auf Vercel steht nur `pageshot` zur Verfügung.
 ```env
 METADATA_AGENT_LLM_PROVIDER=b-api-academiccloud
 B_API_KEY=...
-METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL=openai-gpt-oss-120b
-# Die Defaults 2/2 passen bereits — hier nur zur Verdeutlichung:
+METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL=deepseek-v4-flash
+# Die Defaults 2/2 passen bereits — hier nur zur Verdeutlichung.
+# Die Rate ist pro Sekunde, nicht pro Minute: 2 = 120 Aufrufe/Minute.
 METADATA_AGENT_LLM_MAX_CONCURRENT_REQUESTS=2
 METADATA_AGENT_LLM_MAX_REQUESTS_PER_SECOND=2
 ```
+
+Gemessen: eine Erschließung mit 50 Feldern schwankt damit zwischen **32 s und
+90 s** — die Streuung kommt von der Warteschlange am Gateway, nicht vom Modell.
+`b-api-openai` mit `gpt-5.6-luna` lag im Vergleichslauf bei 25,2 s. Details in
+[VERCEL-ENV.md](VERCEL-ENV.md).
 
 **Nativ OpenAI, ohne Ratenbegrenzung:**
 

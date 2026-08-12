@@ -41,7 +41,7 @@ class Settings(BaseSettings):
 
     # LLM Provider Selection
     # Options: 'openai', 'b-api-openai', 'b-api-academiccloud'
-    llm_provider: str = "b-api-openai"
+    llm_provider: str = "b-api-academiccloud"
 
     # OpenAI Configuration (native OpenAI API)
     #
@@ -71,12 +71,17 @@ class Settings(BaseSettings):
 
     # B-API AcademicCloud (AcademicCloud endpoint via B-API)
     # Derived from b_api_base_url if left empty.
-    # 'openai-gpt-oss-120b' is served and was the most consistent of the
-    # AcademicCloud models in latency (measured 2026-08-12). The former default
-    # 'deepseek-r1' answered 404 Model Not Found — a default that cannot work is
-    # worse than none, because nothing in the failure names the setting.
+    #
+    # 'deepseek-v4-flash' beat 'openai-gpt-oss-120b' on both axes over four runs
+    # of the same extraction (2026-08-12): 46s against 68s, and 37 of 50 fields
+    # against 30 — including the one expected field the other missed. Both got
+    # the exactly checkable values right.
+    #
+    # An earlier default 'deepseek-r1' answered 404 Model Not Found. A default
+    # that cannot work is worse than none, because nothing in the failure names
+    # the setting.
     b_api_academiccloud_base: str = ""
-    b_api_academiccloud_model: str = "openai-gpt-oss-120b"
+    b_api_academiccloud_model: str = "deepseek-v4-flash"
 
     # General LLM Settings
     llm_temperature: float = 0.3

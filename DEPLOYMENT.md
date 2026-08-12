@@ -63,7 +63,7 @@ Alle Konfigurationsvariablen haben das Prefix `METADATA_AGENT_`:
 
 | Variable | Default | Beschreibung |
 |---|---|---|
-| `METADATA_AGENT_LLM_PROVIDER` | `b-api-openai` | LLM-Provider: `b-api-openai`, `b-api-academiccloud`, `openai` |
+| `METADATA_AGENT_LLM_PROVIDER` | `b-api-academiccloud` | LLM-Provider: `b-api-academiccloud`, `b-api-openai`, `openai` |
 | `METADATA_AGENT_DEBUG` | `false` | Debug-Modus |
 | `METADATA_AGENT_DEFAULT_MAX_WORKERS` | `10` | Parallele LLM-Worker (1–20), gedeckelt auf die Gateway-Grenze |
 | `METADATA_AGENT_LLM_MAX_CONCURRENT_REQUESTS` | providerabhängig | Gleichzeitige LLM-Requests. Leer = gemessener Default (b-api: 2) |
@@ -85,7 +85,7 @@ Alle Konfigurationsvariablen haben das Prefix `METADATA_AGENT_`:
 | `METADATA_AGENT_LLM_VERBOSITY` | `low` | Nur GPT-5-Serie/o-Modelle. Leer = nicht senden |
 | `METADATA_AGENT_LLM_REASONING_EFFORT` | `low` | Nur GPT-5-Serie/o-Modelle. `none`/`low`/`medium`/`high` |
 | `METADATA_AGENT_B_API_ACADEMICCLOUD_BASE` | `https://b-api.staging.openeduhub.net/api/v1/llm/academiccloud` | B-API AcademicCloud Endpoint |
-| `METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL` | `openai-gpt-oss-120b` | B-API AcademicCloud Modell |
+| `METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL` | `deepseek-v4-flash` | B-API AcademicCloud Modell |
 | `METADATA_AGENT_OPENAI_API_BASE` | `https://api.openai.com/v1` | Beliebiger OpenAI-kompatibler Endpunkt |
 | `METADATA_AGENT_OPENAI_MODEL` | `gpt-4o-mini` | Nativer OpenAI Modell |
 | `METADATA_AGENT_OPENAI_TEMPERATURE` | folgt `LLM_TEMPERATURE` | Nur nötig, wenn nativ OpenAI abweichen soll |
@@ -94,7 +94,27 @@ Alle Konfigurationsvariablen haben das Prefix `METADATA_AGENT_`:
 Requests, ~2 pro Sekunde — pro **Key am Gateway**, nicht pro Modell. Beide
 B-API-Provider teilen sich also ein Budget. Ein dritter paralleler Request wird
 sofort mit `429` abgewiesen, ohne `retry-after`. Die Defaults bilden das ab; wer
-sie hochsetzt, erzeugt nur Retries.
+sie hochsetzt, erzeugt nur Retries. `METADATA_AGENT_LLM_MAX_REQUESTS_PER_SECOND`
+ist **pro Sekunde**, nicht pro Minute: `2` sind 120 Aufrufe/Minute.
+
+Was das für die Laufzeit heißt — Erschließung mit 50 Feldern:
+
+| Provider / Modell | Dauer |
+|---|---:|
+| `b-api-openai` / `gpt-5.6-luna` | 25,2 s |
+| `b-api-academiccloud` / `deepseek-v4-flash` | 32–90 s (Warteschlange am Gateway) |
+
+Auf Docker/Kubernetes ist das unkritisch — hier gibt es kein Zeitlimit für
+Requests. Auf Vercel schon (60 s), siehe [VERCEL-ENV.md](VERCEL-ENV.md).
+
+**Auf AcademicCloud umstellen:**
+
+```
+METADATA_AGENT_LLM_PROVIDER=b-api-academiccloud
+METADATA_AGENT_B_API_ACADEMICCLOUD_MODEL=deepseek-v4-flash
+METADATA_AGENT_LLM_MAX_CONCURRENT_REQUESTS=2
+METADATA_AGENT_LLM_MAX_REQUESTS_PER_SECOND=2
+```
 
 ---
 

@@ -225,8 +225,8 @@ Gleiche `instance-id` → geteilter State. Events feuern nur von der **ersten re
   "existing_metadata": {},          // Kontext für das LLM
   "language": "de",
   "normalize": true,
-  "llm_provider": "b-api-openai",   // openai | b-api-openai | b-api-academiccloud
-  "llm_model": "gpt-4.1-mini"
+  "llm_provider": "b-api-academiccloud",  // b-api-academiccloud | b-api-openai | openai
+  "llm_model": "deepseek-v4-flash"
 }
 ```
 

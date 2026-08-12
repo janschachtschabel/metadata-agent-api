@@ -294,6 +294,21 @@ METADATA_AGENT_LLM_MAX_REQUESTS_PER_SECOND=   # leer = gemessener Default, 0 = a
 | `b-api` (beide B-API-Provider) | **2** | **2** |
 | `openai` (nativ) | 10 | keine Grenze |
 
+Die Rate ist **pro Sekunde**, nicht pro Minute: `2` sind 120 Aufrufe/Minute.
+
+Gegen das laufende Vercel-Deployment gemessen — Erschließung mit 50 Feldern:
+
+| Provider / Modell | Dauer |
+|---|---|
+| `b-api-openai` / `gpt-5.6-luna` | 25,2 s |
+| `b-api-academiccloud` / `deepseek-v4-flash` | 32,4 s · 89,6 s |
+| `b-api-academiccloud` / `openai-gpt-oss-120b` | 53,1 s |
+
+Die Streuung kommt von der Warteschlange am Gateway, nicht vom Modell.
+`vercel.json` deklariert `maxDuration: 60`, der 89,6-Sekunden-Lauf kam trotzdem
+mit `200` zurück — die Grenze wird auf diesem Deployment offenbar nicht
+durchgesetzt.
+
 **Warum das nötig war.** Die B-API erlaubt exakt zwei Requests gleichzeitig und
 etwa zwei pro Sekunde. Das Budget hängt am **Key am Gateway**, nicht am Modell —
 `b-api-openai` und `b-api-academiccloud` teilen es sich deshalb. Ein dritter

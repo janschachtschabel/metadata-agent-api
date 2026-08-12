@@ -183,7 +183,7 @@ class GenerateRequest(BaseModel):
     )
     llm_model: Optional[str] = Field(
         default=None,
-        description="LLM model to use. Examples: 'gpt-4.1-mini' (default for b-api-openai), 'gpt-4o-mini' (for openai), 'deepseek-r1' (for b-api-academiccloud). If not set, uses the provider's default model from environment.",
+        description="LLM model to use. Without it the provider's configured default applies: 'deepseek-v4-flash' (b-api-academiccloud), 'gpt-5.6-luna' (b-api-openai), 'gpt-4o-mini' (openai).",
     )
 
     # Screenshot options (async preview generation during extraction)
@@ -216,8 +216,8 @@ class GenerateRequest(BaseModel):
                     "language": "de",
                     "include_core": True,
                     "max_workers": 10,
-                    "llm_provider": "b-api-openai",
-                    "llm_model": "gpt-4.1-mini",
+                    "llm_provider": "b-api-academiccloud",
+                    "llm_model": "deepseek-v4-flash",
                     "screenshot_method": "pageshot",
                     "preview_url": "",
                 }
@@ -1013,7 +1013,7 @@ class DetectContentTypeRequest(BaseModel):
     )
     llm_model: Optional[str] = Field(
         default=None,
-        description="LLM model to use. Examples: 'gpt-4.1-mini' (default for b-api-openai), 'gpt-4o-mini' (for openai), 'deepseek-r1' (for b-api-academiccloud). If not set, uses the provider's default model from environment.",
+        description="LLM model to use. Without it the provider's configured default applies: 'deepseek-v4-flash' (b-api-academiccloud), 'gpt-5.6-luna' (b-api-openai), 'gpt-4o-mini' (openai).",
     )
 
     @field_validator("text", mode="before")
@@ -1036,8 +1036,8 @@ class DetectContentTypeRequest(BaseModel):
                     "context": "default",
                     "version": "latest",
                     "language": "de",
-                    "llm_provider": "b-api-openai",
-                    "llm_model": "gpt-4.1-mini",
+                    "llm_provider": "b-api-academiccloud",
+                    "llm_model": "deepseek-v4-flash",
                 }
             ]
         }
@@ -1143,7 +1143,7 @@ class ExtractFieldRequest(BaseModel):
     )
     llm_model: Optional[str] = Field(
         default=None,
-        description="LLM model to use. Examples: 'gpt-4.1-mini' (default for b-api-openai), 'gpt-4o-mini' (for openai), 'deepseek-r1' (for b-api-academiccloud). If not set, uses the provider's default model from environment.",
+        description="LLM model to use. Without it the provider's configured default applies: 'deepseek-v4-flash' (b-api-academiccloud), 'gpt-5.6-luna' (b-api-openai), 'gpt-4o-mini' (openai).",
     )
 
     @field_validator("text", mode="before")
@@ -1164,8 +1164,8 @@ class ExtractFieldRequest(BaseModel):
                     "field_id": "schema:startDate",
                     "text": "Workshop 'KI in der Bildung' am 15. März 2025 in Berlin.",
                     "language": "de",
-                    "llm_model": "gpt-4.1-mini",
-                    "llm_provider": "b-api-openai",
+                    "llm_model": "deepseek-v4-flash",
+                    "llm_provider": "b-api-academiccloud",
                     "normalize": True,
                 },
                 {
@@ -1176,8 +1176,8 @@ class ExtractFieldRequest(BaseModel):
                     "text": "Der Workshop wurde auf den 20. März 2025 verschoben.",
                     "existing_metadata": {"schema:startDate": "2025-03-15T00:00"},
                     "language": "de",
-                    "llm_model": "gpt-4.1-mini",
-                    "llm_provider": "b-api-openai",
+                    "llm_model": "deepseek-v4-flash",
+                    "llm_provider": "b-api-academiccloud",
                     "normalize": True,
                 },
             ]

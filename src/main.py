@@ -707,8 +707,8 @@ async def get_schema_definition(context: str, version: str, schema_file: str):
 
 ## LLM-Optionen
 
-- **llm_provider**: `b-api-openai` (Standard), `openai`, `b-api-academiccloud`
-- **llm_model**: z.B. `gpt-4.1-mini` (Standard), `gpt-4o-mini`, `deepseek-r1`
+- **llm_provider**: `b-api-academiccloud` (Standard), `b-api-openai`, `openai`
+- **llm_model**: Ohne Angabe gilt der Default des Providers — `deepseek-v4-flash` (b-api-academiccloud), `gpt-5.6-luna` (b-api-openai), `gpt-4o-mini` (openai)
 """,
     openapi_extra={
         "requestBody": {
@@ -729,8 +729,8 @@ async def get_schema_definition(context: str, version: str, schema_file: str):
                                 "context": "default",
                                 "version": "latest",
                                 "language": "de",
-                                "llm_provider": "b-api-openai",
-                                "llm_model": "gpt-4.1-mini",
+                                "llm_provider": "b-api-academiccloud",
+                                "llm_model": "deepseek-v4-flash",
                             },
                         },
                         "url_input": {
@@ -746,8 +746,8 @@ async def get_schema_definition(context: str, version: str, schema_file: str):
                                 "context": "default",
                                 "version": "latest",
                                 "language": "de",
-                                "llm_provider": "b-api-openai",
-                                "llm_model": "gpt-4.1-mini",
+                                "llm_provider": "b-api-academiccloud",
+                                "llm_model": "deepseek-v4-flash",
                             },
                         },
                         "node_id_input": {
@@ -763,8 +763,8 @@ async def get_schema_definition(context: str, version: str, schema_file: str):
                                 "context": "default",
                                 "version": "latest",
                                 "language": "de",
-                                "llm_provider": "b-api-openai",
-                                "llm_model": "gpt-4.1-mini",
+                                "llm_provider": "b-api-academiccloud",
+                                "llm_model": "deepseek-v4-flash",
                             },
                         },
                     },
@@ -976,8 +976,8 @@ async def detect_content_type(req: DetectContentTypeRequest):
 
 ## LLM-Optionen
 
-- **llm_provider**: `b-api-openai` (Standard), `openai`, `b-api-academiccloud`
-- **llm_model**: z.B. `gpt-4.1-mini` (Standard), `gpt-4o-mini`, `deepseek-r1`
+- **llm_provider**: `b-api-academiccloud` (Standard), `b-api-openai`, `openai`
+- **llm_model**: Ohne Angabe gilt der Default des Providers — `deepseek-v4-flash` (b-api-academiccloud), `gpt-5.6-luna` (b-api-openai), `gpt-4o-mini` (openai)
 """,
     openapi_extra={
         "requestBody": {
@@ -1002,8 +1002,8 @@ async def detect_content_type(req: DetectContentTypeRequest):
                                 "existing_metadata": {},
                                 "language": "de",
                                 "normalize": True,
-                                "llm_provider": "b-api-openai",
-                                "llm_model": "gpt-4.1-mini",
+                                "llm_provider": "b-api-academiccloud",
+                                "llm_model": "deepseek-v4-flash",
                             },
                         },
                         "url_input": {
@@ -1023,8 +1023,8 @@ async def detect_content_type(req: DetectContentTypeRequest):
                                 "existing_metadata": {},
                                 "language": "de",
                                 "normalize": True,
-                                "llm_provider": "b-api-openai",
-                                "llm_model": "gpt-4.1-mini",
+                                "llm_provider": "b-api-academiccloud",
+                                "llm_model": "deepseek-v4-flash",
                             },
                         },
                         "node_id_input": {
@@ -1044,8 +1044,8 @@ async def detect_content_type(req: DetectContentTypeRequest):
                                 "existing_metadata": {},
                                 "language": "de",
                                 "normalize": True,
-                                "llm_provider": "b-api-openai",
-                                "llm_model": "gpt-4.1-mini",
+                                "llm_provider": "b-api-academiccloud",
+                                "llm_model": "deepseek-v4-flash",
                             },
                         },
                         "feld_korrigieren": {
@@ -1067,8 +1067,8 @@ async def detect_content_type(req: DetectContentTypeRequest):
                                 },
                                 "language": "de",
                                 "normalize": True,
-                                "llm_provider": "b-api-openai",
-                                "llm_model": "gpt-4.1-mini",
+                                "llm_provider": "b-api-academiccloud",
+                                "llm_model": "deepseek-v4-flash",
                             },
                         },
                     },
@@ -1346,8 +1346,8 @@ async def extract_field(req: ExtractFieldRequest):
 
 ## LLM-Optionen
 
-- **llm_provider**: `b-api-openai` (Standard), `openai`, `b-api-academiccloud`
-- **llm_model**: z.B. `gpt-4.1-mini` (Standard), `gpt-4o-mini`, `deepseek-r1`
+- **llm_provider**: `b-api-academiccloud` (Standard), `b-api-openai`, `openai`
+- **llm_model**: Ohne Angabe gilt der Default des Providers — `deepseek-v4-flash` (b-api-academiccloud), `gpt-5.6-luna` (b-api-openai), `gpt-4o-mini` (openai)
 """,
     openapi_extra={
         "requestBody": {
@@ -1376,8 +1376,8 @@ async def extract_field(req: ExtractFieldRequest):
                                 "normalize": True,
                                 "regenerate_fields": [],
                                 "regenerate_empty": False,
-                                "llm_provider": "b-api-openai",
-                                "llm_model": "gpt-4.1-mini",
+                                "llm_provider": "b-api-academiccloud",
+                                "llm_model": "deepseek-v4-flash",
                                 "screenshot_method": "",
                                 "preview_url": "",
                             },
@@ -1403,8 +1403,8 @@ async def extract_field(req: ExtractFieldRequest):
                                 "normalize": True,
                                 "regenerate_fields": [],
                                 "regenerate_empty": False,
-                                "llm_provider": "b-api-openai",
-                                "llm_model": "gpt-4.1-mini",
+                                "llm_provider": "b-api-academiccloud",
+                                "llm_model": "deepseek-v4-flash",
                                 "screenshot_method": "pageshot",
                                 "preview_url": "",
                             },
@@ -1430,8 +1430,8 @@ async def extract_field(req: ExtractFieldRequest):
                                 "normalize": True,
                                 "regenerate_fields": [],
                                 "regenerate_empty": False,
-                                "llm_provider": "b-api-openai",
-                                "llm_model": "gpt-4.1-mini",
+                                "llm_provider": "b-api-academiccloud",
+                                "llm_model": "deepseek-v4-flash",
                                 "screenshot_method": "pageshot",
                                 "preview_url": "",
                             },
@@ -1457,8 +1457,8 @@ async def extract_field(req: ExtractFieldRequest):
                                 "normalize": True,
                                 "regenerate_fields": [],
                                 "regenerate_empty": False,
-                                "llm_provider": "b-api-openai",
-                                "llm_model": "gpt-4.1-mini",
+                                "llm_provider": "b-api-academiccloud",
+                                "llm_model": "deepseek-v4-flash",
                                 "screenshot_method": "pageshot",
                                 "preview_url": "",
                             },
@@ -1487,8 +1487,8 @@ async def extract_field(req: ExtractFieldRequest):
                                 "normalize": True,
                                 "regenerate_fields": ["schema:startDate"],
                                 "regenerate_empty": True,
-                                "llm_provider": "b-api-openai",
-                                "llm_model": "gpt-4.1-mini",
+                                "llm_provider": "b-api-academiccloud",
+                                "llm_model": "deepseek-v4-flash",
                                 "screenshot_method": "",
                                 "preview_url": "",
                             },

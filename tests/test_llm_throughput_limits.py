@@ -273,7 +273,18 @@ def test_the_academiccloud_default_is_a_model_the_gateway_serves():
     'deepseek-r1' answered 404 Model Not Found — a default that cannot work is
     worse than none, because nothing about the failure names the setting.
     """
-    assert Settings().b_api_academiccloud_model == "openai-gpt-oss-120b"
+    assert Settings().b_api_academiccloud_model == "deepseek-v4-flash"
+
+
+def test_the_default_provider_and_its_model_belong_together():
+    """
+    deepseek-v4-flash is an AcademicCloud model. Leaving the provider on
+    b-api-openai while naming it the default model would 404 on the first call.
+    """
+    settings = Settings()
+
+    assert settings.llm_provider == "b-api-academiccloud"
+    assert settings.get_llm_config()["model"] == "deepseek-v4-flash"
 
 
 @pytest.mark.parametrize(
