@@ -11,12 +11,20 @@ from ..services.repository_service import is_valid_node_id
 
 def validate_node_id(value: Any) -> Any:
     """
-    Reject anything that is not an edu-sharing node id.
+    Reject anything that is present but is not an edu-sharing node id.
 
     Shared by every request model carrying one — the value reaches a repository
     URL that is called with the service account's credentials, so the shape has
     to be checked at the boundary rather than at each call site.
+
+    A blank string means 'nothing entered' and becomes None. Whether the field is
+    required at all depends on `input_source`, and each branch of the endpoint
+    checks its own with a message that says so — this validator cannot know, and
+    answering a text-input request with 'Ungültige node_id' names a field that
+    request does not use.
     """
+    if isinstance(value, str) and not value.strip():
+        return None
     if value is None or is_valid_node_id(value):
         return value
     raise ValueError(
@@ -626,6 +634,19 @@ class UploadRequest(BaseModel):
         ),
     )
 
+    # Two-step upload: create the node first (POST /node), fill it in later.
+    # Without it every /upload creates its own node.
+    node_id: Optional[str] = Field(
+        default=None,
+        description=(
+            "Bestehender Node, in den geschrieben werden soll — z.B. die ID aus "
+            "POST /node. Ohne Angabe wird ein neuer Node angelegt. Bei "
+            "angegebener ID entfällt die Dublettenprüfung (der Node trägt die "
+            "URL bereits) und der Node wird bei einem Fehler **nicht** verworfen."
+        ),
+    )
+    _check_upload_node_id = field_validator("node_id")(validate_node_id)
+
     @field_validator("collection_id", mode="before")
     @classmethod
     def normalize_collection_id(cls, v: Any) -> Any:
@@ -772,6 +793,56 @@ class WorkflowStepResult(BaseModel):
     error: Optional[str] = None
 
 
+class CreateNodeRequest(BaseModel):
+    """
+    Request for creating a node without writing metadata to it.
+
+    The first half of an upload on its own: a caller who needs a node id before
+    the metadata exists gets one here and hands it back to /upload later.
+    """
+
+    metadata: dict[str, Any] = Field(
+        ...,
+        description=(
+            "Mindestens 'cclom:title'. Übernommen werden außerdem "
+            "'cclom:general_description', 'cclom:general_keyword', 'ccm:wwwurl' "
+            "und 'cclom:general_language' — genau die Felder, die der Upload "
+            "beim Anlegen setzt. Alles andere wird ignoriert und gehört in den "
+            "zweiten Schritt."
+        ),
+    )
+    check_duplicates: bool = Field(
+        default=False,
+        description=(
+            "Vor dem Anlegen nach 'ccm:wwwurl' suchen. Standardmäßig aus, weil "
+            "die URL zu diesem Zeitpunkt oft noch nicht feststeht."
+        ),
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "metadata": {
+                        "cclom:title": "Bruchrechnung Klasse 6",
+                        "ccm:wwwurl": "https://example.org/bruchrechnung",
+                    },
+                    "check_duplicates": False,
+                }
+            ]
+        }
+    }
+
+
+class CreateNodeResponse(BaseModel):
+    """Response from node creation."""
+
+    success: bool
+    duplicate: Optional[bool] = None
+    node: Optional[UploadedNodeInfo] = None
+    error: Optional[str] = None
+
+
 class UploadResponse(BaseModel):
     """Response from repository upload."""
 
@@ -786,6 +857,14 @@ class UploadResponse(BaseModel):
     step: Optional[str] = None
     fields_written: Optional[int] = None
     fields_skipped: Optional[int] = None
+    node_created: Optional[bool] = Field(
+        default=None,
+        description=(
+            "true, wenn dieser Aufruf den Node angelegt hat; false, wenn er über "
+            "'node_id' übergeben wurde. Beide Fälle antworten mit 200 und "
+            "derselben nodeId — sonst unterscheidet sie nichts."
+        ),
+    )
     schema_used: Optional[str] = Field(
         default=None,
         description=(
@@ -908,6 +987,15 @@ class FieldDiff(BaseModel):
     )
     expected: Optional[Any] = None
     actual: Optional[Any] = None
+    resolution: Optional[str] = Field(
+        default=None,
+        description=(
+            "`resolved`, `unresolved` oder null. Unabhängig von `status`: ein "
+            "Feld kann exakt den gesendeten Wert tragen (`match`) und trotzdem "
+            "auf nichts auflösen. null heißt: nichts aufzulösen (Freitext) oder "
+            "nicht geprüft."
+        ),
+    )
 
 
 class VerifyRequest(BaseModel):
@@ -946,6 +1034,16 @@ class VerifyResponse(BaseModel):
     node_id: str
     actual_metadata: dict[str, Any] = Field(
         description="Flat metadata as read from the repository"
+    )
+    unresolved: Optional[list[dict[str, Any]]] = Field(
+        default=None,
+        description=(
+            "Werte, die im Feld stehen, die das Repository aber nicht als Wert "
+            "liest — leeres `_DISPLAYNAME` bzw. fehlendes `virtual:licenseurl`. "
+            "Ohne `expected_metadata` ermittelt: ein Feld kann exakt das "
+            "enthalten, was gesendet wurde, und trotzdem auf nichts auflösen. "
+            "Leere Liste = alles löst auf."
+        ),
     )
     diff: Optional[list[FieldDiff]] = Field(
         default=None,
@@ -1124,7 +1222,8 @@ class ExtractFieldRequest(BaseModel):
         description="Schema file containing the field (e.g., 'event.json', 'core.json') or a vocab URI (e.g., 'http://w3id.org/openeduhub/vocabs/contentTypes/event')",
     )
     field_id: str = Field(
-        ..., description="Field ID to extract (e.g., 'schema:startDate', 'cclom:title')"
+        ...,
+        description="Field ID to extract (e.g., 'ccm:oeh_event_begin', 'cclom:title')",
     )
     existing_metadata: Optional[dict[str, Any]] = Field(
         default=None,
@@ -1161,7 +1260,7 @@ class ExtractFieldRequest(BaseModel):
                     "context": "default",
                     "version": "latest",
                     "schema_file": "event.json",
-                    "field_id": "schema:startDate",
+                    "field_id": "ccm:oeh_event_begin",
                     "text": "Workshop 'KI in der Bildung' am 15. März 2025 in Berlin.",
                     "language": "de",
                     "llm_model": "deepseek-v4-flash",
@@ -1172,9 +1271,9 @@ class ExtractFieldRequest(BaseModel):
                     "context": "default",
                     "version": "latest",
                     "schema_file": "event.json",
-                    "field_id": "schema:startDate",
+                    "field_id": "ccm:oeh_event_begin",
                     "text": "Der Workshop wurde auf den 20. März 2025 verschoben.",
-                    "existing_metadata": {"schema:startDate": "2025-03-15T00:00"},
+                    "existing_metadata": {"ccm:oeh_event_begin": "2025-03-15T00:00"},
                     "language": "de",
                     "llm_model": "deepseek-v4-flash",
                     "llm_provider": "b-api-academiccloud",

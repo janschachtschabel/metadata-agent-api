@@ -100,7 +100,7 @@ befüllt · `User` = im Widget sichtbar/editierbar · `[]` = Mehrfachwert
 | `ccm:oeh_extendedType` | Inhaltsart(en) | array | ⚠️ | | | |
 | `ccm:educationalcontext` | Bildungsstufe | array | ✅ | ✅ | ✅ | ✅ |
 | `ccm:taxonid` | Fach | array | ✅ | ✅ | ✅ | ✅ |
-| `oeh:new_lrt` | Lernressourcentyp | array | ✅ | ✅ | ✅ | ✅ |
+| `ccm:oeh_lrt` | Lernressourcentyp | array | ✅ | ✅ | ✅ | ✅ |
 | `ccm:educationalintendedenduserrole` | Zielgruppe | array | ✅ | ✅ | ✅ | ✅ |
 | `ccm:commonlicense_ai_allow_usage` | KI-Nutzung erlaubt | string | ✅ | ✅ | ✅ | |
 | `ccm:commonlicense_ai_generated` | Mit KI erzeugt | string | ✅ | ✅ | ✅ | |
@@ -123,11 +123,11 @@ befüllt · `User` = im Widget sichtbar/editierbar · `[]` = Mehrfachwert
 geschrieben — über den Extended-Fields-Schritt beim Upload, nicht über den
 normalen Metadaten-Filter.
 
-`oeh:new_lrt` heißt im Repository **`ccm:oeh_lrt`**; der Upload benennt das Feld
-beim Schreiben um, genau wie er `cm:author` in
-`ccm:lifecyclecontributer_author` überführt. In der `/generate`-Antwort bleibt
-es `oeh:new_lrt` — am Vertrag ändert sich nichts. Findet die Extraktion keinen
-Typ, leitet der Upload ersatzweise einen groben aus `ccm:oeh_extendedType` ab
+**Der Lernressourcentyp heißt seit Schema 2.0.0 `ccm:oeh_lrt`** — genau so wie im
+Repository. In 1.8.0 und 1.8.1 hieß er `oeh:new_lrt`; wer eine dieser Versionen
+pinnt oder eine ältere `/generate`-Antwort erneut hochlädt, bekommt den Wert
+weiterhin nach `ccm:oeh_lrt` geschrieben. Findet die Extraktion keinen Typ,
+leitet der Upload ersatzweise einen groben aus `ccm:oeh_extendedType` ab
 (`learning_material` → „Material"). Siehe
 [WLO-REPO-FELDER.md](WLO-REPO-FELDER.md).
 

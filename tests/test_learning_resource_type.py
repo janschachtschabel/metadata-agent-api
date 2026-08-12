@@ -28,13 +28,59 @@ CONTEXTS = ["default", "mds_oeh"]
 VERSION = "2.0.0"
 
 VOCAB = "http://w3id.org/openeduhub/vocabs/new_lrt"
-ARBEITSBLATT = f"{VOCAB}/8e83b3f9-cd5b-4bef-99c9-6bcdd6b1f3d8"
+ARBEITSBLATT = f"{VOCAB}/36e68792-6159-481d-a97b-2c00901f4f78"
 MATERIAL = f"{VOCAB}/1846d876-d8fd-476a-b540-b8ffd713fedb"
+
+SNAPSHOT = Path(__file__).resolve().parents[1] / "src/schemata/vocabs/new_lrt.json"
 
 
 def _lrt_field(context):
     fields = {f["id"]: f for f in get_schema_fields(context, VERSION, "core.json")}
-    return fields["oeh:new_lrt"]
+    return fields["ccm:oeh_lrt"]
+
+
+# --------------------------------------------------------------- the field id
+
+
+@pytest.mark.parametrize("context", CONTEXTS)
+def test_the_schema_calls_the_field_what_the_repository_calls_it(context):
+    """
+    `ccm:oeh_lrt` is the property; `oeh:new_lrt` was a name only this codebase
+    used. Carrying both meant a rename on the write path, a second rename in the
+    diff, and an answer from /generate whose key was not the one on the node.
+    """
+    ids = {f["id"] for f in get_schema_fields(context, VERSION, "core.json")}
+
+    assert "ccm:oeh_lrt" in ids
+    assert "oeh:new_lrt" not in ids
+
+
+@pytest.mark.parametrize("context", CONTEXTS)
+def test_the_field_writes_to_itself(context):
+    """No indirection left: what the schema is called is where the value lands."""
+    field = _lrt_field(context)
+
+    assert field["system"]["path"] == "ccm:oeh_lrt"
+    assert field["system"]["repo_field"] is True
+
+
+@pytest.mark.parametrize("context", CONTEXTS)
+def test_the_frozen_versions_keep_their_own_name(context):
+    """
+    1.8.0 and 1.8.1 are released and still say oeh:new_lrt. The write path keeps
+    translating for them — renaming the current schema must not silently break a
+    caller who pins an older version.
+    """
+    for old in ("1.8.0", "1.8.1"):
+        try:
+            ids = {
+                f["id"]
+                for f in get_schema_fields(context, old, "learning_material.json")
+            }
+        except Exception:
+            continue
+        if "oeh:new_lrt" in ids or "ccm:oeh_lrt" in ids:
+            assert "oeh:new_lrt" in ids, f"{context}@{old} wurde mitumbenannt"
 
 
 # ------------------------------------------------------ the write target
@@ -123,6 +169,84 @@ def test_the_types_the_repository_actually_uses_are_offered(context, label):
     assert label in {c["label"]["de"] for c in concepts}
 
 
+# ------------------------------------------------- what the model gets to see
+#
+# The extraction prompt lists at most 20 concepts and says "... und N weitere".
+# In the published tree order the first 20 are all source and offering types —
+# Quelle, Portal, Datenbank, Studiengang, Ausbildungsberuf — and not one
+# classroom material type. A worksheet was therefore offered a choice that did
+# not contain 'Arbeitsblatt'; the Wikipedia article on hares came back as
+# 'Lexikon oder Enzyklopädie', which is in that window.
+#
+# The ten below lead the vocabulary so they land inside it. Picked from what the
+# repository actually stores (100 nodes: Material 79, Wiki 14, Webseite 8,
+# Arbeitsblatt 6, Unterrichtsbaustein 6, Video 4) plus the everyday classroom
+# types that were missing from that sample.
+
+CLASSROOM_TYPES = [
+    "Material",
+    "Arbeitsblatt",
+    "Video (Material)",
+    "Audio",
+    "Bild (Material)",
+    "Präsentation",
+    "Quiz",
+    "Dokumente und textbasierte Inhalte",
+    "Webseite",
+    "Unterrichtsbaustein",
+]
+
+PROMPT_CONCEPT_LIMIT = 20
+
+
+@pytest.mark.parametrize("context", CONTEXTS)
+def test_the_everyday_classroom_types_come_first(context):
+    concepts = _lrt_field(context)["system"]["vocabulary"]["concepts"]
+    leading = [c["label"]["de"] for c in concepts[: len(CLASSROOM_TYPES)]]
+
+    assert leading == CLASSROOM_TYPES
+
+
+@pytest.mark.parametrize("context", CONTEXTS)
+def test_they_fit_inside_the_window_the_prompt_shows(context):
+    """Leading is only useful while the list is shorter than the cut-off."""
+    assert len(CLASSROOM_TYPES) <= PROMPT_CONCEPT_LIMIT
+
+
+@pytest.mark.parametrize("label", CLASSROOM_TYPES)
+def test_every_prioritised_label_is_a_real_concept(label):
+    concepts = json.loads(SNAPSHOT.read_text(encoding="utf-8"))
+
+    assert label in {c["label"]["de"] for c in concepts}
+
+
+@pytest.mark.parametrize("context", CONTEXTS)
+def test_reordering_loses_no_concept(context):
+    """A sort is not a filter — all 220 have to survive it, each exactly once."""
+    concepts = _lrt_field(context)["system"]["vocabulary"]["concepts"]
+    published = json.loads(SNAPSHOT.read_text(encoding="utf-8"))
+
+    assert len(concepts) == len(published)
+    assert {c["uri"] for c in concepts} == {c["uri"] for c in published}
+
+
+@pytest.mark.parametrize("label", CLASSROOM_TYPES)
+def test_the_model_is_offered_the_everyday_types(label):
+    """
+    The end of the chain: what actually reaches the LLM. A concept beyond the
+    cut-off cannot be produced by name, only matched if the model happens to
+    know it.
+    """
+    from src.services.llm_service import LLMService
+
+    service = LLMService.__new__(LLMService)
+    prompt = service._build_extraction_prompt(
+        _lrt_field("default"), "Beispieltext.", None, "de"
+    )
+
+    assert label in prompt
+
+
 def test_both_contexts_carry_the_same_vocabulary():
     def by_uri(context):
         return {
@@ -170,8 +294,23 @@ def test_the_vocabulary_still_matches_the_published_one():
 
 def test_the_snapshot_used_by_the_schema_is_kept_in_the_repository():
     """The offline tests above compare against this; it is how they stay checkable."""
-    snapshot = Path(__file__).resolve().parents[1] / "src/schemata/vocabs/new_lrt.json"
-
-    assert snapshot.exists()
-    concepts = json.loads(snapshot.read_text(encoding="utf-8"))
+    assert SNAPSHOT.exists()
+    concepts = json.loads(SNAPSHOT.read_text(encoding="utf-8"))
     assert len(concepts) == 220
+
+
+@pytest.mark.parametrize(
+    "label, uri", [("Arbeitsblatt", ARBEITSBLATT), ("Material", MATERIAL)]
+)
+def test_the_uris_these_tests_use_are_real(label, uri):
+    """
+    A made-up UUID passes every test in this file: the transformation moves
+    whatever it is handed, and nothing here resolves it. It only shows up on a
+    node, as an empty ccm:oeh_lrt_DISPLAYNAME — which is how the first version of
+    ARBEITSBLATT was caught, on staging, after the tests were green.
+    """
+    concepts = json.loads(SNAPSHOT.read_text(encoding="utf-8"))
+    by_uri = {c["uri"]: c["label"]["de"] for c in concepts}
+
+    assert uri in by_uri, f"{uri} steht nicht im Vokabular"
+    assert by_uri[uri] == label

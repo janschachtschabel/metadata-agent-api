@@ -2123,8 +2123,8 @@
         "en": "Select CC license type"
       },
       "prompt": {
-        "de": "Erkenne die Creative-Commons-Lizenz der Ressource. Suche nach CC-Symbolen, Lizenz-Badges, Fußzeilen oder Lizenz-URLs (z.B. creativecommons.org/licenses/by-sa/). Gib NUR das Kürzel zurück, OHNE Versionsnummer. Erlaubte Werte: CC0, CC BY, CC BY-SA, CC BY-ND, CC BY-NC, CC BY-NC-SA, CC BY-NC-ND. Wenn keine CC-Lizenz erkennbar: null. Beispiele: 'CC BY-SA' (bei 'Namensnennung - Weitergabe unter gleichen Bedingungen'), 'CC0' (bei 'Public Domain'), 'CC BY-NC' (bei 'nur nicht-kommerziell').",
-        "en": "Identify the Creative Commons license. Look for CC symbols, license badges, footers, or license URLs (e.g., creativecommons.org/licenses/by-sa/). Return ONLY the abbreviation, WITHOUT version number. Allowed values: CC0, CC BY, CC BY-SA, CC BY-ND, CC BY-NC, CC BY-NC-SA, CC BY-NC-ND. If no CC license found: null. Examples: 'CC BY-SA' (for 'Attribution-ShareAlike'), 'CC0' (for 'Public Domain'), 'CC BY-NC' (for 'non-commercial only')."
+        "de": "Erkenne die Creative-Commons-Lizenz der Ressource. Suche nach CC-Symbolen, Lizenz-Badges, Fußzeilen oder Lizenz-URLs (z.B. creativecommons.org/licenses/by-sa/). Gib NUR den Schlüssel zurück, OHNE Versionsnummer. Erlaubte Werte: CC_0, CC_BY, CC_BY_SA, CC_BY_ND, CC_BY_NC, CC_BY_NC_SA, CC_BY_NC_ND. Wenn keine CC-Lizenz erkennbar: null. Beispiele: 'CC_BY_SA' (bei 'Namensnennung - Weitergabe unter gleichen Bedingungen'), 'CC_0' (bei 'Public Domain'), 'CC_BY_NC' (bei 'nur nicht-kommerziell').",
+        "en": "Identify the Creative Commons license. Look for CC symbols, license badges, footers, or license URLs (e.g., creativecommons.org/licenses/by-sa/). Return ONLY the key, WITHOUT version number. Allowed values: CC_0, CC_BY, CC_BY_SA, CC_BY_ND, CC_BY_NC, CC_BY_NC_SA, CC_BY_NC_ND. If no CC license is discernible: null. Examples: 'CC_BY_SA' (for 'Attribution - ShareAlike'), 'CC_0' (for 'Public Domain'), 'CC_BY_NC' (for 'non-commercial only')."
       },
       "system": {
         "path": "ccm:commonlicense_key",
@@ -2146,49 +2146,49 @@
                 "de": "CC0",
                 "en": "CC0"
               },
-              "value": "CC0"
+              "value": "CC_0"
             },
             {
               "label": {
                 "de": "CC BY",
                 "en": "CC BY"
               },
-              "value": "CC BY"
+              "value": "CC_BY"
             },
             {
               "label": {
                 "de": "CC BY-SA",
                 "en": "CC BY-SA"
               },
-              "value": "CC BY-SA"
+              "value": "CC_BY_SA"
             },
             {
               "label": {
                 "de": "CC BY-ND",
                 "en": "CC BY-ND"
               },
-              "value": "CC BY-ND"
+              "value": "CC_BY_ND"
             },
             {
               "label": {
                 "de": "CC BY-NC",
                 "en": "CC BY-NC"
               },
-              "value": "CC BY-NC"
+              "value": "CC_BY_NC"
             },
             {
               "label": {
                 "de": "CC BY-NC-SA",
                 "en": "CC BY-NC-SA"
               },
-              "value": "CC BY-NC-SA"
+              "value": "CC_BY_NC_SA"
             },
             {
               "label": {
                 "de": "CC BY-NC-ND",
                 "en": "CC BY-NC-ND"
               },
-              "value": "CC BY-NC-ND"
+              "value": "CC_BY_NC_ND"
             }
           ]
         },

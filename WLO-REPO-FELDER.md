@@ -34,7 +34,7 @@ Legende: **sichtbar** = wird im Webcomponent-Canvas angezeigt (`ask_user: true`)
 | `cclom:general_language` | Sprache | sichtbar | ja |
 | `ccm:educationalcontext` | Bildungsstufe | sichtbar | ja |
 | `ccm:taxonid` | Fach | sichtbar | ja |
-| `oeh:new_lrt` | Lernressourcentyp | sichtbar | ja | → `ccm:oeh_lrt` |
+| `ccm:oeh_lrt` | Lernressourcentyp | sichtbar | ja |
 | `ccm:educationalintendedenduserrole` | Zielgruppe | sichtbar | ja |
 | `ccm:commonlicense_ai_allow_usage` | KI-Nutzung erlaubt | sichtbar | ja |
 | `ccm:commonlicense_ai_generated` | Mit KI erzeugt | sichtbar | ja |
@@ -56,12 +56,13 @@ Legende: **sichtbar** = wird im Webcomponent-Canvas angezeigt (`ask_user: true`)
 **Nicht** als Repo-Feld markiert (bewusst): `ccm:oeh_extendedType` — wird separat
 über den Extended-Data-Pfad geschrieben.
 
-**Der Lernressourcentyp landet in `ccm:oeh_lrt`, nicht in `oeh:new_lrt`.** Das
-Schema und die `/generate`-Antwort nennen das Feld `oeh:new_lrt`, aber diese
-Property gibt es im Content-Modell nicht — der Upload benennt sie deshalb beim
-Schreiben um, so wie er `cm:author` in `ccm:lifecyclecontributer_author`
-überführt. Das Vokabular bleibt dasselbe (`…/vocabs/new_lrt/`, 220 Konzepte); es
-ist eine Umbenennung, keine Umrechnung.
+**Der Lernressourcentyp heißt seit Schema 2.0.0 `ccm:oeh_lrt`** — so wie im
+Repository. Die Property nimmt URIs aus `…/vocabs/new_lrt/` (220 Konzepte).
+
+> Die freigegebenen Schemata **1.8.0 und 1.8.1** nennen das Feld noch
+> `oeh:new_lrt`. Der Upload nimmt diesen Namen weiterhin an und legt den Wert
+> unter `ccm:oeh_lrt` ab — sonst ginge er bei einer gepinnten alten Version oder
+> einer gespeicherten `/generate`-Antwort wortlos verloren.
 
 Dieselbe Property beschreibt der Upload ein zweites Mal: aus dem erkannten
 Inhaltstyp leitet er einen groben Typ ab (`learning_material` → „Material").
@@ -311,7 +312,7 @@ Redaktionsoberfläche als Formularfeld anzeigt.
 | `cm:author` | Autor:in / Urheber:in |
 | `ccm:oeh_publisher_combined` | Publisher / Herausgeber |
 | `ccm:custom_license` | Benutzerdefinierte Lizenz |
-| `ccm:commonlicense_key` | Lizenztyp (CC) |
+| `ccm:commonlicense_key` | Lizenztyp (CC) — **nur die Unterstrich-Form**, siehe unten |
 | `ccm:commonlicense_cc_version` | Lizenzversion |
 | `ccm:fskRating` | FSK-Bewertung |
 | `oeh:required_tools` | Erforderliche Tools/Software ⚠️ |
@@ -381,11 +382,38 @@ Diese setzt der Upload-Pfad unabhängig vom Schema-Flag:
 | `ccm:oeh_extendedType` | `write_extended_data: true` — URI des Inhaltstyps |
 | `ccm:oeh_extendedData` | `write_extended_data: true` — vollständiges Metadaten-JSON |
 | `ccm:oeh_extendedText` | `write_extended_data: true` und `extended_text` gesetzt |
-| `ccm:oeh_lrt` | Aus `oeh:new_lrt` der Extraktion umbenannt. Nur wenn die nichts lieferte, ersatzweise aus `ccm:oeh_extendedType` abgeleitet |
+| `ccm:oeh_lrt` | Ersatzweise aus `ccm:oeh_extendedType` abgeleitet — nur wenn die Extraktion keinen Typ lieferte. Sonst ein reguläres Repo-Feld, siehe oben |
 | `ccm:commonlicense_key` | `CUSTOM`, wenn `ccm:custom_license` nicht auf das Vokabular passt. Kein Fallback, wenn gar keine Lizenz erkannt wurde — das Feld bleibt leer |
 | `ccm:commonlicense_cc_version` | Aus `ccm:custom_license` abgeleitet — bei CC-Links aus der URL, sonst `4.0` für CC-Keys ohne Version |
 | `ccm:lifecyclecontributer_author` | Aus `cm:author` als VCARD |
 | `cm:latitude` / `cm:longitude` | Aus `schema:location[].geo` bzw. `schema:geo` |
+
+---
+
+## Lizenzschlüssel — nur die Unterstrich-Form zählt
+
+`ccm:commonlicense_key` nimmt jeden String an. Aufgelöst wird aber nur die
+Unterstrich-Form; alles andere steht als Text im Feld und ist für das Repository
+keine Lizenz.
+
+| Wert | gespeichert | `virtual:licenseurl` |
+|---|---|---|
+| `CC BY-SA` | ✅ | **null** |
+| `CC_BY_SA` | ✅ | `…/licenses/by-sa/4.0/deed.de` |
+
+Gemessen am 2026-08-12, alle sieben Schlüssel einzeln geschrieben und
+zurückgelesen. Erlaubt sind:
+
+`CC_0` · `CC_BY` · `CC_BY_SA` · `CC_BY_ND` · `CC_BY_NC` · `CC_BY_NC_SA` ·
+`CC_BY_NC_ND`
+
+**`ccm:commonlicense_key_DISPLAYNAME` ist in beiden Fällen `null`** — am Knoten
+selbst ist der Unterschied nicht zu sehen. Wer prüfen will, ob eine Lizenz
+angekommen ist, schaut auf `virtual:licenseurl`.
+
+Die Labels im Schema stehen weiterhin in der vertrauten Form (`CC BY-SA`). Der
+Vokabular-Abgleich fällt auf sie zurück, deshalb darf die Extraktion die
+gewohnte Schreibweise liefern — geschrieben wird die, die auflöst.
 
 ---
 
@@ -405,7 +433,7 @@ Gemessen am 2026-08-12 gegen Staging, Knoten
 | `ccm:commonlicense_ai_allow_usage` | gespeichert ✅ |
 | `ccm:commonlicense_ai_generated` | gespeichert ✅ |
 | `ccm:commonlicense_ai_manually_modified` | gespeichert ✅ |
-| `oeh:new_lrt` | verworfen → wird jetzt als `ccm:oeh_lrt` geschrieben |
+| `oeh:new_lrt` | verworfen → das Feld heißt jetzt `ccm:oeh_lrt` |
 | `oeh:required_tools` | **verworfen** |
 | `schema:datePublished` | **verworfen** |
 
@@ -413,8 +441,8 @@ Bestätigend über den Bestand: von 100 gelesenen Knoten trägt **kein einziger*
 eines dieser Felder — `ccm:oeh_lrt` dagegen 91, mit 124 Werten, alle aus
 `…/vocabs/new_lrt/`.
 
-`oeh:new_lrt` ist damit erledigt: der Upload benennt es beim Schreiben in
-`ccm:oeh_lrt` um (siehe oben). Am Knoten
+`oeh:new_lrt` ist damit erledigt: das Schema nennt das Feld seit 2.0.0
+`ccm:oeh_lrt`, so wie das Repository. Am Knoten
 `5d648bba-0387-4896-a48b-ba0387a89657` nachgewiesen — `ccm:oeh_lrt` löst dort auf
 „Lexikon oder Enzyklopädie" auf.
 

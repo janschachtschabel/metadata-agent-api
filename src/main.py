@@ -24,6 +24,8 @@ from .models.schemas import (
     SchemataInfoResponse,
     ContextInfo,
     SchemaInfo,
+    CreateNodeRequest,
+    CreateNodeResponse,
     UploadRequest,
     UploadResponse,
     UploadedNodeInfo,
@@ -970,7 +972,7 @@ async def detect_content_type(req: DetectContentTypeRequest):
 ## Feld-Optionen
 
 - **schema_file**: Schema-Datei die das Feld enthält, z.B. `event.json`, `core.json`
-- **field_id**: Feld-ID zum Extrahieren, z.B. `schema:startDate`, `cclom:title`
+- **field_id**: Feld-ID zum Extrahieren, z.B. `ccm:oeh_event_begin`, `cclom:title`
 - **existing_metadata**: Bestehende Metadaten als Kontext (optional)
 - **normalize**: Normalisierung anwenden (Standard: `true`)
 
@@ -998,7 +1000,7 @@ async def detect_content_type(req: DetectContentTypeRequest):
                                 "context": "default",
                                 "version": "latest",
                                 "schema_file": "event.json",
-                                "field_id": "schema:startDate",
+                                "field_id": "ccm:oeh_event_begin",
                                 "existing_metadata": {},
                                 "language": "de",
                                 "normalize": True,
@@ -1040,7 +1042,7 @@ async def detect_content_type(req: DetectContentTypeRequest):
                                 "context": "default",
                                 "version": "latest",
                                 "schema_file": "event.json",
-                                "field_id": "schema:startDate",
+                                "field_id": "ccm:oeh_event_begin",
                                 "existing_metadata": {},
                                 "language": "de",
                                 "normalize": True,
@@ -1061,9 +1063,9 @@ async def detect_content_type(req: DetectContentTypeRequest):
                                 "context": "default",
                                 "version": "latest",
                                 "schema_file": "event.json",
-                                "field_id": "schema:startDate",
+                                "field_id": "ccm:oeh_event_begin",
                                 "existing_metadata": {
-                                    "schema:startDate": "2025-03-15T00:00"
+                                    "ccm:oeh_event_begin": "2025-03-15T00:00"
                                 },
                                 "language": "de",
                                 "normalize": True,
@@ -1485,7 +1487,7 @@ async def extract_field(req: ExtractFieldRequest):
                                 "include_core": True,
                                 "enable_geocoding": True,
                                 "normalize": True,
-                                "regenerate_fields": ["schema:startDate"],
+                                "regenerate_fields": ["ccm:oeh_event_begin"],
                                 "regenerate_empty": True,
                                 "llm_provider": "b-api-academiccloud",
                                 "llm_model": "deepseek-v4-flash",
@@ -2226,9 +2228,15 @@ async def upload_to_repository(request: Request):
 
     import asyncio
 
-    # If direct metadata (no "metadata" wrapper), wrap it for Pydantic model
+    # If direct metadata (no "metadata" wrapper), wrap it for Pydantic model.
+    #
+    # The options have to be lifted out by name before the rest becomes the
+    # metadata dict. A name missing from this list is not rejected — it is filed
+    # away as a metadata field and silently does nothing, which is worse than an
+    # error. Anything added to UploadRequest belongs here too.
     if "metadata" not in data or not isinstance(data.get("metadata"), dict):
         # Extract upload options before wrapping
+        node_id = data.pop("node_id", None)
         repository = data.pop("repository", "staging")
         check_duplicates = data.pop("check_duplicates", True)
         start_workflow = data.pop("start_workflow", True)
@@ -2244,6 +2252,7 @@ async def upload_to_repository(request: Request):
         workflow_receiver = data.pop("workflow_receiver", None)
         data = {
             "metadata": data,
+            "node_id": node_id,
             "repository": repository,
             "check_duplicates": check_duplicates,
             "start_workflow": start_workflow,
@@ -2331,6 +2340,7 @@ async def upload_to_repository(request: Request):
         extended_text=req.extended_text,
         return_full_node=req.return_full_node,
         collection_ids=req.collection_id,
+        node_id=req.node_id,
         workflow_steps=req.workflow_steps,
         workflow_comment=req.workflow_comment,
         workflow_receiver=req.workflow_receiver,
@@ -2425,6 +2435,7 @@ async def upload_to_repository(request: Request):
         step=result.get("step"),
         fields_written=result.get("fields_written"),
         fields_skipped=result.get("fields_skipped"),
+        node_created=result.get("node_created"),
         schema_used=result.get("schema_used"),
         repo_fields_available=result.get("repo_fields_available"),
         field_errors=field_errors,
@@ -2432,6 +2443,78 @@ async def upload_to_repository(request: Request):
         collections=collections,
         workflow=workflow,
         discarded_node=result.get("discarded_node"),
+    )
+
+
+# ============================================================================
+# Node Creation Endpoint
+# ============================================================================
+
+
+@app.post(
+    "/node",
+    response_model=CreateNodeResponse,
+    tags=["Repository"],
+    summary="Node anlegen, ohne Metadaten zu schreiben",
+    description="""
+Legt einen Node im Eingangsordner an und gibt seine ID zurück — die erste Hälfte
+eines Uploads für sich genommen.
+
+**Wofür.** Wer eine Node-ID braucht, bevor die Metadaten existieren — um sie
+anzuzeigen, zu verlinken oder einer Redaktion zu übergeben — bekommt sie hier und
+reicht sie später als `node_id` an `POST /upload` weiter. Ohne diesen Schritt legt
+jeder `/upload` seinen eigenen Node an.
+
+**Was geschrieben wird.** Genau die Felder, die der Upload beim Anlegen setzt:
+`cclom:title` (Pflicht), `cclom:general_description`, `cclom:general_keyword`,
+`ccm:wwwurl`, `cclom:general_language` — dazu `ccm:linktype: USER_GENERATED`.
+Alles andere wird ignoriert; es braucht den Schemafilter, und der gehört in den
+zweiten Schritt.
+
+**Der Titel ist Pflicht.** Ein Node ohne Titel ist im Eingangsordner nicht
+auffindbar, und der Zweck dieses Aufrufs ist gerade, etwas Referenzierbares zu
+bekommen.
+
+```jsonc
+// 1. Node anlegen
+POST /node  { "metadata": { "cclom:title": "Bruchrechnung Klasse 6" } }
+// → { "success": true, "node": { "nodeId": "5443240c-…" } }
+
+// 2. später: Metadaten nachreichen
+POST /upload { "metadata": { …aus /generate… }, "node_id": "5443240c-…" }
+// → { "success": true, "node_created": false, "fields_written": 25 }
+```
+
+**Zwei Unterschiede zum einstufigen Upload**, wenn `node_id` gesetzt ist:
+die Dublettenprüfung entfällt (der Node trägt die URL bereits und würde sich
+selbst finden), und ein Fehler verwirft den Node **nicht** — er gehört dem
+Aufrufer, nicht diesem Dienst.
+""",
+)
+async def create_node(req: CreateNodeRequest):
+    """Create a node with minimal fields and return its id."""
+    repo_service = get_repository_service()
+
+    data = req.metadata
+    if "metadata" in data and isinstance(data.get("metadata"), dict):
+        data = data["metadata"]
+
+    result = await repo_service.create_node(
+        metadata=data, check_duplicates=req.check_duplicates
+    )
+
+    if not result.get("success") and not result.get("duplicate"):
+        raise HTTPException(
+            status_code=400,
+            detail=result.get("error", "Node konnte nicht angelegt werden"),
+        )
+
+    node = result.get("node")
+    return CreateNodeResponse(
+        success=result.get("success", False),
+        duplicate=result.get("duplicate"),
+        node=UploadedNodeInfo(**node) if node else None,
+        error=result.get("error"),
     )
 
 
@@ -2815,6 +2898,7 @@ async def verify_upload(node_id: str, request: Request):
         success=True,
         node_id=node_id,
         actual_metadata=result["actual_metadata"],
+        unresolved=result.get("unresolved"),
         diff=diff_list,
         summary=result.get("summary"),
     )

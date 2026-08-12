@@ -87,3 +87,51 @@ def test_the_request_examples_name_a_provider_and_a_model_that_belong_together()
                     )
 
     assert seen > 0, "keine Beispiele mit Provider und Modell gefunden"
+
+
+def test_every_example_field_id_exists_in_the_schema_it_names():
+    """
+    'schema:startDate' with 'event.json' answered 404 Field not found: the field
+    was renamed to ccm:oeh_event_begin in 2.0.0 and the example kept pointing at
+    the old one. Copying it produced an error that reads like a broken request.
+    """
+    from src.utils.schema_loader import get_schema_fields
+
+    spec = app.openapi()
+    methods = {"get", "put", "post", "delete", "patch", "head", "options", "trace"}
+    checked = 0
+
+    for path, operations in spec["paths"].items():
+        for method, operation in operations.items():
+            if method not in methods:
+                continue
+            content = (operation.get("requestBody") or {}).get("content", {})
+            for media in content.values():
+                for name, example in (media.get("examples") or {}).items():
+                    value = example.get("value") if isinstance(example, dict) else None
+                    if not isinstance(value, dict):
+                        continue
+                    field_id = value.get("field_id")
+                    schema_file = value.get("schema_file")
+                    if not field_id or not schema_file or schema_file == "auto":
+                        continue
+
+                    context = value.get("context", "default")
+                    version = value.get("version", "latest")
+                    known = {
+                        f["id"]
+                        for f in get_schema_fields(context, version, "core.json")
+                    }
+                    if schema_file != "core.json":
+                        known |= {
+                            f["id"]
+                            for f in get_schema_fields(context, version, schema_file)
+                        }
+
+                    checked += 1
+                    assert field_id in known, (
+                        f"{path} {name}: '{field_id}' steht nicht in "
+                        f"{schema_file} ({context}@{version})"
+                    )
+
+    assert checked > 0, "keine Beispiele mit field_id und schema_file gefunden"

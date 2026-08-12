@@ -29,8 +29,13 @@ CRAFTED_IDS = [
     "nicht-eine-node-id",
     f"{NODE_ID} extra",
     f"{NODE_ID}/metadata",
-    "",
 ]
+
+# A blank value is not a crafted id, it is an absent one — the Swagger example
+# ships `"node_id": ""` alongside `"input_source": "text"`. It is normalized to
+# None instead of rejected, which keeps it just as far away from a URL; see
+# test_empty_optional_fields.py.
+BLANK_IDS = ["", "   "]
 
 MODELS_WITH_NODE_ID = [
     (GenerateRequest, {}),
@@ -51,7 +56,7 @@ def test_a_node_uuid_is_valid(value):
     assert is_valid_node_id(value) is True
 
 
-@pytest.mark.parametrize("value", CRAFTED_IDS + [None, 42])
+@pytest.mark.parametrize("value", CRAFTED_IDS + BLANK_IDS + [None, 42])
 def test_anything_that_is_not_a_node_uuid_is_invalid(value):
     assert is_valid_node_id(value) is False
 
@@ -69,6 +74,16 @@ def test_request_bodies_reject_a_crafted_node_id(model, payload, crafted):
 @pytest.mark.parametrize("model, payload", MODELS_WITH_NODE_ID)
 def test_request_bodies_accept_a_node_uuid(model, payload):
     assert model(**payload, node_id=NODE_ID).node_id == NODE_ID
+
+
+@pytest.mark.parametrize("model, payload", MODELS_WITH_NODE_ID)
+@pytest.mark.parametrize("blank", BLANK_IDS)
+def test_a_blank_node_id_reaches_no_url_either(model, payload, blank):
+    """
+    Normalized to None rather than refused: the endpoint that actually needs one
+    says so itself, and None cannot be interpolated into a URL at all.
+    """
+    assert model(**payload, node_id=blank).node_id is None
 
 
 @pytest.mark.parametrize("model, payload", MODELS_WITH_NODE_ID)

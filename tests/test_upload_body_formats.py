@@ -154,3 +154,76 @@ def test_markdown_export_uses_the_named_schema(client, shape):
 
     assert response.status_code == 200
     assert response.json()["schema_used"] == "event.json"
+
+
+# ------------------------------------------------- options in the flat shape
+#
+# The flat shape arrives as one bag of keys, so the upload options have to be
+# lifted out of it by name before the rest becomes the metadata dict. That list
+# is hand-maintained: a name missing from it is not rejected, it is filed away
+# as a metadata field and silently does nothing. `node_id` was missing exactly
+# that way — the two-step upload created a second node instead of filling the
+# one it was given.
+
+OPTION_VALUES = {
+    "node_id": "1c0e6a44-9d7b-4f2e-8e6a-449d7b4f2e11",
+    "check_duplicates": False,
+    "start_workflow": False,
+    "write_extended_data": False,
+    "return_full_node": True,
+    "source": "Landesinstitut",
+    "extended_text": "Rohtext",
+    "collection_id": ["3039bdb2-f51f-4cc8-b1d9-3fb6b0ffc1d9"],
+    "workflow_steps": ["200_tocheck"],
+    "workflow_comment": "Kommentar",
+    "workflow_receiver": ["GROUP_Redaktion"],
+}
+
+
+@pytest.mark.parametrize("option", sorted(OPTION_VALUES))
+def test_an_option_in_the_flat_shape_is_read_as_an_option(client, option):
+    call = _upload(client, {**BODIES["flat"], option: OPTION_VALUES[option]})
+
+    assert option not in call["metadata"], (
+        f"'{option}' landete in den Metadaten statt als Option gelesen zu werden"
+    )
+
+
+# 'source' is not handed to the service — it is applied to the metadata before
+# the call, overwriting ccm:oeh_publisher_combined.
+PASSED_THROUGH = sorted(set(OPTION_VALUES) - {"source"})
+
+
+@pytest.mark.parametrize("option", PASSED_THROUGH)
+def test_an_option_in_the_flat_shape_reaches_the_service(client, option):
+    """Not being swallowed is half of it — the value has to arrive as well."""
+    call = _upload(client, {**BODIES["flat"], option: OPTION_VALUES[option]})
+    expected = OPTION_VALUES[option]
+    # The service names this one differently than the request does.
+    key = {"collection_id": "collection_ids"}.get(option, option)
+
+    assert call[key] == expected
+
+
+def test_the_source_option_overwrites_the_publisher(client):
+    call = _upload(client, {**BODIES["flat"], "source": "Landesinstitut"})
+
+    assert call["metadata"]["ccm:oeh_publisher_combined"] == "Landesinstitut"
+
+
+def test_the_option_list_covers_every_field_of_the_request_model():
+    """
+    A new field on UploadRequest that nobody adds to the flat-shape extraction
+    is invisible in the recommended body format. This is the check that says so
+    at build time instead of in production.
+    """
+    from src.models.schemas import UploadRequest
+
+    fields = set(UploadRequest.model_fields) - {"metadata", "repository"}
+    # preview_url and screenshot_method drive the screenshot, which is stubbed
+    # here; they are covered by the screenshot tests.
+    fields -= {"preview_url", "screenshot_method"}
+
+    assert fields <= set(OPTION_VALUES), (
+        f"nicht auf die flache Form geprüft: {sorted(fields - set(OPTION_VALUES))}"
+    )

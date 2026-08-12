@@ -35,16 +35,16 @@ AI_LICENSE_FIELDS = [
 ]
 
 # field id -> the schema file that declares it, per context. The two contexts
-# organise these differently: default keeps oeh:new_lrt in core.json only,
+# organise these differently: default keeps ccm:oeh_lrt in core.json only,
 # mds_oeh repeats it in the content type.
 DECLARED_IN = {
     "default": {
-        "oeh:new_lrt": "core.json",
+        "ccm:oeh_lrt": "core.json",
         "oeh:required_tools": "learning_material.json",
         "schema:datePublished": "learning_material.json",
     },
     "mds_oeh": {
-        "oeh:new_lrt": "core.json",
+        "ccm:oeh_lrt": "core.json",
         "oeh:required_tools": "learning_material.json",
         "schema:datePublished": "learning_material.json",
     },
@@ -138,16 +138,17 @@ def test_a_learning_material_upload_may_write_the_field(context, field_id):
 
 
 @pytest.mark.parametrize("context", CONTEXTS)
-def test_the_derived_lrt_and_the_extracted_lrt_are_different_properties(context):
+def test_the_extracted_and_the_derived_type_share_one_property(context):
     """
-    ccm:oeh_lrt is derived from the detected content type and written with the
-    extended data; oeh:new_lrt carries what the extraction found. Writing one
-    must not be mistaken for writing the other.
+    `ccm:oeh_lrt` is the property, for both: what the extraction found and — only
+    when it found nothing — the coarse type derived from the content type. They
+    were two names for a while, which cost a rename on the write path and a
+    second one in the diff.
     """
     repo_fields = get_repo_fields(context, VERSION, "learning_material.json")
 
-    assert "oeh:new_lrt" in repo_fields
-    assert "ccm:oeh_lrt" not in repo_fields
+    assert "ccm:oeh_lrt" in repo_fields
+    assert "oeh:new_lrt" not in repo_fields
 
 
 # ---------------------------------------------------- the AI provenance flags

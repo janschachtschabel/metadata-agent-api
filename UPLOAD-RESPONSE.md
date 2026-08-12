@@ -36,7 +36,8 @@ heute gegen `/upload` programmiert, muss nichts anpassen.
 | `preview` | object \| null | – | Status des Vorschaubild-Uploads |
 | `collections` | array \| null | **nur wenn Sammlungen angegeben waren** | `[{collectionId, success, error}]` |
 | `workflow` | array \| null | **nur bei `start_workflow: true`** | `[{status, success, error}]` in ausgeführter Reihenfolge |
-| `discarded_node` | string \| null | nur nach Abbruch | ID des unvollständigen Nodes, der zurückgenommen wurde |
+| `node_created` | bool \| null | bei Erfolg | **NEU** — `true`, wenn dieser Aufruf den Node angelegt hat; `false`, wenn er über `node_id` übergeben wurde |
+| `discarded_node` | string \| null | nur nach Abbruch | ID des unvollständigen Nodes, der zurückgenommen wurde. **Nie gesetzt, wenn `node_id` übergeben wurde** — ein fremder Node wird nicht verworfen |
 
 ### `node` — die bisherige Kurzinfo
 

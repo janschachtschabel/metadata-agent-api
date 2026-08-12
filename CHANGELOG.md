@@ -3,7 +3,7 @@
 Stand: 2026-08-12 · gegenüber Commit `52b008c` (CORS Fix)
 
 Alles unten ist im Arbeitsbaum, noch nicht committet. Die Testsuite umfasst
-**579 Tests**; `ruff check` und `ruff format --check` sind sauber.
+**789 Tests**; `ruff check` und `ruff format --check` sind sauber.
 
 ---
 
@@ -56,7 +56,7 @@ Satzes, wird der Schlüssel gesetzt **und** der Text behalten — der Satz kann
 mehr sagen als die Lizenz.
 
 Die Schreibweise (`CC_BY_SA`, Unterstriche) ist gegen das Live-Repository
-geprüft: WLO speichert genau diese Form.
+geprüft: WLO speichert genau diese Form — und nur sie löst auf, siehe Punkt 19.
 
 ### 4. `collection_id` ist immer ein Array
 
@@ -411,6 +411,220 @@ jetzt nur noch, wenn die Extraktion nichts gefunden hat.
 Das Konzept „Lexikon oder Enzyklopädie" war eines der 133 fehlenden — ohne beide
 Korrekturen zusammen wäre es nicht möglich gewesen.
 
+### 17. Zweistufiger Upload: `POST /node` und `node_id` am `/upload` (neu)
+
+Wer eine Node-ID braucht, bevor die Metadaten existieren — um sie anzuzeigen, zu
+verlinken oder einer Redaktion zu übergeben — bekommt sie jetzt einzeln:
+
+```jsonc
+POST /node   { "metadata": { "cclom:title": "Bruchrechnung Klasse 6" } }
+// → { "success": true, "node": { "nodeId": "5443240c-…" } }
+
+POST /upload { "metadata": { …aus /generate… }, "node_id": "5443240c-…" }
+// → { "success": true, "node_created": false, "fields_written": 25 }
+```
+
+Beide Hälften steckten schon in `upload_metadata`; neu ist, dass die Naht von
+außen erreichbar ist. `POST /node` schreibt genau die fünf Felder, die der Upload
+beim Anlegen ohnehin setzt (`cclom:title` — Pflicht —,
+`cclom:general_description`, `cclom:general_keyword`, `ccm:wwwurl`,
+`cclom:general_language`) plus `ccm:linktype`. Alles Weitere braucht den
+Schemafilter und gehört in den zweiten Schritt.
+
+**`node_id` ist rein optional** — ohne den Parameter ändert sich am `/upload`
+nichts. Mit ihm gelten zwei Abweichungen, und beide sind der eigentliche Grund,
+warum das kein Dreizeiler war:
+
+| | einstufig | mit `node_id` |
+|---|---|---|
+| Dublettenprüfung | läuft | **entfällt** |
+| Node bei Fehler | wird verworfen | **bleibt** |
+
+**Die Rücknahme darf nicht zuschlagen.** `_failed()` löscht den Node, wenn nach
+dem Anlegen etwas schiefgeht — richtig für einen Node, den dieser Dienst erzeugt
+hat, und falsch für einen, den er bekommen hat: der Aufrufer kann dort längst
+Inhalt abgelegt haben. `created_node_id` wird deshalb nur noch gesetzt, wenn der
+Aufruf den Node selbst angelegt hat. Ein Test hält das fest; mit
+zurückgedrehtem Schutz meldet er `🧹 Discarded incomplete node …`.
+
+**Die Dublettenprüfung fände sich selbst.** Sie sucht nach `ccm:wwwurl` — und der
+Node, der befüllt werden soll, trägt diese URL bereits aus Schritt eins. Ohne
+Ausnahme bräche der Upload als Dublette seiner selbst ab.
+
+Neu in der Antwort: **`node_created`**. Beide Fälle liefern `200` und dieselbe
+`nodeId`, sonst unterscheidet sie nichts.
+
+**Gegen Staging durchgespielt** (2026-08-12): `POST /node` mit nur einem Titel →
+Knoten `24f82a2a-…` mit `cclom:title` und `ccm:linktype`; anschließend `/upload`
+mit dieser ID in der flachen Form → `node_created: false`, 9 Felder auf
+demselben Knoten, und im Repository existiert genau **ein** Knoten mit diesem
+Titel.
+
+### 18. `cm:name` wird gesetzt, wenn das Repository keinen ableiten kann
+
+Der Live-Durchlauf legte einen Fehler offen, den kein aufgezeichneter Test finden
+konnte: `POST /node` mit nur einem Titel scheiterte an
+
+```
+500 java.lang.Exception: missing name
+```
+
+`cm:name` ist beim Anlegen Pflicht, und edu-sharing leitet es aus **`ccm:wwwurl`**
+ab — aus `cclom:title` nie. Gemessen:
+
+| Gesendet | Ergebnis |
+|---|---|
+| nur `cclom:title` | **500 `missing name`** |
+| `cclom:title` + `cm:name` | 200, Name wie angegeben |
+| `cclom:title` + `ccm:wwwurl` | 200, Name aus der URL (`example.org_probe-c`) |
+
+Das traf **nicht nur den neuen Endpunkt**: jeder `/upload` ohne `ccm:wwwurl` lief
+in dasselbe 500 — bei Textquellen ohne URL und bei Inhaltstypen, die keine
+führen. Der Fix sitzt deshalb in `_create_node` und gilt für beide Wege.
+
+`cm:name` wird nur in dieser Lücke gesetzt, aus dem Titel, bereinigt um die von
+Alfresco verbotenen Zeichen (`* " \ > < ? / : |`), auf 200 Zeichen gekürzt.
+**Liegt eine URL vor, bleibt es beim abgeleiteten Namen** — jeder bisher
+hochgeladene Knoten trägt einen solchen (`Echte Hasen  Wikipedia - 2`), und ihn
+zu überschreiben würde sie alle umbenennen, in einem Feld, das die Redaktion
+sieht.
+
+> **Nebenbefund aus demselben Lauf:** die LRT-URI in meinen eigenen Tests war
+> erfunden. Am Knoten fiel es als leeres `ccm:oeh_lrt_DISPLAYNAME` auf — die
+> Tests waren grün, weil die Transformation weiterreicht, was sie bekommt, und
+> nichts davon auflöst. Korrigiert auf die echte „Arbeitsblatt"-URI, plus ein
+> Test, der jede in Tests verwendete URI gegen den Vokabular-Snapshot prüft.
+
+### 19. Lizenzschlüssel: die Schreibweise entschied, ob die Lizenz existiert
+
+Das Vokabular von `ccm:commonlicense_key` bot `CC BY-SA` an — mit Leerzeichen und
+Bindestrich. Das Repository speichert den Wert, **erkennt ihn aber nicht als
+Lizenz**. Am lebenden Knoten geprüft, jede der sieben Schreibweisen einzeln
+geschrieben und zurückgelesen:
+
+```
+geschrieben 'CC BY-SA' → gespeichert ["CC BY-SA"]  virtual:licenseurl = null
+geschrieben 'CC_BY_SA' → gespeichert ["CC_BY_SA"]  virtual:licenseurl =
+                         https://creativecommons.org/licenses/by-sa/4.0/deed.de
+```
+
+Alle sieben mit Leerzeichen scheitern, alle sieben mit Unterstrich lösen auf —
+auch `CC0` → `CC_0`. Und `ccm:commonlicense_key_DISPLAYNAME` ist in beiden Fällen
+`null`, am Knoten selbst ist der Fehler also nicht zu sehen. `virtual:licenseurl`
+ist die einzige Stelle, an der er auffällt.
+
+**Wirkung:** jede Lizenz, die die Extraktion direkt in `ccm:commonlicense_key`
+schrieb, kam als Text an und wurde von nichts aufgelöst. Nur der Weg über einen
+Deed-Link in `ccm:custom_license` war korrekt — der ging schon immer durch
+`map_creative_commons_url` und lieferte `CC_BY_SA`.
+
+Die Vokabular-Werte stehen jetzt in beiden Kontexten und allen vier Typschemata
+auf der Unterstrich-Form, die Prompts nennen sie.
+
+**Die Labels bleiben lesbar** (`CC BY-SA`), und das ist kein Versehen: der
+Vokabular-Abgleich fällt auf die Labels zurück und gibt den Wert des Konzepts
+heraus. Ein Modell darf also weiter die vertraute Schreibweise liefern —
+gespeichert wird die, die auflöst:
+
+```
+'CC BY-SA' → CC_BY_SA      'cc by-sa' → CC_BY_SA      'Namensnennung' → null
+```
+
+### 20. Der Lernressourcentyp: das Modell sah die falschen 20
+
+Der Extraktions-Prompt listet höchstens 20 Konzepte und hängt „… und N weitere"
+an. In der Reihenfolge des veröffentlichten Vokabulars sind die ersten 20
+**ausnahmslos Quellen- und Angebotstypen**: Quelle, Kollektion, Wörterbuch,
+Portal, Datenbank, Studiengang, Ausbildungsberuf … und kein einziger
+Unterrichtsmaterialtyp.
+
+Ein Arbeitsblatt bekam also eine Auswahl vorgelegt, in der „Arbeitsblatt" nicht
+vorkam. Der Wikipedia-Artikel über Hasen kam als „Lexikon oder Enzyklopädie"
+zurück — ein Wert aus genau diesem Fenster.
+
+Zehn Typen stehen jetzt vorn, gewählt aus dem, was das Repository tatsächlich
+führt (100 Knoten: Material 79×, Wiki 14×, Webseite 8×, Arbeitsblatt 6×,
+Unterrichtsbaustein 6×, Video 4×) plus den Alltagstypen, die in dieser Stichprobe
+fehlten:
+
+`Material` · `Arbeitsblatt` · `Video (Material)` · `Audio` · `Bild (Material)` ·
+`Präsentation` · `Quiz` · `Dokumente und textbasierte Inhalte` · `Webseite` ·
+`Unterrichtsbaustein`
+
+Es ist eine Umsortierung, keine Auswahl — alle 220 Konzepte bleiben, jedes genau
+einmal; ein Test prüft das. Derselbe Arbeitsblatt-Text liefert danach
+`36e68792-…` = **Arbeitsblatt**.
+
+> Beides ist dieselbe Fehlerklasse und beides fiel erst am lebenden Repository
+> auf: ein Wert, der geschrieben wird, `200` bekommt und trotzdem nirgends
+> ankommt. Weder Statuscode noch `fields_written` sagen etwas dazu.
+
+### 21. `/upload/verify` prüft jetzt, ob ein Wert überhaupt ein Wert ist
+
+Drei Fehler dieser Sitzung hatten dieselbe Bauart: etwas wurde gesendet, das
+Repository antwortete `200`, und der Wert kam nie als Wert an.
+
+| | |
+|---|---|
+| `oeh:new_lrt` | nicht im Content-Modell, stillschweigend verworfen |
+| `CC BY-SA` | gespeichert, aber nicht als Lizenz gelesen |
+| eine erfundene `new_lrt`-UUID | gespeichert, löst auf nichts auf |
+
+**Keiner davon war im Statuscode zu sehen, nicht in `fields_written` und nicht im
+SOLL/IST-Vergleich** — das Feld war da, und sein Wert war gleich dem gesendeten.
+Was sie verrät, ist die Frage, ob das Repository aus dem Wert ein Label machen
+kann.
+
+An einem lebenden Knoten gemessen: von 19 gesetzten Vokabularfeldern tragen 18
+ein `<feld>_DISPLAYNAME`, und genau eines — `ccm:commonlicense_key` — nie; dessen
+Signal ist `virtual:licenseurl`. Daraus die Regel:
+
+```
+Vokabularfeld       → <feld>_DISPLAYNAME muss gefüllt sein
+commonlicense_key   → virtual:licenseurl muss da sein
+alles andere        → nichts aufzulösen, kein Urteil
+```
+
+**Zwei Ergänzungen an der Antwort**, beide additiv:
+
+```jsonc
+{
+  "unresolved": [
+    { "field_id": "ccm:oeh_lrt", "value": ["…/new_lrt/8e83b3f9-…"],
+      "known": false,
+      "reason": "leeres _DISPLAYNAME — der Wert steht in keinem Vokabular" }
+  ],
+  "diff": [
+    { "field_id": "oeh:new_lrt", "status": "match", "resolution": "unresolved" }
+  ],
+  "summary": { "match": 12, "unresolved": 1, … }
+}
+```
+
+`resolution` steht **neben** `status`, nicht darin: ein Feld kann exakt den
+gesendeten Wert tragen (`match`) und trotzdem tot sein. Beides zu vermischen
+hätte verborgen, dass der Wert korrekt angekommen ist.
+
+**`unresolved` braucht keine `expected_metadata`.** „Welche Werte dieses Knotens
+sind tot?" ist eine Frage, die man auch über einen Knoten stellt, den man nicht
+selbst hochgeladen hat. Die Node-ID kommt wie bisher aus dem Pfad
+(`POST /upload/verify/{node_id}`).
+
+**Bekannte Fälle sind markiert.** `ccm:oeh_quality_correctness` und die drei
+`ccm:commonlicense_ai_*` haben im MDS keinen Wertebereich — sie sind korrekt
+gespeichert, es gibt nur kein Label. Sie tauchen auf **jedem** Knoten auf; ohne
+`known: true` und Sortierung nach echten Befunden zuerst würde der Bericht
+antrainieren, ihn zu überblättern.
+
+An zwei echten Knoten geprüft: der Testknoten meldet **einen** echten Befund
+(die erfundene LRT-URI) und zwei bekannte, der saubere Knoten **null** echte.
+
+> **Nebenbefund:** der Vergleich fand `oeh:new_lrt` bisher gar nicht wieder — der
+> Upload benennt es in `ccm:oeh_lrt` um, und der Diff suchte nur unter dem
+> Schema-Namen. Er meldete das Feld als `missing_in_repo` **und** denselben Wert
+> noch einmal als `extra_in_repo`. Beides behoben; die Umbenennungstabelle liegt
+> jetzt an einer Stelle.
+
 ## Konfiguration
 
 ### `WLO_REPOSITORY_BASE_URL` entfernt
@@ -452,7 +666,7 @@ Import auf UTF-8. Unter Linux, Docker und Vercel ändert das nichts.
 
 ### Tests und Abdeckung
 
-579 Tests (vorher keine). Abdeckung der Service-Schicht:
+789 Tests (vorher keine). Abdeckung der Service-Schicht:
 
 | Modul | Abdeckung |
 |---|---|

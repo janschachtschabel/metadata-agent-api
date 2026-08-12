@@ -15,6 +15,7 @@ Generiert strukturierte Metadaten nach dem [WLO/OEH-Schema](https://wirlernenonl
   - [POST /detect-content-type](#post-detect-content-type)
   - [POST /validate](#post-validate)
   - [POST /export/markdown](#post-exportmarkdown)
+  - [POST /node](#post-node)
   - [POST /upload](#post-upload)
   - [POST /workflow/{node_id}](#post-workflownode_id)
   - [POST /upload/verify/{node_id}](#post-uploadverifynode_id)
@@ -624,6 +625,61 @@ Exportiert Metadaten als menschenlesbares Markdown-Dokument.
 
 ---
 
+### POST /node
+
+Legt einen Node im Eingangsordner an und gibt seine ID zurück — **ohne**
+Metadaten zu schreiben. Die erste Hälfte eines Uploads für sich genommen.
+
+Gedacht für Aufrufer, die eine Node-ID brauchen, bevor die Metadaten existieren:
+um sie anzuzeigen, zu verlinken oder einer Redaktion zu übergeben. Die ID geht
+später als `node_id` an `POST /upload`.
+
+```bash
+curl -X POST http://localhost:8000/node \
+  -H "Content-Type: application/json" \
+  -d '{"metadata": {"cclom:title": "Bruchrechnung Klasse 6"}}'
+```
+
+```json
+{
+  "success": true,
+  "node": {
+    "nodeId": "5443240c-43a2-4961-8324-0c43a22961dd",
+    "title": "Bruchrechnung Klasse 6",
+    "repositoryUrl": "https://repository.staging.openeduhub.net/edu-sharing/components/render/5443240c-..."
+  }
+}
+```
+
+| Parameter | Typ | Default | Beschreibung |
+|---|---|---|---|
+| `metadata` | object | **erforderlich** | Mindestens `cclom:title` |
+| `check_duplicates` | bool | `false` | Vor dem Anlegen nach `ccm:wwwurl` suchen |
+
+**Geschrieben werden nur fünf Felder** — dieselben, die der Upload beim Anlegen
+setzt: `cclom:title`, `cclom:general_description`, `cclom:general_keyword`,
+`ccm:wwwurl`, `cclom:general_language`, dazu `ccm:linktype: USER_GENERATED`.
+Alles andere wird ignoriert; es braucht den Schemafilter und gehört in den
+zweiten Schritt.
+
+**Der Titel ist Pflicht** (`400` ohne ihn). Ein Node ohne Titel ist im
+Eingangsordner nicht auffindbar, und der Zweck dieses Aufrufs ist gerade, etwas
+Referenzierbares zu bekommen.
+
+**Zum Knotennamen (`cm:name`).** edu-sharing verlangt ihn beim Anlegen und leitet
+ihn aus `ccm:wwwurl` ab — aus `cclom:title` nie. Fehlt die URL, antwortet das
+Repository mit `500 missing name`. Deshalb setzt der Dienst `cm:name` selbst,
+sobald keine URL vorliegt: aus dem Titel, bereinigt um die von Alfresco
+verbotenen Zeichen (`* " \ > < ? / : |`) und auf 200 Zeichen gekürzt. Mit URL
+bleibt es beim abgeleiteten Namen. Ein eigenes `cm:name` in den Metadaten hat
+Vorrang.
+
+`check_duplicates` steht standardmäßig auf `false`, weil die URL zu diesem
+Zeitpunkt oft noch nicht feststeht. Findet die Prüfung eine Dublette, kommt
+`success: false`, `duplicate: true` und die ID des bestehenden Nodes.
+
+---
+
 ### POST /upload
 
 Lädt Metadaten ins WLO edu-sharing Repository hoch.
@@ -687,6 +743,33 @@ existieren, weil beide Formen im Umlauf sind:
 | `workflow_steps` | string[] | `["200_tocheck"]` | Workflow-Status, die nach dem Upload der Reihe nach gesetzt werden |
 | `workflow_comment` | string | `Upload via Metadata Agent API` | Kommentar zu jedem Workflow-Schritt |
 | `workflow_receiver` | string[] | siehe unten | Authority-Namen, die je Schritt benachrichtigt werden |
+| `node_id` | string | — | Bestehender Node, in den geschrieben wird — z.B. aus [POST /node](#post-node). Ohne Angabe wird einer angelegt |
+
+#### Zweistufiger Upload mit `node_id`
+
+Wer die Node-ID früher braucht als die Metadaten, legt sie mit
+[POST /node](#post-node) an und reicht sie hier nach:
+
+```jsonc
+// 1. Node anlegen
+POST /node   { "metadata": { "cclom:title": "Bruchrechnung Klasse 6" } }
+// → { "success": true, "node": { "nodeId": "5443240c-…" } }
+
+// 2. später: Metadaten schreiben
+POST /upload { "metadata": { …aus /generate… }, "node_id": "5443240c-…" }
+// → { "success": true, "node_created": false, "fields_written": 25 }
+```
+
+Der Parameter ist rein optional; ohne ihn ändert sich nichts. Mit ihm gelten zwei
+Abweichungen:
+
+| | einstufig | mit `node_id` |
+|---|---|---|
+| Dublettenprüfung | läuft | **entfällt** — der Node trägt die URL schon und fände sich selbst |
+| Node bei Fehler | wird verworfen | **bleibt** — er gehört dem Aufrufer, nicht diesem Dienst |
+
+`node_created` in der Antwort sagt, welcher Fall vorlag. Beide antworten mit
+`200` und derselben `nodeId`, sonst unterscheidet sie nichts.
 
 #### Sammlungen
 
@@ -960,7 +1043,45 @@ Prüft hochgeladene Metadaten gegen die tatsächlichen Werte im Repository (SOLL
 der Dienst daraus baut, und diese Anfrage trägt die Zugangsdaten des
 Service-Accounts. Alles andere wird mit `400` abgelehnt.
 
-**Ohne Body** werden nur die aktuellen Repository-Metadaten gelesen (kein Diff).
+**Ohne Body** werden die aktuellen Repository-Metadaten gelesen und auf tote
+Werte geprüft (kein SOLL/IST-Diff, aber `unresolved` — siehe unten).
+
+#### Tote Werte: `unresolved`
+
+Ein Feld kann exakt den gesendeten Wert tragen und trotzdem nichts bedeuten. Das
+Repository nimmt jeden String an; ob es daraus einen Wert macht, sieht man nur
+daran, ob es ein Label dazu findet:
+
+```
+Vokabularfeld       → <feld>_DISPLAYNAME muss gefüllt sein
+commonlicense_key   → virtual:licenseurl muss da sein
+alles andere        → nichts aufzulösen, kein Urteil
+```
+
+```jsonc
+"unresolved": [
+  { "field_id": "ccm:oeh_lrt",
+    "value": ["…/vocabs/new_lrt/8e83b3f9-…"],
+    "known": false,
+    "reason": "leeres _DISPLAYNAME — der Wert steht in keinem Vokabular" }
+]
+```
+
+**`known: true`** markiert Felder, für die es im MDS gar keinen Wertebereich gibt
+— `ccm:oeh_quality_correctness` und die drei `ccm:commonlicense_ai_*`. Die sind
+korrekt gespeichert, es gibt nur kein Label; sie erscheinen auf jedem Knoten.
+Echte Befunde stehen zuerst in der Liste.
+
+Wird `expected_metadata` mitgeschickt, trägt zusätzlich **jeder Diff-Eintrag**
+eine `resolution` (`resolved` / `unresolved` / `null`), und `summary` zählt
+`unresolved`. Das steht **neben** `status`: ein Feld kann `match` sein und
+trotzdem tot.
+
+**Diesen Endpunkt braucht es, weil `200` nichts beweist.** Drei Fehler dieser Art
+sind in dieser Sitzung aufgetreten — ein Feld ohne Property im Content-Modell,
+ein Lizenzschlüssel in der falschen Schreibweise, eine Vokabular-URI, die es
+nicht gibt. Keiner war im Statuscode, in `fields_written` oder im SOLL/IST-Diff
+zu sehen.
 
 **Fehlerhafter Body** wird mit `400` abgelehnt — ungültiges JSON, kein JSON-Objekt oder
 ein Verstoß gegen das Schema. Wer einen Vergleich anfordert, bekommt entweder einen

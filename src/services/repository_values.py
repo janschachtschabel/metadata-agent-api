@@ -156,29 +156,34 @@ def transform_author_to_vcard(normalized: dict):
         )
 
 
-def transform_lrt(normalized: dict):
+def transform_lrt(normalized: dict, original: dict | None = None):
     """
-    Move the extracted learning resource type into the property the repo keeps.
+    Accept the old name for the learning resource type and file it under the new.
 
-    `oeh:new_lrt` is what the schema calls the field and what `/generate`
-    returns, but the repository has no such property: a write is answered 200 and
-    silently discarded, and no node carries it. What edu-sharing stores is
-    `ccm:oeh_lrt`, holding URIs from the same `new_lrt` vocabulary — so this is a
-    rename on the way out, not a conversion.
+    Since schema 2.0.0 the field is called `ccm:oeh_lrt` — the name the
+    repository itself uses — and needs no translation. The released schemas
+    1.8.0 and 1.8.1 still call it `oeh:new_lrt`, and so does every `/generate`
+    answer stored before the rename.
 
-    An existing `ccm:oeh_lrt` wins: whoever set the repository property directly
-    said what they meant, and the coarse type derived from the content type is
-    written separately (see `_write_extended_fields`).
+    `original` is read because the repo_field filter runs first and drops
+    `oeh:new_lrt`: it is not a field of the current schema. Without this the
+    value would disappear without a word, which is the one thing worse than an
+    error.
+
+    An existing `ccm:oeh_lrt` wins — whoever set the repository property said
+    what they meant.
     """
-    lrt = normalized.pop("oeh:new_lrt", None)
-    if not lrt:
+    legacy = normalized.pop("oeh:new_lrt", None)
+    if legacy is None and original is not None:
+        legacy = original.get("oeh:new_lrt")
+        if legacy is not None and not isinstance(legacy, list):
+            legacy = [legacy]
+
+    if not legacy or normalized.get("ccm:oeh_lrt"):
         return
 
-    if "ccm:oeh_lrt" in normalized:
-        return
-
-    normalized["ccm:oeh_lrt"] = lrt
-    print(f"🏷️ LRT: {len(lrt)} entries → ccm:oeh_lrt")
+    normalized["ccm:oeh_lrt"] = legacy
+    print(f"🏷️ LRT: {len(legacy)} entries from oeh:new_lrt → ccm:oeh_lrt")
 
 
 def extract_geo_coordinates(normalized: dict, original: dict):

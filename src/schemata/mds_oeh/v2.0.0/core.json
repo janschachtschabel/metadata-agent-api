@@ -1300,7 +1300,7 @@
       }
     },
     {
-      "id": "oeh:new_lrt",
+      "id": "ccm:oeh_lrt",
       "group": "classification",
       "label": {
         "de": "Lernressourcentyp",
@@ -1318,7 +1318,7 @@
         "labelExactMatch": true
       },
       "system": {
-        "path": "oeh:new_lrt",
+        "path": "ccm:oeh_lrt",
         "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/",
         "datatype": "array",
         "multiple": true,
@@ -1332,6 +1332,76 @@
           "type": "skos",
           "scheme": "http://w3id.org/openeduhub/vocabs/new_lrt/",
           "concepts": [
+            {
+              "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/1846d876-d8fd-476a-b540-b8ffd713fedb",
+              "label": {
+                "de": "Material",
+                "en": "Material"
+              }
+            },
+            {
+              "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/36e68792-6159-481d-a97b-2c00901f4f78",
+              "label": {
+                "de": "Arbeitsblatt",
+                "en": "Arbeitsblatt"
+              }
+            },
+            {
+              "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/7a6e9608-2554-4981-95dc-47ab9ba924de",
+              "label": {
+                "de": "Video (Material)",
+                "en": "Video (Material)"
+              }
+            },
+            {
+              "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/ec2682af-08a9-4ab1-a324-9dca5151e99f",
+              "label": {
+                "de": "Audio",
+                "en": "Audio"
+              }
+            },
+            {
+              "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/a6d1ac52-c557-4151-bc6f-0d99b0b96fb9",
+              "label": {
+                "de": "Bild (Material)",
+                "en": "Bild (Material)"
+              }
+            },
+            {
+              "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/92c7a50c-6243-45d9-8b11-e79cbbda6305",
+              "label": {
+                "de": "Präsentation",
+                "en": "Präsentation"
+              }
+            },
+            {
+              "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/7d591b84-9171-47cb-809a-74ef07f07261",
+              "label": {
+                "de": "Quiz",
+                "en": "Quiz"
+              }
+            },
+            {
+              "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/0cef3ce9-e106-47ae-836a-48f9ed04384e",
+              "label": {
+                "de": "Dokumente und textbasierte Inhalte",
+                "en": "Dokumente und textbasierte Inhalte"
+              }
+            },
+            {
+              "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/d8c3ef03-b3ab-4a5e-bcc9-5a546fefa2e9",
+              "label": {
+                "de": "Webseite",
+                "en": "Webseite"
+              }
+            },
+            {
+              "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/5098cf0b-1c12-4a1b-a6d3-b3f29621e11d",
+              "label": {
+                "de": "Unterrichtsbaustein",
+                "en": "Unterrichtsbaustein"
+              }
+            },
             {
               "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/3869b453-d3c1-4b34-8f25-9127e9d68766",
               "label": {
@@ -1694,13 +1764,6 @@
               "label": {
                 "de": "Mathematik-Tool",
                 "en": "Mathematik-Tool"
-              }
-            },
-            {
-              "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/7d591b84-9171-47cb-809a-74ef07f07261",
-              "label": {
-                "de": "Quiz",
-                "en": "Quiz"
               }
             },
             {
@@ -2096,20 +2159,6 @@
               }
             },
             {
-              "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/1846d876-d8fd-476a-b540-b8ffd713fedb",
-              "label": {
-                "de": "Material",
-                "en": "Material"
-              }
-            },
-            {
-              "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/0cef3ce9-e106-47ae-836a-48f9ed04384e",
-              "label": {
-                "de": "Dokumente und textbasierte Inhalte",
-                "en": "Dokumente und textbasierte Inhalte"
-              }
-            },
-            {
               "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/01551356-a6a3-44fc-9662-7d366d7af0ac",
               "label": {
                 "de": "sonstiges Buch und E-Book",
@@ -2201,24 +2250,10 @@
               }
             },
             {
-              "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/d8c3ef03-b3ab-4a5e-bcc9-5a546fefa2e9",
-              "label": {
-                "de": "Webseite",
-                "en": "Webseite"
-              }
-            },
-            {
               "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/f7e92628-4132-4985-bcf5-93c285e300a8",
               "label": {
                 "de": "Noten",
                 "en": "Noten"
-              }
-            },
-            {
-              "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/ec2682af-08a9-4ab1-a324-9dca5151e99f",
-              "label": {
-                "de": "Audio",
-                "en": "Audio"
               }
             },
             {
@@ -2355,13 +2390,6 @@
               }
             },
             {
-              "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/5098cf0b-1c12-4a1b-a6d3-b3f29621e11d",
-              "label": {
-                "de": "Unterrichtsbaustein",
-                "en": "Unterrichtsbaustein"
-              }
-            },
-            {
               "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/94222751-6c90-4623-9c7e-09e21d885599",
               "label": {
                 "de": "Unterrichtsidee",
@@ -2446,13 +2474,6 @@
               }
             },
             {
-              "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/36e68792-6159-481d-a97b-2c00901f4f78",
-              "label": {
-                "de": "Arbeitsblatt",
-                "en": "Arbeitsblatt"
-              }
-            },
-            {
               "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/4735c61a-429b-4909-9f3c-cbf975e2aa0e",
               "label": {
                 "de": "Experiment (Lehr- und Lernmaterial)",
@@ -2530,13 +2551,6 @@
               }
             },
             {
-              "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/92c7a50c-6243-45d9-8b11-e79cbbda6305",
-              "label": {
-                "de": "Präsentation",
-                "en": "Präsentation"
-              }
-            },
-            {
               "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/9a86beb5-1a65-48ca-99c8-e8c789cfe2f8",
               "label": {
                 "de": "Entdeckendes Lernen (Lehr- und Lernmaterial)",
@@ -2590,13 +2604,6 @@
               "label": {
                 "de": "Stationenlernen",
                 "en": "Stationenlernen"
-              }
-            },
-            {
-              "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/a6d1ac52-c557-4151-bc6f-0d99b0b96fb9",
-              "label": {
-                "de": "Bild (Material)",
-                "en": "Bild (Material)"
               }
             },
             {
@@ -2660,13 +2667,6 @@
               "label": {
                 "de": "Foto",
                 "en": "Foto"
-              }
-            },
-            {
-              "uri": "http://w3id.org/openeduhub/vocabs/new_lrt/7a6e9608-2554-4981-95dc-47ab9ba924de",
-              "label": {
-                "de": "Video (Material)",
-                "en": "Video (Material)"
               }
             },
             {
@@ -3978,7 +3978,7 @@
     "ccm:oeh_extendedType": [],
     "ccm:educationalcontext": [],
     "ccm:taxonid": [],
-    "oeh:new_lrt": [],
+    "ccm:oeh_lrt": [],
     "ccm:educationalintendedenduserrole": []
   }
 }

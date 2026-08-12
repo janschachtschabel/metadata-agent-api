@@ -514,12 +514,26 @@ async def test_the_content_type_uri_follows_the_schema_that_was_used(recorded):
 # the two ends up on the node decides whether an upload says 'Arbeitsblatt' or
 # just 'Material'.
 
-ARBEITSBLATT = f"{VOCAB}/new_lrt/8e83b3f9-cd5b-4bef-99c9-6bcdd6b1f3d8"
+ARBEITSBLATT = f"{VOCAB}/new_lrt/36e68792-6159-481d-a97b-2c00901f4f78"
 
 
 @pytest.mark.asyncio
 async def test_the_extracted_type_is_written_to_the_repository_property(recorded):
-    """oeh:new_lrt does not exist in the content model — ccm:oeh_lrt does."""
+    """The schema and the repository agree on the name since 2.0.0."""
+    await _upload_with_extended(
+        metadata={**GENERATED_METADATA, "ccm:oeh_lrt": [ARBEITSBLATT]}
+    )
+
+    assert _written_metadata(recorded)["ccm:oeh_lrt"] == [ARBEITSBLATT]
+
+
+@pytest.mark.asyncio
+async def test_the_name_the_frozen_schemas_use_still_lands_in_the_property(recorded):
+    """
+    1.8.0 and 1.8.1 call the field oeh:new_lrt and are released. A caller pinning
+    one of them, or replaying a stored /generate answer from before the rename,
+    must not lose the value.
+    """
     await _upload_with_extended(
         metadata={**GENERATED_METADATA, "oeh:new_lrt": [ARBEITSBLATT]}
     )
@@ -531,15 +545,14 @@ async def test_the_extracted_type_is_written_to_the_repository_property(recorded
 
 
 @pytest.mark.asyncio
-async def test_the_derived_type_does_not_overwrite_the_extracted_one(recorded):
+@pytest.mark.parametrize("key", ["ccm:oeh_lrt", "oeh:new_lrt"])
+async def test_the_derived_type_does_not_overwrite_the_extracted_one(recorded, key):
     """
     The extended write happens after the metadata write. Setting the coarse
     derived type there unconditionally would replace 'Arbeitsblatt' with
     'Material' — silently, and only on the node.
     """
-    await _upload_with_extended(
-        metadata={**GENERATED_METADATA, "oeh:new_lrt": [ARBEITSBLATT]}
-    )
+    await _upload_with_extended(metadata={**GENERATED_METADATA, key: [ARBEITSBLATT]})
 
     assert "ccm:oeh_lrt" not in _extended_write(recorded)
 

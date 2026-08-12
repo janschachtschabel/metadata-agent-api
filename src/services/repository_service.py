@@ -16,7 +16,7 @@ from .repository_curation import (
     run_workflow_steps,
     set_collections,
 )
-from .repository_diff import compute_diff, properties_to_flat
+from .repository_diff import compute_diff, properties_to_flat, unresolved_values
 from .repository_licenses import transform_license
 from .repository_values import (
     extract_geo_coordinates,
@@ -96,6 +96,32 @@ EXTENDED_TYPE_TO_NEW_LRT = {
 }
 
 
+# Alfresco refuses these in cm:name, and trims dots and spaces at the edges.
+_FORBIDDEN_IN_NAME = re.compile(r'[*"\\><?/:|]')
+_MAX_NAME_LENGTH = 200
+
+
+def derive_node_name(title: str) -> str:
+    """
+    Turn a title into a name Alfresco accepts.
+
+    edu-sharing works `cm:name` out from `ccm:wwwurl` and answers
+    `500 missing name` when there is none — it never falls back to the title.
+    Measured against staging on 2026-08-12.
+    """
+    name = _FORBIDDEN_IN_NAME.sub("_", str(title))
+    name = " ".join(name.split()).strip(" .")
+    name = name[:_MAX_NAME_LENGTH].strip(" .")
+    return name or "Unbenannt"
+
+
+def _first(value: Any) -> Any:
+    """Unwrap a repository property: they are arrays, the answer wants one value."""
+    if isinstance(value, list):
+        return value[0] if value else None
+    return value
+
+
 class RepositoryService:
     """
     Service for uploading metadata to WLO edu-sharing repository.
@@ -124,6 +150,75 @@ class RepositoryService:
         """Create Basic Auth header (credentials are guaranteed by the factory)."""
         return build_auth_header(self.username, self.password) or ""
 
+    async def create_node(
+        self,
+        metadata: dict[str, Any],
+        check_duplicates: bool = False,
+    ) -> dict[str, Any]:
+        """
+        Create a node and stop there, so the caller has an id to work with.
+
+        The first half of `upload_metadata`, on its own: the same five fields the
+        upload path puts on a new node (title, description, keywords, url,
+        language) plus `ccm:linktype`. Everything beyond that needs the schema
+        filter, which is what handing the id back to `/upload` is for.
+
+        A title is required. A node without one is unfindable in the inbox, and
+        the point of this call is to get something a human can refer to.
+        """
+        config = _get_repository_config()
+        base_url = config["base_url"]
+
+        clean_metadata = self._extract_metadata_fields(metadata)
+        title = clean_metadata.get("cclom:title") or clean_metadata.get("schema:name")
+        if not title:
+            return {
+                "success": False,
+                "error": "cclom:title fehlt — ein Node ohne Titel ist im Eingangsordner nicht auffindbar.",
+            }
+
+        try:
+            timeout = httpx.Timeout(45.0, connect=10.0)
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                if check_duplicates:
+                    url = clean_metadata.get("ccm:wwwurl")
+                    if url:
+                        duplicate = await self._check_duplicate(client, base_url, url)
+                        if duplicate.get("exists"):
+                            existing = duplicate.get("nodeId")
+                            return {
+                                "success": False,
+                                "duplicate": True,
+                                "node": {
+                                    "nodeId": existing,
+                                    "title": duplicate.get("title"),
+                                    "wwwurl": url,
+                                    "repositoryUrl": f"{base_url}/components/render/{existing}",
+                                },
+                                "error": f'URL existiert bereits: "{duplicate.get("title")}"',
+                            }
+
+                result = await self._create_node(
+                    client, base_url, config["inbox_id"], clean_metadata
+                )
+                if not result.get("success"):
+                    return result
+
+                node_id = result["nodeId"]
+                print(f"✅ Created node: {node_id}")
+                return {
+                    "success": True,
+                    "node": {
+                        "nodeId": node_id,
+                        "title": _first(clean_metadata.get("cclom:title")),
+                        "wwwurl": _first(clean_metadata.get("ccm:wwwurl")),
+                        "repositoryUrl": f"{base_url}/components/render/{node_id}",
+                    },
+                }
+        except Exception as e:
+            print(f"❌ Node creation failed: {type(e).__name__}: {e}")
+            return {"success": False, "error": f"{type(e).__name__}: {e}"}
+
     async def upload_metadata(
         self,
         metadata: dict[str, Any],
@@ -139,6 +234,7 @@ class RepositoryService:
         workflow_steps: Optional[list[str]] = None,
         workflow_comment: Optional[str] = None,
         workflow_receiver: Optional[list[str]] = None,
+        node_id: Optional[str] = None,
     ) -> dict[str, Any]:
         """
         Upload metadata to WLO repository.
@@ -178,15 +274,21 @@ class RepositoryService:
         if schema_file:
             print(f"   Schemas: core.json + {schema_file}")
 
-        # Remembered so a failure after this point can undo the half-finished node
+        # Remembered so a failure after this point can undo the half-finished
+        # node. Only ever set for a node this call created: a node the caller
+        # handed over may hold their content and is not ours to bin.
         created_node_id: Optional[str] = None
+        reuse_node_id = node_id or None
 
         try:
             # Longer timeout for sequential edu-sharing calls (especially on Vercel)
             timeout = httpx.Timeout(45.0, connect=10.0)
             async with httpx.AsyncClient(timeout=timeout) as client:
-                # 1. Check for duplicates
-                if check_duplicates:
+                # 1. Check for duplicates. Skipped for a node that was handed
+                # over: the check searches by ccm:wwwurl, and the node being
+                # filled in already carries that URL — it would find the target
+                # itself and refuse the upload as its own duplicate.
+                if check_duplicates and not reuse_node_id:
                     url = clean_metadata.get("ccm:wwwurl")
                     if url:
                         duplicate = await self._check_duplicate(client, base_url, url)
@@ -210,16 +312,20 @@ class RepositoryService:
                                 )
                             return dup_result
 
-                # 2. Create node with minimal data
-                node_result = await self._create_node(
-                    client, base_url, inbox_id, clean_metadata
-                )
-                if not node_result.get("success"):
-                    return node_result
+                # 2. Create node with minimal data — unless one was handed over
+                if reuse_node_id:
+                    node_id = reuse_node_id
+                    print(f"📌 Using existing node: {node_id}")
+                else:
+                    node_result = await self._create_node(
+                        client, base_url, inbox_id, clean_metadata
+                    )
+                    if not node_result.get("success"):
+                        return node_result
 
-                node_id = node_result["nodeId"]
-                created_node_id = node_id
-                print(f"✅ Created node: {node_id}")
+                    node_id = node_result["nodeId"]
+                    created_node_id = node_id
+                    print(f"✅ Created node: {node_id}")
 
                 # 2b. Add required aspects for special fields
                 await self._ensure_aspects(client, base_url, node_id, clean_metadata)
@@ -269,21 +375,17 @@ class RepositoryService:
                     )
 
                 # Extract key metadata for response (with fallbacks for organization schema)
-                title = clean_metadata.get("cclom:title") or clean_metadata.get(
-                    "schema:name"
+                title = _first(
+                    clean_metadata.get("cclom:title")
+                    or clean_metadata.get("schema:name")
                 )
-                if isinstance(title, list):
-                    title = title[0] if title else None
-                description = clean_metadata.get(
-                    "cclom:general_description"
-                ) or clean_metadata.get("schema:description")
-                if isinstance(description, list):
-                    description = description[0] if description else None
-                wwwurl = clean_metadata.get("ccm:wwwurl") or clean_metadata.get(
-                    "schema:url"
+                description = _first(
+                    clean_metadata.get("cclom:general_description")
+                    or clean_metadata.get("schema:description")
                 )
-                if isinstance(wwwurl, list):
-                    wwwurl = wwwurl[0] if wwwurl else None
+                wwwurl = _first(
+                    clean_metadata.get("ccm:wwwurl") or clean_metadata.get("schema:url")
+                )
 
                 result = {
                     "success": True,
@@ -293,6 +395,9 @@ class RepositoryService:
                     # fields — both answer 200.
                     "schema_used": schema_file,
                     "repo_fields_available": len(repo_field_ids),
+                    # False when the caller handed the node over. Both answer 200
+                    # with the same nodeId, so nothing else tells them apart.
+                    "node_created": created_node_id is not None,
                     "node": {
                         "nodeId": node_id,
                         "title": title,
@@ -515,6 +620,21 @@ class RepositoryService:
                 else:
                     clean_metadata[field] = [value]
 
+        # cm:name is required, and edu-sharing only works one out when there is a
+        # ccm:wwwurl to derive it from — otherwise it answers 500 'missing name'.
+        # Supplied only in that gap: with a URL present the repository builds the
+        # name itself ('example.org_b'), which is what every node uploaded so far
+        # carries, and overriding that would rename them all.
+        supplied_name = metadata.get("cm:name")
+        if supplied_name:
+            clean_metadata["cm:name"] = (
+                supplied_name if isinstance(supplied_name, list) else [supplied_name]
+            )
+        elif not clean_metadata.get("ccm:wwwurl"):
+            title = _first(clean_metadata.get("cclom:title"))
+            if title:
+                clean_metadata["cm:name"] = [derive_node_name(title)]
+
         print(f"📡 Creating node at: {create_url[:80]}...")
         response = await client.post(
             create_url,
@@ -608,7 +728,7 @@ class RepositoryService:
         transform_author_to_vcard(normalized)
 
         # Transform oeh:new_lrt → ccm:oeh_lrt (the property the repository keeps)
-        transform_lrt(normalized)
+        transform_lrt(normalized, metadata)
 
         if not normalized:
             return {
@@ -951,10 +1071,19 @@ class RepositoryService:
                     "actual_metadata": actual,
                 }
 
+                # Which of the node's values the repository does not read as
+                # values. Needs no expected metadata: a field can hold exactly
+                # what was sent and still resolve to nothing, and that is
+                # invisible in every other part of this answer.
+                schema_file = (expected_metadata or {}).get("metadataset")
+                result["unresolved"] = unresolved_values(
+                    properties, context, version, schema_file
+                )
+
                 # If expected metadata provided, compute diff
                 if expected_metadata:
                     diff, summary = compute_diff(
-                        expected_metadata, actual, context, version
+                        expected_metadata, actual, context, version, properties
                     )
                     result["diff"] = diff
                     result["summary"] = summary
