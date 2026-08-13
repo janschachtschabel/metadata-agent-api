@@ -9,6 +9,29 @@ from ..services.repository_curation import KNOWN_WORKFLOW_STATUS
 from ..services.repository_service import is_valid_node_id
 
 
+def blank_is_unset(value: Any) -> Any:
+    """
+    Read a field left empty as 'not given' rather than as an empty value.
+
+    The examples in the Swagger UI are form-shaped: every option spelled out,
+    the unused ones left empty. What arrives is `""`, and any consumer asking
+    `is not None` then takes 'left blank' for a deliberate choice. That is how
+    the documented upload example wrote an empty comment into every node's
+    workflow history instead of the default it promises — answered `200`, with
+    nothing to notice.
+
+    Applied at the boundary, so `is not None` keeps its meaning further in for
+    a caller who genuinely means to send an empty value.
+
+    Optional text fields only. A field with a non-empty default (`context`,
+    `version`) must keep its `""`, because None would fail its own type check
+    before the endpoint's `or "default"` ever runs.
+    """
+    if isinstance(value, str) and not value.strip():
+        return None
+    return value
+
+
 def validate_node_id(value: Any) -> Any:
     """
     Reject anything that is present but is not an edu-sharing node id.
@@ -211,6 +234,16 @@ class GenerateRequest(BaseModel):
         if isinstance(v, str):
             return sanitize_text(v)
         return v
+
+    _blank_is_unset = field_validator(
+        "text",
+        "source_url",
+        "llm_provider",
+        "llm_model",
+        "preview_url",
+        "screenshot_method",
+        mode="before",
+    )(blank_is_unset)
 
     model_config = {
         "json_schema_extra": {
@@ -723,6 +756,14 @@ class UploadRequest(BaseModel):
             return "pageshot"
         return v
 
+    _blank_is_unset = field_validator(
+        "source",
+        "workflow_comment",
+        "preview_url",
+        "extended_text",
+        mode="before",
+    )(blank_is_unset)
+
     # Extended Data options
     write_extended_data: bool = Field(
         default=True,
@@ -925,6 +966,8 @@ class WorkflowRequest(BaseModel):
         ),
     )
 
+    _blank_is_unset = field_validator("comment", mode="before")(blank_is_unset)
+
     @field_validator("steps", mode="before")
     @classmethod
     def normalize_steps(cls, v: Any) -> Any:
@@ -1122,6 +1165,10 @@ class DetectContentTypeRequest(BaseModel):
             return sanitize_text(v)
         return v
 
+    _blank_is_unset = field_validator(
+        "text", "source_url", "llm_provider", "llm_model", mode="before"
+    )(blank_is_unset)
+
     model_config = {
         "json_schema_extra": {
             "examples": [
@@ -1252,6 +1299,10 @@ class ExtractFieldRequest(BaseModel):
         if isinstance(v, str):
             return sanitize_text(v)
         return v
+
+    _blank_is_unset = field_validator(
+        "text", "source_url", "llm_provider", "llm_model", mode="before"
+    )(blank_is_unset)
 
     model_config = {
         "json_schema_extra": {

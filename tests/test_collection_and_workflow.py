@@ -308,7 +308,9 @@ def test_upload_forwards_collection_and_workflow_options(client):
             "cclom:title": "Titel",
             "collection_id": [COLLECTION_ID],
             "workflow_steps": [DEFAULT_WORKFLOW_STATUS, "140_ELEMENT_LEGALLY_APPROVED"],
-            "workflow_comment": "",
+            "workflow_comment": "Redaktionell geprüft",
+            # Stays empty: for the receiver, [] is a choice ('notify nobody')
+            # rather than a blank field — see tests/test_blank_means_unset.py.
             "workflow_receiver": [],
         },
     )
@@ -320,7 +322,7 @@ def test_upload_forwards_collection_and_workflow_options(client):
         DEFAULT_WORKFLOW_STATUS,
         "140_ELEMENT_LEGALLY_APPROVED",
     ]
-    assert call["workflow_comment"] == ""
+    assert call["workflow_comment"] == "Redaktionell geprüft"
     assert call["workflow_receiver"] == []
     # the upload options must not leak into the metadata written to the node
     assert "collection_id" not in call["metadata"]

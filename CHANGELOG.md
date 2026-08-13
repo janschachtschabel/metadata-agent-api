@@ -625,6 +625,58 @@ An zwei echten Knoten geprüft: der Testknoten meldet **einen** echten Befund
 > noch einmal als `extra_in_repo`. Beides behoben; die Umbenennungstabelle liegt
 > jetzt an einer Stelle.
 
+### 22. `/upload` zeigt seine Optionen — und ein leeres Feld heißt jetzt überall dasselbe
+
+Zwei Befunde aus derselben Ecke.
+
+**Das Schema unter `/docs` war leer.** `/upload` nimmt einen rohen `Request`,
+weil es zwei Body-Formen akzeptiert — flach oder unter `metadata` —, und
+deklarierte seinen Body deshalb von Hand als `{"type": "object"}`: ein Objekt
+ohne eine einzige Property. Der Schema-Reiter listete nichts. Alle 15 Optionen
+existierten am Modell und waren unsichtbar, sofern sie nicht zufällig in einem
+Beispiel vorkamen — `collection_id` in einem von zweien, `node_id` in keinem.
+
+Das Schema wird jetzt aus `UploadRequest` abgeleitet, mit zwei Lockerungen für
+die flache Form: nichts ist `required` (die Metadaten liegen dort auf oberster
+Ebene), und zusätzliche Properties sind eben jene Metadatenfelder. Abgeleitet
+statt abgeschrieben, damit die nächste Option nicht vergessen wird. Dazu ein
+drittes Beispiel für den zweistufigen Upload.
+
+**Ein leeres Feld wurde stellenweise als Wert gelesen.** Die Beispiele sind wie
+ein Formular gebaut: jede Option aufgeführt, die ungenutzten leer. Beide
+dokumentierten Beispiele trugen `"workflow_comment": ""` bzw. `"comment": ""` —
+und die Workflow-Historie liest
+
+```python
+comment if comment is not None else "Upload via Metadata Agent API"
+```
+
+Ein Leerstring ist nicht `None`. **Wer das dokumentierte Beispiel unverändert
+abschickte, schrieb einen leeren Kommentar in die Workflow-Historie** statt des
+zugesagten Standards — mit `200` und ohne Hinweis.
+
+Umgekehrt geprüft, damit die Reichweite stimmt: Knoten `5443240c-…` auf Staging
+trägt `'Upload via Metadata Agent API'`. Uploads, die den Parameter schlicht
+weggelassen haben, waren also nie betroffen — nur die, die ihn leer mitschickten,
+wie es die Beispiele vormachten.
+
+Behoben an der Grenze: ein leer gelassenes Textfeld wird zu `None`, in allen
+Request-Modellen, sodass `is not None` weiter drinnen seine Bedeutung behält.
+
+Die übrigen leeren Felder wurden einzeln nachgesehen und waren in Ordnung —
+`source`, `preview_url`, `extended_text`, `text`, `source_url` prüfen alle auf
+Truthiness, `llm_provider`/`llm_model` fallen über `or` zurück (kosteten
+allerdings pro Aufruf eine überflüssige Service-Instanz; jetzt nicht mehr).
+
+Für Listen gilt **keine** einheitliche Regel, und das ist Absicht:
+
+| Feld | leere Liste |
+|------|-------------|
+| `collection_id` | = nicht angegeben |
+| `regenerate_fields` | = nicht angegeben (bereits an der Konsumstelle) |
+| `workflow_receiver` / `receiver` | **niemanden benachrichtigen** — eine echte Wahl, die sonst verloren ginge |
+| `workflow_steps` / `steps` | `422` mit Verweis auf `start_workflow: false` |
+
 ## Konfiguration
 
 ### `WLO_REPOSITORY_BASE_URL` entfernt

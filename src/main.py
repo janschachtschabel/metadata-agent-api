@@ -10,7 +10,7 @@ from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.openapi.utils import get_openapi
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from contextlib import asynccontextmanager
 
 from .config import get_settings
@@ -255,6 +255,35 @@ def custom_openapi():
 
 
 app.openapi = custom_openapi
+
+
+def documented_body_schema(model: type[BaseModel]) -> dict:
+    """
+    Describe the body of an endpoint that takes a raw `Request`.
+
+    /upload accepts two shapes — the fields flat at the top level, which is the
+    documented recommendation, or wrapped under `metadata` — so no single
+    Pydantic parameter can express it and the route has to declare its body via
+    `openapi_extra`. That slot held `{"type": "object"}`: an object with no
+    properties, so the Schema tab in /docs listed nothing and every option was
+    invisible unless it happened to appear in an example. Writing the properties
+    out by hand instead would put a second copy of every option next to the
+    model, to drift on the next one added.
+
+    Two relaxations against the model, both because of the flat form: nothing is
+    required (its `metadata` is spread across the top level), and the extra
+    properties are those metadata fields.
+    """
+    schema = model.model_json_schema(ref_template="#/components/schemas/{model}")
+    # custom_openapi() puts the same sub-schemas into components, which is where
+    # the refs left in `properties` point.
+    schema.pop("$defs", None)
+    schema.pop("required", None)
+    # The route offers named examples; the model's own would compete with them.
+    schema.pop("examples", None)
+    schema["additionalProperties"] = True
+    return schema
+
 
 # CORS middleware - origins configurable via METADATA_AGENT_CORS_ORIGINS env var
 _cors_origins = (
@@ -2156,11 +2185,11 @@ Kostet einen zusätzlichen Repository-Aufruf. Schlägt der Lesevorgang fehl, ble
         "requestBody": {
             "content": {
                 "application/json": {
-                    "schema": {"type": "object"},
+                    "schema": documented_body_schema(UploadRequest),
                     "examples": {
                         "direkt": {
                             "summary": "Direkter Output von /generate",
-                            "description": "Kopiere den Output von /generate hier rein. Optional: check_duplicates, start_workflow, preview_url, screenshot_method",
+                            "description": "Kopiere den Output von /generate hier rein. Die Optionen darunter sind alle freiwillig — leer gelassen gilt jeweils der Standard.",
                             "value": {
                                 "contextName": "default",
                                 "schemaVersion": "1.8.1",
@@ -2169,6 +2198,8 @@ Kostet einen zusätzlichen Repository-Aufruf. Schlägt der Lesevorgang fehl, ble
                                 "ccm:wwwurl": "https://example.com/workshop",
                                 "check_duplicates": True,
                                 "start_workflow": True,
+                                "node_id": "",
+                                "collection_id": [],
                                 "preview_url": "",
                                 "screenshot_method": "pageshot",
                                 "write_extended_data": True,
@@ -2191,7 +2222,19 @@ Kostet einen zusätzlichen Repository-Aufruf. Schlägt der Lesevorgang fehl, ble
                                     "200_tocheck",
                                     "140_ELEMENT_LEGALLY_APPROVED",
                                 ],
-                                "workflow_comment": "",
+                                "workflow_comment": "Redaktionell geprüft",
+                            },
+                        },
+                        "in_bestehenden_node": {
+                            "summary": "Zweistufig — in einen vorhandenen Node schreiben",
+                            "description": "Zweiter Schritt nach POST /node: die dort gelieferte Node-ID hier als node_id angeben. Es wird kein neuer Node angelegt, die Dublettenprüfung entfällt, und bei einem Fehler bleibt der Node erhalten.",
+                            "value": {
+                                "contextName": "default",
+                                "schemaVersion": "2.0.0",
+                                "metadataset": "learning_material.json",
+                                "cclom:title": "Bruchrechnung Klasse 6",
+                                "ccm:wwwurl": "https://example.com/bruchrechnung",
+                                "node_id": "3039bdb2-f51f-4cc8-b1d9-3fb6b0ffc1d9",
                             },
                         },
                     },

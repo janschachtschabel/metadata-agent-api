@@ -745,6 +745,28 @@ existieren, weil beide Formen im Umlauf sind:
 | `workflow_receiver` | string[] | siehe unten | Authority-Namen, die je Schritt benachrichtigt werden |
 | `node_id` | string | — | Bestehender Node, in den geschrieben wird — z.B. aus [POST /node](#post-node). Ohne Angabe wird einer angelegt |
 
+Alle Parameter außer `metadata` sind optional und stehen mitsamt Beschreibung im
+Schema unter `/docs`.
+
+#### Leere Felder
+
+Die Beispiele unter `/docs` sind wie ein Formular aufgebaut: jede Option ist
+aufgeführt, die ungenutzten leer. **Ein leer gelassenes Feld zählt als nicht
+angegeben** — es gilt derselbe Standard wie beim Weglassen, kein Fehler und kein
+leerer Wert im Repository:
+
+```jsonc
+{ "node_id": "", "collection_id": [], "workflow_comment": "" }
+// identisch zu: {}
+```
+
+Zwei Ausnahmen, weil „leer" dort etwas anderes heißt als „nicht angegeben":
+
+| Feld | leere Liste bedeutet |
+|------|----------------------|
+| `workflow_receiver` | **niemanden benachrichtigen.** Weggelassen benachrichtigt bei `200_tocheck` die Uploadmanager-Gruppe |
+| `workflow_steps` | wird mit `422` abgelehnt — weggelassen läuft der Standardschritt und übergibt an die Redaktion, was das Gegenteil von „kein Schritt" ist. Dafür gibt es `start_workflow: false` |
+
 #### Zweistufiger Upload mit `node_id`
 
 Wer die Node-ID früher braucht als die Metadaten, legt sie mit
